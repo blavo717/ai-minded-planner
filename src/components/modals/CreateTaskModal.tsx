@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,7 +31,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useTasks, CreateTaskData, Project } from '@/hooks/useTasks';
+import { CreateTaskData } from '@/hooks/useTasks';
+import { Project } from '@/hooks/useProjects';
+import { useTaskMutations } from '@/hooks/useTaskMutations';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'El título es requerido'),
@@ -54,7 +55,7 @@ interface CreateTaskModalProps {
 }
 
 const CreateTaskModal = ({ isOpen, onClose, projects }: CreateTaskModalProps) => {
-  const { createTask, isCreatingTask } = useTasks();
+  const { createTask, isCreatingTask } = useTaskMutations();
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),

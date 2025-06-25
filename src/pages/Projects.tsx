@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
-import { useTasks, Project } from '@/hooks/useTasks';
+import { useTasks } from '@/hooks/useTasks';
+import { useProjects } from '@/hooks/useProjects';
+import { useProjectMutations } from '@/hooks/useProjectMutations';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +26,9 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const Projects = () => {
-  const { projects, tasks, deleteProject } = useTasks();
+  const { projects } = useProjects();
+  const { tasks } = useTasks();
+  const { deleteProject } = useProjectMutations();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
 
   const getProjectStats = (projectId: string) => {

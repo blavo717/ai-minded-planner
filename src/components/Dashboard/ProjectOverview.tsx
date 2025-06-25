@@ -1,7 +1,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Project, Task } from '@/hooks/useTasks';
+import { Project } from '@/hooks/useProjects';
+import { Task } from '@/hooks/useTasks';
 import { Folder, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';

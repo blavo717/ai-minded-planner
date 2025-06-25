@@ -1,16 +1,15 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Calendar, FolderPlus, BarChart3 } from 'lucide-react';
 import CreateTaskModal from '@/components/modals/CreateTaskModal';
 import CreateProjectModal from '@/components/modals/CreateProjectModal';
-import { useTasks } from '@/hooks/useTasks';
+import { useProjects } from '@/hooks/useProjects';
 
 const QuickActions = () => {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-  const { projects } = useTasks();
+  const { projects } = useProjects();
 
   const actions = [
     {
