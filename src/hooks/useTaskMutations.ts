@@ -13,6 +13,23 @@ export const useTaskMutations = () => {
     mutationFn: async (taskData: CreateTaskData) => {
       if (!user) throw new Error('User not authenticated');
       
+      // Determinar task_level basado en parent_task_id
+      let taskLevel = 1; // Por defecto, tarea principal
+      
+      if (taskData.parent_task_id) {
+        // Obtener la tarea padre para determinar el nivel
+        const { data: parentTask, error: parentError } = await supabase
+          .from('tasks')
+          .select('task_level')
+          .eq('id', taskData.parent_task_id)
+          .single();
+        
+        if (parentError) throw parentError;
+        
+        // El nivel es el del padre + 1 (máximo 3)
+        taskLevel = Math.min(parentTask.task_level + 1, 3) as 1 | 2 | 3;
+      }
+      
       const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -20,6 +37,7 @@ export const useTaskMutations = () => {
           user_id: user.id,
           status: taskData.status || 'pending',
           priority: taskData.priority || 'medium',
+          task_level: taskLevel,
         })
         .select()
         .single();
@@ -100,10 +118,23 @@ export const useTaskMutations = () => {
     },
   });
 
+  // Nueva función para crear microtareas
+  const createMicrotask = (subtaskId: string, title: string, description?: string) => {
+    createTaskMutation.mutate({
+      title,
+      description,
+      parent_task_id: subtaskId,
+      status: 'pending',
+      priority: 'medium',
+      task_level: 3,
+    });
+  };
+
   return {
     createTask: createTaskMutation.mutate,
     updateTask: updateTaskMutation.mutate,
     deleteTask: deleteTaskMutation.mutate,
+    createMicrotask,
     isCreatingTask: createTaskMutation.isPending,
     isUpdatingTask: updateTaskMutation.isPending,
     isDeletingTask: deleteTaskMutation.isPending,

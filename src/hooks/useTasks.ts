@@ -19,6 +19,14 @@ export interface Task {
   estimated_duration?: number;
   actual_duration?: number;
   tags?: string[];
+  // New fields from Phase 1
+  last_worked_at?: string;
+  last_communication_at?: string;
+  communication_type?: 'email' | 'phone' | 'meeting' | 'whatsapp' | 'chat' | 'video_call' | 'in_person' | 'other';
+  communication_notes?: string;
+  task_level: 1 | 2 | 3; // 1=tarea, 2=subtarea, 3=microtarea
+  ai_priority_score?: number;
+  needs_followup?: boolean;
 }
 
 export interface CreateTaskData {
@@ -31,6 +39,7 @@ export interface CreateTaskData {
   parent_task_id?: string;
   estimated_duration?: number;
   tags?: string[];
+  task_level?: 1 | 2 | 3;
 }
 
 export interface UpdateTaskData {
@@ -46,6 +55,11 @@ export interface UpdateTaskData {
   actual_duration?: number;
   tags?: string[];
   completed_at?: string;
+  last_worked_at?: string;
+  last_communication_at?: string;
+  communication_type?: 'email' | 'phone' | 'meeting' | 'whatsapp' | 'chat' | 'video_call' | 'in_person' | 'other';
+  communication_notes?: string;
+  needs_followup?: boolean;
 }
 
 export const useTasks = () => {
@@ -68,19 +82,65 @@ export const useTasks = () => {
     enabled: !!user,
   });
 
-  // Separar tareas principales de subtareas
-  const mainTasks = tasks.filter(task => !task.parent_task_id);
-  const subtasks = tasks.filter(task => task.parent_task_id);
+  // Separar por niveles de jerarquía
+  const mainTasks = tasks.filter(task => task.task_level === 1);
+  const subtasks = tasks.filter(task => task.task_level === 2);
+  const microtasks = tasks.filter(task => task.task_level === 3);
 
   const getSubtasksForTask = (taskId: string) => {
     return subtasks.filter(subtask => subtask.parent_task_id === taskId);
+  };
+
+  const getMicrotasksForSubtask = (subtaskId: string) => {
+    return microtasks.filter(microtask => microtask.parent_task_id === subtaskId);
+  };
+
+  const getTasksByLevel = (level: 1 | 2 | 3) => {
+    return tasks.filter(task => task.task_level === level);
+  };
+
+  const getTasksNeedingFollowup = () => {
+    return tasks.filter(task => task.needs_followup === true);
+  };
+
+  const getTasksWithoutRecentActivity = (daysSince: number = 7) => {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysSince);
+    
+    return tasks.filter(task => {
+      const lastActivity = task.last_worked_at || task.last_communication_at;
+      if (!lastActivity) return true;
+      return new Date(lastActivity) < cutoffDate;
+    });
+  };
+
+  const getTaskHierarchy = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return null;
+
+    const subtasks = getSubtasksForTask(taskId);
+    const taskWithSubtasks = subtasks.map(subtask => ({
+      ...subtask,
+      microtasks: getMicrotasksForSubtask(subtask.id)
+    }));
+
+    return {
+      ...task,
+      subtasks: taskWithSubtasks
+    };
   };
 
   return {
     tasks,
     mainTasks,
     subtasks,
+    microtasks,
     getSubtasksForTask,
+    getMicrotasksForSubtask,
+    getTasksByLevel,
+    getTasksNeedingFollowup,
+    getTasksWithoutRecentActivity,
+    getTaskHierarchy,
     isLoading: tasksLoading,
     error: tasksError,
   };

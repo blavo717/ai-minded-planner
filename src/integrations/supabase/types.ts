@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_daily_plans: {
+        Row: {
+          ai_confidence: number | null
+          completion_rate: number | null
+          created_at: string
+          estimated_duration: number | null
+          id: string
+          optimization_strategy: string | null
+          plan_date: string
+          planned_tasks: Json
+          updated_at: string
+          user_feedback: Json | null
+          user_id: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          completion_rate?: number | null
+          created_at?: string
+          estimated_duration?: number | null
+          id?: string
+          optimization_strategy?: string | null
+          plan_date: string
+          planned_tasks?: Json
+          updated_at?: string
+          user_feedback?: Json | null
+          user_id: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          completion_rate?: number | null
+          created_at?: string
+          estimated_duration?: number | null
+          id?: string
+          optimization_strategy?: string | null
+          plan_date?: string
+          planned_tasks?: Json
+          updated_at?: string
+          user_feedback?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_insights: {
         Row: {
           created_at: string
@@ -50,6 +92,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      ai_task_monitoring: {
+        Row: {
+          analysis_data: Json
+          bottleneck_detected: boolean | null
+          created_at: string
+          id: string
+          monitoring_type: string
+          predicted_completion_date: string | null
+          priority_score: number | null
+          suggestions: Json | null
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          analysis_data?: Json
+          bottleneck_detected?: boolean | null
+          created_at?: string
+          id?: string
+          monitoring_type: string
+          predicted_completion_date?: string | null
+          priority_score?: number | null
+          suggestions?: Json | null
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          analysis_data?: Json
+          bottleneck_detected?: boolean | null
+          created_at?: string
+          id?: string
+          monitoring_type?: string
+          predicted_completion_date?: string | null
+          priority_score?: number | null
+          suggestions?: Json | null
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_task_monitoring_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       external_contacts: {
         Row: {
@@ -450,51 +539,72 @@ export type Database = {
       tasks: {
         Row: {
           actual_duration: number | null
+          ai_priority_score: number | null
+          communication_notes: string | null
+          communication_type: string | null
           completed_at: string | null
           created_at: string
           description: string | null
           due_date: string | null
           estimated_duration: number | null
           id: string
+          last_communication_at: string | null
+          last_worked_at: string | null
+          needs_followup: boolean | null
           parent_task_id: string | null
           priority: string
           project_id: string | null
           status: string
           tags: string[] | null
+          task_level: number
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
           actual_duration?: number | null
+          ai_priority_score?: number | null
+          communication_notes?: string | null
+          communication_type?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           estimated_duration?: number | null
           id?: string
+          last_communication_at?: string | null
+          last_worked_at?: string | null
+          needs_followup?: boolean | null
           parent_task_id?: string | null
           priority?: string
           project_id?: string | null
           status?: string
           tags?: string[] | null
+          task_level?: number
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
           actual_duration?: number | null
+          ai_priority_score?: number | null
+          communication_notes?: string | null
+          communication_type?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           estimated_duration?: number | null
           id?: string
+          last_communication_at?: string | null
+          last_worked_at?: string | null
+          needs_followup?: boolean | null
           parent_task_id?: string | null
           priority?: string
           project_id?: string | null
           status?: string
           tags?: string[] | null
+          task_level?: number
           title?: string
           updated_at?: string
           user_id?: string
