@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ import {
   Activity
 } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
-import { useDailyPlanner } from '@/hooks/useDailyPlanner';
+import { useDailyPlanner, DailyPlan } from '@/hooks/useDailyPlanner';
 import { useLLMConfigurations } from '@/hooks/useLLMConfigurations';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -65,6 +66,10 @@ const Phase4TestingSuite = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [currentTestIndex, setCurrentTestIndex] = useState(-1);
   const [debugMode, setDebugMode] = useState(false);
+  const [lastGeneratedPlan, setLastGeneratedPlan] = useState<DailyPlan | null>(null);
+
+  // Helper function to sleep/wait
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const updateTestResult = useCallback((index: number, updates: Partial<TestResult>) => {
     setTestResults(prev => prev.map((test, i) => 
@@ -115,9 +120,9 @@ const Phase4TestingSuite = () => {
       const duration = Date.now() - startTime;
       updateTestResult(index, {
         status: 'failed',
-        message: `Error: ${error.message}`,
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         duration,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Error desconocido'
       });
     }
   };
@@ -165,9 +170,9 @@ const Phase4TestingSuite = () => {
       const duration = Date.now() - startTime;
       updateTestResult(index, {
         status: 'failed',
-        message: `Error: ${error.message}`,
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         duration,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Error desconocido'
       });
     }
   };
@@ -227,9 +232,9 @@ const Phase4TestingSuite = () => {
       const duration = Date.now() - startTime;
       updateTestResult(index, {
         status: 'failed',
-        message: `Error: ${error.message}`,
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         duration,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Error desconocido'
       });
     }
   };
@@ -289,9 +294,9 @@ const Phase4TestingSuite = () => {
       const duration = Date.now() - startTime;
       updateTestResult(index, {
         status: 'failed',
-        message: `Error: ${error.message}`,
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         duration,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Error desconocido'
       });
     }
   };
@@ -310,7 +315,7 @@ const Phase4TestingSuite = () => {
       const today = new Date().toISOString().split('T')[0];
       
       // Generar plan usando el hook
-      const planPromise = new Promise((resolve, reject) => {
+      const planPromise = new Promise<DailyPlan>((resolve, reject) => {
         generatePlan({
           planDate: today,
           preferences: {
@@ -333,6 +338,7 @@ const Phase4TestingSuite = () => {
             
             if (todaysPlan && todaysPlan.planned_tasks && todaysPlan.planned_tasks.length > 0) {
               clearTimeout(timeout);
+              setLastGeneratedPlan(todaysPlan);
               resolve(todaysPlan);
             } else if (generatePlanError) {
               clearTimeout(timeout);
@@ -371,9 +377,9 @@ const Phase4TestingSuite = () => {
       const duration = Date.now() - startTime;
       updateTestResult(index, {
         status: 'failed',
-        message: `Error: ${error.message}`,
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         duration,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Error desconocido'
       });
     }
   };
@@ -385,7 +391,7 @@ const Phase4TestingSuite = () => {
     
     try {
       // Usar el plan generado en el test anterior o el actual
-      const planToAnalyze = generatedPlanForTesting || todaysPlan;
+      const planToAnalyze = lastGeneratedPlan || todaysPlan;
       
       if (!planToAnalyze || !planToAnalyze.planned_tasks) {
         throw new Error('No hay plan generado para analizar. Ejecuta primero la generación del plan.');
@@ -403,7 +409,6 @@ const Phase4TestingSuite = () => {
       // Verificar ordenación por prioridad
       const priorities = taskBlocks.map(t => t.priority);
       const priorityOrder = ['urgent', 'high', 'medium', 'low'];
-      let isProperlyOrdered = true;
       
       // Verificar que las prioridades están en orden general (no estricto)
       const priorityScores = priorities.map(p => priorityOrder.indexOf(p));
@@ -435,7 +440,7 @@ const Phase4TestingSuite = () => {
       const duration = Date.now() - startTime;
       updateTestResult(index, {
         status: 'failed',
-        message: `Error: ${error.message}`,
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         duration
       });
     }
@@ -494,7 +499,7 @@ const Phase4TestingSuite = () => {
       const duration = Date.now() - startTime;
       updateTestResult(index, {
         status: 'failed',
-        message: `Error: ${error.message}`,
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         duration
       });
     }
@@ -542,7 +547,7 @@ const Phase4TestingSuite = () => {
       const duration = Date.now() - startTime;
       updateTestResult(index, {
         status: 'failed',
-        message: `Error: ${error.message}`,
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         duration
       });
     }
@@ -582,7 +587,7 @@ const Phase4TestingSuite = () => {
       const duration = Date.now() - startTime;
       updateTestResult(index, {
         status: 'failed',
-        message: `Error: ${error.message}`,
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         duration
       });
     }
@@ -627,7 +632,7 @@ const Phase4TestingSuite = () => {
       const duration = Date.now() - startTime;
       updateTestResult(index, {
         status: 'failed',
-        message: `Error: ${error.message}`,
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         duration
       });
     }
@@ -652,11 +657,11 @@ const Phase4TestingSuite = () => {
       testDailyPlansTable,
       testEdgeFunction,
       testBasicPlanGeneration,
-      // testOptimizationAlgorithm,
-      // testDataPersistence,
-      // testDailyPlannerHook,
-      // testUIComponent,
-      // testCompleteIntegration,
+      testOptimizationAlgorithm,
+      testDataPersistence,
+      testDailyPlannerHook,
+      testUIComponent,
+      testCompleteIntegration,
     ];
 
     for (let i = 0; i < tests.length; i++) {
@@ -669,8 +674,8 @@ const Phase4TestingSuite = () => {
         console.error(`Test ${i} failed unexpectedly:`, error);
         updateTestResult(i, {
           status: 'failed',
-          message: `Error inesperado: ${error.message}`,
-          error: error.message
+          message: `Error inesperado: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+          error: error instanceof Error ? error.message : 'Error desconocido'
         });
       }
       
@@ -705,6 +710,7 @@ const Phase4TestingSuite = () => {
     })));
     setCurrentTestIndex(-1);
     setIsRunning(false);
+    setLastGeneratedPlan(null);
     
     // Limpiar datos de test
     try {
@@ -746,7 +752,7 @@ const Phase4TestingSuite = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-purple-600" />
-            Phase 4 Testing Suite - Smart Daily Planning (Mejorado)
+            Phase 4 Testing Suite - Smart Daily Planning (Corregido)
           </CardTitle>
         </CardHeader>
         
@@ -818,7 +824,7 @@ const Phase4TestingSuite = () => {
               ) : (
                 <>
                   <Play className="h-4 w-4" />
-                  Ejecutar Tests Mejorados
+                  Ejecutar Tests Corregidos
                 </>
               )}
             </Button>
@@ -882,7 +888,7 @@ const Phase4TestingSuite = () => {
           </div>
 
           {/* Detalles del plan actual */}
-          {todaysPlan && (
+          {(todaysPlan || lastGeneratedPlan) && (
             <div className="mt-6 p-4 bg-purple-50 rounded-lg border">
               <h5 className="font-medium text-purple-900 mb-2 flex items-center gap-2">
                 <Target className="h-4 w-4" />
@@ -892,41 +898,40 @@ const Phase4TestingSuite = () => {
                 <div>
                   <span className="text-muted-foreground">Tareas:</span>
                   <div className="font-medium">
-                    {todaysPlan.planned_tasks?.filter(t => t.type === 'task').length || 0}
+                    {(todaysPlan || lastGeneratedPlan)?.planned_tasks?.filter(t => t.type === 'task').length || 0}
                   </div>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Descansos:</span>
                   <div className="font-medium">
-                    {todaysPlan.planned_tasks?.filter(t => t.type === 'break').length || 0}
+                    {(todaysPlan || lastGeneratedPlan)?.planned_tasks?.filter(t => t.type === 'break').length || 0}
                   </div>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Duración:</span>
                   <div className="font-medium">
-                    {Math.round((todaysPlan.estimated_duration || 0) / 60)}h
+                    {Math.round(((todaysPlan || lastGeneratedPlan)?.estimated_duration || 0) / 60)}h
                   </div>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Confianza:</span>
                   <div className="font-medium">
-                    {Math.round((todaysPlan.ai_confidence || 0) * 100)}%
+                    {Math.round(((todaysPlan || lastGeneratedPlan)?.ai_confidence || 0) * 100)}%
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Guía de testing mejorada */}
+          {/* Guía de testing corregida */}
           <div className="border-t pt-4">
-            <h5 className="font-medium text-sm mb-2">Guía de Testing Phase 4 Mejorado:</h5>
+            <h5 className="font-medium text-sm mb-2">Guía de Testing Phase 4 Corregido:</h5>
             <div className="text-xs text-muted-foreground space-y-1">
-              <p>1. ✅ Validación robusta de errores HTTP y estructura de datos</p>
-              <p>2. ✅ Manejo mejorado de timeouts y retry logic</p>
-              <p>3. ✅ Limpieza automática de datos de test</p>
-              <p>4. ✅ Logs de debugging opcionales para troubleshooting</p>
-              <p>5. ✅ Validación de permisos de base de datos</p>
-              <p>6. ✅ Tests más específicos y descriptivos</p>
+              <p>✅ Errores TypeScript corregidos completamente</p>
+              <p>✅ Manejo robusto de tipos y errores</p>
+              <p>✅ Validación de datos mejorada</p>
+              <p>✅ State management optimizado</p>
+              <p>✅ Debugging y logs mejorados</p>
             </div>
           </div>
         </CardContent>
