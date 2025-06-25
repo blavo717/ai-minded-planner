@@ -15,6 +15,8 @@ import AIMonitoringDashboard from '@/components/tasks/ai/AIMonitoringDashboard';
 import AITestingPanel from '@/components/tasks/ai/AITestingPanel';
 import Phase1TestingSuite from '@/components/tasks/testing/Phase1TestingSuite';
 import Phase1Demo from '@/components/tasks/testing/Phase1Demo';
+import Phase2TestingSuite from '@/components/tasks/testing/Phase2TestingSuite';
+import Phase2Demo from '@/components/tasks/testing/Phase2Demo';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
 
@@ -40,6 +42,7 @@ const TasksContent = () => {
   
   const [showAIMonitoring, setShowAIMonitoring] = useState(false);
   const [showTesting, setShowTesting] = useState(false);
+  const [showPhase2Testing, setShowPhase2Testing] = useState(false);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -147,12 +150,21 @@ const TasksContent = () => {
         onToggleAIMonitoring={() => setShowAIMonitoring(!showAIMonitoring)}
         showTesting={showTesting}
         onToggleTesting={() => setShowTesting(!showTesting)}
+        showPhase2Testing={showPhase2Testing}
+        onTogglePhase2Testing={() => setShowPhase2Testing(!showPhase2Testing)}
       />
 
       {showTesting && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Phase1TestingSuite />
           <Phase1Demo />
+        </div>
+      )}
+
+      {showPhase2Testing && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Phase2TestingSuite />
+          <Phase2Demo />
         </div>
       )}
 
@@ -181,7 +193,7 @@ const TasksContent = () => {
         </div>
       )}
 
-      {!showTesting && (
+      {!showTesting && !showPhase2Testing && (
         <>
           <AdvancedFilters
             projects={projects}

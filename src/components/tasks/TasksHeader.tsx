@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +6,9 @@ import {
   BarChart3, 
   Brain, 
   Settings,
-  TestTube
+  TestTube,
+  Lightbulb,
+  Activity
 } from 'lucide-react';
 
 interface TasksHeaderProps {
@@ -16,8 +17,10 @@ interface TasksHeaderProps {
   onCreateTask: () => void;
   showAIMonitoring: boolean;
   onToggleAIMonitoring: () => void;
-  showTesting?: boolean;
-  onToggleTesting?: () => void;
+  showTesting: boolean;
+  onToggleTesting: () => void;
+  showPhase2Testing?: boolean;
+  onTogglePhase2Testing?: () => void;
 }
 
 const TasksHeader = ({ 
@@ -26,58 +29,63 @@ const TasksHeader = ({
   onCreateTask,
   showAIMonitoring,
   onToggleAIMonitoring,
-  showTesting = false,
-  onToggleTesting
+  showTesting,
+  onToggleTesting,
+  showPhase2Testing = false,
+  onTogglePhase2Testing
 }: TasksHeaderProps) => {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Tareas</h1>
-        <p className="text-muted-foreground">
-          Gestiona tus tareas con IA integrada
+        <h1 className="text-3xl font-bold">Tareas</h1>
+        <p className="text-muted-foreground mt-1">
+          Gestiona tus tareas con inteligencia artificial
         </p>
       </div>
       
-      <div className="flex items-center space-x-2">
-        {onToggleTesting && (
-          <Button
-            variant={showTesting ? "default" : "outline"}
-            size="sm"
-            onClick={onToggleTesting}
-            className="flex items-center gap-2"
-          >
-            <TestTube className="h-4 w-4" />
-            Testing Fase 1
-            {showTesting && <Badge variant="secondary" className="ml-1">Activo</Badge>}
-          </Button>
-        )}
-        
-        <Button
-          variant={showInsights ? "default" : "outline"}
-          size="sm"
-          onClick={onToggleInsights}
-          className="flex items-center gap-2"
-        >
-          <BarChart3 className="h-4 w-4" />
-          Insights
-          {showInsights && <Badge variant="secondary" className="ml-1">Activo</Badge>}
-        </Button>
-        
-        <Button
-          variant={showAIMonitoring ? "default" : "outline"}
-          size="sm"
-          onClick={onToggleAIMonitoring}
-          className="flex items-center gap-2"
-        >
-          <Brain className="h-4 w-4" />
-          AI Monitor
-          {showAIMonitoring && <Badge variant="secondary" className="ml-1">Activo</Badge>}
-        </Button>
-        
+      <div className="flex flex-wrap gap-2">
         <Button onClick={onCreateTask} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Nueva Tarea
         </Button>
+        
+        <Button 
+          variant={showInsights ? "default" : "outline"}
+          onClick={onToggleInsights}
+          className="flex items-center gap-2"
+        >
+          <Lightbulb className="h-4 w-4" />
+          {showInsights ? "Ocultar Insights" : "Ver Insights"}
+        </Button>
+        
+        <Button 
+          variant={showAIMonitoring ? "default" : "outline"}
+          onClick={onToggleAIMonitoring}
+          className="flex items-center gap-2"
+        >
+          <Activity className="h-4 w-4" />
+          {showAIMonitoring ? "Ocultar Monitoreo" : "Monitoreo AI"}
+        </Button>
+        
+        <Button 
+          variant={showTesting ? "default" : "outline"}
+          onClick={onToggleTesting}
+          className="flex items-center gap-2"
+        >
+          <TestTube className="h-4 w-4" />
+          {showTesting ? "Ocultar Tests" : "Phase 1 Tests"}
+        </Button>
+
+        {onTogglePhase2Testing && (
+          <Button 
+            variant={showPhase2Testing ? "default" : "outline"}
+            onClick={onTogglePhase2Testing}
+            className="flex items-center gap-2"
+          >
+            <Brain className="h-4 w-4" />
+            {showPhase2Testing ? "Ocultar Phase 2" : "Phase 2 Tests"}
+          </Button>
+        )}
       </div>
     </div>
   );
