@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';  
 import { 
   Play, 
   Database, 
@@ -13,22 +14,17 @@ import {
   Brain,
   Activity,
   Info,
-  Settings,
-  Calendar
+  Settings
 } from 'lucide-react';
 import { useAITaskMonitor } from '@/hooks/useAITaskMonitor';
 import { useTasks } from '@/hooks/useTasks';
 import { useLLMConfigurations } from '@/hooks/useLLMConfigurations';
 import { toast } from '@/hooks/use-toast';
-import Phase4TestingSuite from '@/components/tasks/testing/Phase4TestingSuite';
-import Phase4Demo from '@/components/tasks/testing/Phase4Demo';
 
 const AITestingPanel = () => {
   const { runAnalysis, isAnalyzing, monitoringData } = useAITaskMonitor();
   const { mainTasks } = useTasks();
   const { activeConfiguration, isLoading: llmLoading } = useLLMConfigurations();
-
-  const [activePhase, setActivePhase] = useState<'overview' | 'phase4-test' | 'phase4-demo'>('overview');
 
   const handleRunFullAnalysis = () => {
     if (!activeConfiguration) {
@@ -95,54 +91,6 @@ const AITestingPanel = () => {
 
   const stats = getAnalysisStats();
   const systemReady = activeConfiguration && mainTasks.length > 0;
-
-  if (activePhase === 'phase4-test') {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => setActivePhase('overview')}
-            size="sm"
-          >
-            ← Volver al Panel Principal
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => setActivePhase('phase4-demo')}
-            size="sm"
-          >
-            Ver Demo Phase 4
-          </Button>
-        </div>
-        <Phase4TestingSuite />
-      </div>
-    );
-  }
-
-  if (activePhase === 'phase4-demo') {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => setActivePhase('overview')}
-            size="sm"
-          >
-            ← Volver al Panel Principal
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => setActivePhase('phase4-test')}
-            size="sm"
-          >
-            Ver Testing Suite
-          </Button>
-        </div>
-        <Phase4Demo />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -225,44 +173,6 @@ const AITestingPanel = () => {
                 </Button>
               </>
             )}
-          </div>
-
-          {/* Phase 4 Testing Section */}
-          <div className="border-t pt-6">
-            <h4 className="font-medium text-lg mb-4 flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-purple-600" />
-              Phase 4: Smart Daily Planning
-            </h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button 
-                onClick={() => setActivePhase('phase4-test')}
-                variant="outline"
-                className="flex items-center gap-2 justify-start p-6 h-auto"
-              >
-                <Activity className="h-5 w-5 text-purple-500" />
-                <div className="text-left">
-                  <div className="font-medium">Testing Suite Phase 4</div>
-                  <div className="text-sm text-muted-foreground">
-                    Pruebas completas de planificación diaria
-                  </div>
-                </div>
-              </Button>
-              
-              <Button 
-                onClick={() => setActivePhase('phase4-demo')}
-                variant="outline"
-                className="flex items-center gap-2 justify-start p-6 h-auto"
-              >
-                <Brain className="h-5 w-5 text-blue-500" />
-                <div className="text-left">
-                  <div className="font-medium">Demo Phase 4</div>
-                  <div className="text-sm text-muted-foreground">
-                    Demostración interactiva de funcionalidades
-                  </div>
-                </div>
-              </Button>
-            </div>
           </div>
 
           {/* Acciones de testing */}
