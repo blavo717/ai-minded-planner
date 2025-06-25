@@ -163,8 +163,8 @@ const TaskCard = ({
             
             <CollapsibleContent className="mt-2">
               <SubtaskList
+                parentTask={task}
                 subtasks={subtasks}
-                onEditSubtask={onEditTask}
                 onCreateSubtask={(title) => onCreateSubtask(task.id, title)}
               />
             </CollapsibleContent>
