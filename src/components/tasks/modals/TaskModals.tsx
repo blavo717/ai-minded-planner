@@ -1,12 +1,20 @@
 
 import React from 'react';
 import { useProjects } from '@/hooks/useProjects';
-import { useProfiles } from '@/hooks/useProfiles';
+import { useProfiles, Profile } from '@/hooks/useProfiles';
 import CreateTaskModal from '@/components/modals/CreateTaskModal';
 import EditTaskModal from '@/components/tasks/EditTaskModal';
 import ManageDependenciesModal from '@/components/tasks/ManageDependenciesModal';
 import AssignTaskModal from '@/components/modals/AssignTaskModal';
 import { useTasksContext } from '../providers/TasksProvider';
+
+// Create a compatible profile type for CreateTaskModal
+interface CompatibleProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  role?: string;
+}
 
 const TaskModals = () => {
   const { projects } = useProjects();
@@ -28,13 +36,23 @@ const TaskModals = () => {
     setAssigningTask,
   } = useTasksContext();
 
+  // Filter and transform profiles to ensure full_name exists
+  const compatibleProfiles: CompatibleProfile[] = profiles
+    .filter(profile => profile.full_name) // Only include profiles with full_name
+    .map(profile => ({
+      id: profile.id,
+      full_name: profile.full_name!, // We know it exists because of the filter
+      email: profile.email || '', // Provide default empty string if email is undefined
+      role: profile.role,
+    }));
+
   return (
     <>
       <CreateTaskModal
         isOpen={isCreateTaskOpen}
         onClose={() => setIsCreateTaskOpen(false)}
         projects={projects}
-        profiles={profiles}
+        profiles={compatibleProfiles}
       />
 
       {editingTask && (

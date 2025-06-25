@@ -25,8 +25,8 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
   const { getMicrotasksForSubtask } = useTasks();
   const { toggleSubtaskExpansion, isSubtaskExpanded } = useSubtaskExpansion();
 
-  const handleCreateSubtask = (data: { title: string; description?: string; priority?: string; estimated_duration?: number }) => {
-    if (data.title.trim()) {
+  const handleCreateSubtask = (data: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; estimated_duration?: number }) => {
+    if (data.title && data.title.trim()) {
       onCreateSubtask(data.title.trim());
       toast({
         title: "Subtarea creada",
@@ -35,8 +35,8 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
     }
   };
 
-  const handleCreateMicrotask = (subtaskId: string, data: { title: string; description?: string; priority?: string; estimated_duration?: number }) => {
-    if (data.title.trim()) {
+  const handleCreateMicrotask = (subtaskId: string, data: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; estimated_duration?: number }) => {
+    if (data.title && data.title.trim()) {
       createMicrotask(subtaskId, data.title.trim(), data.description);
       toast({
         title: "Microtarea creada",
