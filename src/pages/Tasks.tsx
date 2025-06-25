@@ -13,6 +13,7 @@ import TasksHeader from '@/components/tasks/TasksHeader';
 import TaskViewControls from '@/components/tasks/TaskViewControls';
 import TaskList from '@/components/tasks/TaskList';
 import AIInsightsPanel from '@/components/tasks/ai/AIInsightsPanel';
+import AITestingPanel from '@/components/tasks/ai/AITestingPanel';
 import DailyPlannerPreview from '@/components/AI/DailyPlannerPreview';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
@@ -45,6 +46,12 @@ const TasksContent = () => {
         showAIMonitoring={showAIMonitoring}
         onToggleAIMonitoring={() => setShowAIMonitoring(!showAIMonitoring)}
       />
+
+      {showAIMonitoring && (
+        <div className="mb-6">
+          <AITestingPanel />
+        </div>
+      )}
 
       {showInsights && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
