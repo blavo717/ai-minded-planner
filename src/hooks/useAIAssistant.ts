@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLLMService } from '@/hooks/useLLMService';
 import { useAIMessagesPersistence } from '@/hooks/useAIMessagesPersistence';
+import { generateValidUUID } from '@/utils/uuid';
 
 export interface ChatMessage {
   id: string;
@@ -24,7 +25,16 @@ export interface NotificationBadge {
 export const useAIAssistant = () => {
   const { user } = useAuth();
   const { makeLLMRequest, isLoading: isLLMLoading } = useLLMService();
-  const { loadMessages, saveMessage, updateMessage, markAllAsRead: markAllAsReadInDB, clearChat: clearChatInDB } = useAIMessagesPersistence();
+  const { 
+    loadMessages, 
+    saveMessage, 
+    updateMessage, 
+    markAllAsRead: markAllAsReadInDB, 
+    clearChat: clearChatInDB,
+    isLoading: isPersistenceLoading,
+    isInitialized: isPersistenceInitialized,
+    setIsInitialized: setPersistenceInitialized
+  } = useAIMessagesPersistence();
   
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -33,52 +43,97 @@ export const useAIAssistant = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const forceUpdateRef = useRef(0);
 
+  // Debug: logging del estado actual
+  console.log('🎯 useAIAssistant state:', {
+    user: user?.id || 'none',
+    messagesCount: messages.length,
+    isInitialized,
+    isPersistenceInitialized,
+    connectionStatus,
+    isOpen
+  });
+
   // Forzar re-render para badge
   const forceUpdate = useCallback(() => {
     forceUpdateRef.current += 1;
     console.log('🔄 Forcing component re-render:', forceUpdateRef.current);
   }, []);
 
-  // Cargar mensajes al inicio
+  // Cargar mensajes al inicio con debugging robusto
   useEffect(() => {
     if (user && !isInitialized) {
       console.log('🚀 Initializing AI Assistant for user:', user.id);
+      console.log('📊 Current state:', { 
+        messagesCount: messages.length, 
+        isPersistenceLoading,
+        isPersistenceInitialized 
+      });
       
       loadMessages().then(loadedMessages => {
-        console.log(`✅ Loaded ${loadedMessages.length} messages from Supabase`);
+        console.log(`✅ Successfully loaded ${loadedMessages.length} messages from persistence`);
+        console.log('📝 Sample messages:', loadedMessages.slice(0, 2).map(m => ({
+          id: m.id,
+          type: m.type,
+          isRead: m.isRead,
+          contentPreview: m.content.substring(0, 50)
+        })));
+        
         setMessages(loadedMessages);
         setIsInitialized(true);
+        setPersistenceInitialized(true);
+        
+        // Forzar actualización del badge
+        forceUpdate();
       }).catch(error => {
-        console.error('❌ Failed to load messages:', error);
+        console.error('❌ Failed to load messages during initialization:', error);
         setIsInitialized(true); // Inicializar de todos modos
+        setPersistenceInitialized(true);
       });
     }
-  }, [user, loadMessages, isInitialized]);
+  }, [user, loadMessages, isInitialized, setPersistenceInitialized, forceUpdate]);
 
   const addMessage = useCallback(async (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
+    // Generar UUID válido usando la nueva utilidad
+    const messageId = generateValidUUID();
     const newMessage: ChatMessage = {
       ...message,
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: messageId,
       timestamp: new Date(),
     };
     
-    console.log(`➕ Adding message: ${newMessage.type} - ${newMessage.content.substring(0, 50)}...`);
+    console.log(`➕ Adding message with valid UUID:`, {
+      id: newMessage.id,
+      type: newMessage.type,
+      contentPreview: newMessage.content.substring(0, 50) + '...',
+      isRead: newMessage.isRead,
+      priority: newMessage.priority
+    });
     
     // Actualizar estado local inmediatamente
     setMessages(prev => {
       const updated = [...prev, newMessage];
+      console.log(`📊 Messages updated: ${prev.length} -> ${updated.length}`);
       forceUpdate(); // Forzar re-render para badge
       return updated;
     });
 
-    // Guardar en Supabase en background
+    // Guardar en Supabase en background con manejo de errores robusto
     try {
       await saveMessage(newMessage);
+      console.log('✅ Message successfully persisted to Supabase');
     } catch (error) {
-      console.error('❌ Failed to save message to Supabase:', error);
+      console.error('❌ CRITICAL: Failed to save message to Supabase:', error);
+      console.error('❌ Message data:', newMessage);
+      
+      // Marcar el mensaje con error en el estado local
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId 
+          ? { ...msg, error: true }
+          : msg
+      ));
     }
 
-    return newMessage.id;
+    return messageId;
   }, [saveMessage, forceUpdate]);
 
   const markAsRead = useCallback(async (messageId: string) => {
@@ -89,6 +144,7 @@ export const useAIAssistant = () => {
       const updated = prev.map(msg => 
         msg.id === messageId ? { ...msg, isRead: true } : msg
       );
+      console.log('📊 Message marked as read locally');
       forceUpdate(); // Forzar re-render para badge
       return updated;
     });
@@ -96,14 +152,25 @@ export const useAIAssistant = () => {
     // Actualizar en Supabase en background
     try {
       await updateMessage(messageId, { isRead: true });
+      console.log('✅ Message read status updated in Supabase');
     } catch (error) {
       console.error('❌ Failed to mark message as read in Supabase:', error);
+      
+      // Revertir cambio local si falló la persistencia
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId ? { ...msg, isRead: false } : msg
+      ));
     }
   }, [updateMessage, forceUpdate]);
 
   const markAllAsRead = useCallback(async () => {
     const unreadCount = messages.filter(msg => !msg.isRead && msg.type !== 'user').length;
     console.log(`👁️ Marking all ${unreadCount} messages as read`);
+    
+    if (unreadCount === 0) {
+      console.log('✅ No unread messages to mark');
+      return;
+    }
     
     // Actualizar estado local inmediatamente
     setMessages(prev => {
@@ -115,13 +182,15 @@ export const useAIAssistant = () => {
     // Actualizar en Supabase en background
     try {
       await markAllAsReadInDB();
+      console.log('✅ All messages marked as read in Supabase');
     } catch (error) {
       console.error('❌ Failed to mark all as read in Supabase:', error);
     }
   }, [messages, markAllAsReadInDB, forceUpdate]);
 
   const sendMessage = useCallback(async (content: string, contextData?: any) => {
-    console.log(`🚀 Sending message: ${content.substring(0, 100)}...`);
+    console.log(`🚀 Sending message: "${content.substring(0, 100)}..."`);
+    console.log('📊 Context data:', contextData);
     
     // Añadir mensaje del usuario
     await addMessage({
@@ -146,7 +215,7 @@ ${messages.slice(-5).map(msg => `${msg.type}: ${msg.content}`).join('\n')}
 
 Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tareas específicas, usa el contexto proporcionado.`;
 
-      console.log('🔄 Making LLM request...');
+      console.log('🔄 Making LLM request with context...');
       
       const response = await makeLLMRequest({
         systemPrompt,
@@ -154,7 +223,12 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
         functionName: 'ai-assistant-chat'
       });
 
-      console.log('✅ LLM response received:', response.content.substring(0, 100) + '...');
+      console.log('✅ LLM response received:', {
+        contentLength: response.content.length,
+        model: response.model_used,
+        usage: response.usage
+      });
+      
       setConnectionStatus('connected');
 
       // Añadir respuesta de la IA
@@ -194,7 +268,7 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
   }, [addMessage, makeLLMRequest, messages]);
 
   const addNotification = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium', contextData?: any) => {
-    console.log(`🔔 Adding notification: ${priority} - ${content.substring(0, 50)}...`);
+    console.log(`🔔 Adding notification: ${priority} - "${content.substring(0, 50)}..."`);
     return await addMessage({
       type: 'notification',
       content,
@@ -205,7 +279,7 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
   }, [addMessage]);
 
   const addSuggestion = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'low', contextData?: any) => {
-    console.log(`💡 Adding suggestion: ${priority} - ${content.substring(0, 50)}...`);
+    console.log(`💡 Adding suggestion: ${priority} - "${content.substring(0, 50)}..."`);
     return await addMessage({
       type: 'suggestion',
       content,
@@ -224,12 +298,19 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       hasHigh: unreadMessages.some(msg => msg.priority === 'high')
     };
     
-    console.log(`🏷️ Badge info: ${badge.count} unread, urgent: ${badge.hasUrgent}, high: ${badge.hasHigh}`);
+    console.log(`🏷️ Badge info calculated:`, {
+      total: messages.length,
+      unread: badge.count,
+      urgent: badge.hasUrgent,
+      high: badge.hasHigh,
+      forceUpdateRef: forceUpdateRef.current
+    });
+    
     return badge;
   }, [messages, forceUpdateRef.current]); // Incluir forceUpdateRef para triggear recalculos
 
   const clearChat = useCallback(async () => {
-    console.log('🗑️ Clearing chat history');
+    console.log('🗑️ Clearing chat history - local and remote');
     
     // Limpiar estado local
     setMessages([]);
@@ -238,6 +319,7 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     // Limpiar en Supabase
     try {
       await clearChatInDB();
+      console.log('✅ Chat cleared in Supabase');
     } catch (error) {
       console.error('❌ Failed to clear chat in Supabase:', error);
     }
@@ -248,7 +330,7 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     isOpen,
     messages,
     isTyping,
-    isLoading: isLLMLoading,
+    isLoading: isLLMLoading || isPersistenceLoading,
     connectionStatus,
     isInitialized,
     

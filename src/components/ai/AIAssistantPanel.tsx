@@ -53,16 +53,29 @@ const AIAssistantPanel = () => {
   // Forzar re-render del badge con un estado local
   const [badgeUpdateKey, setBadgeUpdateKey] = useState(0);
 
+  // Debug: estado actual del componente
+  console.log('🎯 AIAssistantPanel render:', {
+    isOpen,
+    messagesCount: messages.length,
+    isInitialized,
+    connectionStatus,
+    isMinimized,
+    badgeUpdateKey
+  });
+
   // Actualizar badge cuando cambien los mensajes
   useEffect(() => {
+    console.log('📊 Messages changed, updating badge key:', messages.length);
     setBadgeUpdateKey(prev => prev + 1);
   }, [messages]);
 
   const badgeInfo = getBadgeInfo();
+  console.log('🏷️ Current badge info from AIAssistantPanel:', badgeInfo);
 
   // Auto-scroll al final cuando hay nuevos mensajes
   useEffect(() => {
     if (messagesEndRef.current) {
+      console.log('📜 Auto-scrolling to end of messages');
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isTyping]);
@@ -70,14 +83,22 @@ const AIAssistantPanel = () => {
   // Focus en input cuando se abre el chat
   useEffect(() => {
     if (isOpen && !isMinimized && inputRef.current) {
+      console.log('🎯 Focusing input field');
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen, isMinimized]);
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+    if (!inputMessage.trim() || isLoading) {
+      console.log('⚠️ Cannot send message:', { 
+        isEmpty: !inputMessage.trim(), 
+        isLoading 
+      });
+      return;
+    }
     
     const message = inputMessage.trim();
+    console.log('🚀 Sending message from panel:', message.substring(0, 50) + '...');
     setInputMessage('');
     
     // Añadir contexto de página actual
@@ -99,10 +120,13 @@ const AIAssistantPanel = () => {
   };
 
   const handleOpenChat = () => {
+    console.log('🎯 Opening chat panel');
     setIsOpen(true);
     setIsMinimized(false);
+    
     // Marcar todos los mensajes como leídos cuando se abre el chat
     if (badgeInfo.count > 0) {
+      console.log(`👁️ Marking ${badgeInfo.count} messages as read on chat open`);
       setTimeout(() => markAllAsRead(), 500);
     }
   };
@@ -137,6 +161,8 @@ const AIAssistantPanel = () => {
 
   // Botón flotante cuando el chat está cerrado
   if (!isOpen) {
+    console.log('🎯 Rendering floating button with badge:', badgeInfo);
+    
     return (
       <div className="fixed bottom-6 right-6 z-50">
         <Button
@@ -147,7 +173,7 @@ const AIAssistantPanel = () => {
         >
           <MessageCircle className="h-6 w-6 text-white" />
           <NotificationBadge 
-            key={badgeUpdateKey} // Forzar re-render
+            key={`${badgeUpdateKey}-${badgeInfo.count}-${badgeInfo.hasUrgent}-${badgeInfo.hasHigh}`} // Forzar re-render completo
             count={badgeInfo.count}
             hasUrgent={badgeInfo.hasUrgent}
             hasHigh={badgeInfo.hasHigh}
@@ -156,6 +182,8 @@ const AIAssistantPanel = () => {
       </div>
     );
   }
+
+  console.log('🎯 Rendering full chat panel');
 
   return (
     <div className="fixed bottom-6 right-6 z-50 animate-fade-in" data-testid="ai-assistant-panel">

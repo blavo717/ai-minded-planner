@@ -9,17 +9,29 @@ interface NotificationBadgeProps {
 }
 
 const NotificationBadge = ({ count, hasUrgent, hasHigh, className = '' }: NotificationBadgeProps) => {
-  if (count === 0) return null;
+  // Debug logging
+  console.log('🏷️ NotificationBadge render:', { count, hasUrgent, hasHigh });
+  
+  if (count === 0) {
+    console.log('🏷️ NotificationBadge: count is 0, not rendering');
+    return null;
+  }
 
   const getBadgeStyles = () => {
     if (hasUrgent) {
+      console.log('🏷️ NotificationBadge: using urgent styles');
       return 'bg-red-500 text-white animate-pulse border-2 border-red-300';
     }
     if (hasHigh) {
+      console.log('🏷️ NotificationBadge: using high priority styles');
       return 'bg-orange-500 text-white border-2 border-orange-300';
     }
+    console.log('🏷️ NotificationBadge: using default styles');
     return 'bg-blue-500 text-white border-2 border-blue-300';
   };
+
+  const displayCount = count > 99 ? '99+' : count.toString();
+  console.log('🏷️ NotificationBadge: displaying count:', displayCount);
 
   return (
     <div 
@@ -33,7 +45,7 @@ const NotificationBadge = ({ count, hasUrgent, hasHigh, className = '' }: Notifi
       data-has-urgent={hasUrgent}
       data-has-high={hasHigh}
     >
-      {count > 99 ? '99+' : count}
+      {displayCount}
     </div>
   );
 };

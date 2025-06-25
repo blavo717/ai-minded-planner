@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { generateValidUUID, validateAndFixUUID } from '@/utils/uuid';
 import type { ChatMessage } from '@/hooks/useAIAssistant';
 
 export const useAIMessagesPersistence = () => {
@@ -11,7 +12,10 @@ export const useAIMessagesPersistence = () => {
 
   // Cargar mensajes desde Supabase
   const loadMessages = useCallback(async (): Promise<ChatMessage[]> => {
-    if (!user) return [];
+    if (!user) {
+      console.log('📥 No user authenticated, returning empty messages');
+      return [];
+    }
     
     console.log('📥 Loading messages from Supabase for user:', user.id);
     setIsLoading(true);
@@ -24,70 +28,107 @@ export const useAIMessagesPersistence = () => {
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('❌ Error loading messages:', error);
-        return [];
+        console.error('❌ Supabase error loading messages:', error);
+        throw error;
       }
 
-      const messages: ChatMessage[] = (data || []).map(row => ({
-        id: row.id,
-        type: row.type as 'user' | 'assistant' | 'notification' | 'suggestion',
-        content: row.content,
-        timestamp: new Date(row.created_at),
-        isRead: row.is_read,
-        priority: row.priority as 'low' | 'medium' | 'high' | 'urgent' | undefined,
-        contextData: row.context_data,
-        error: row.has_error
-      }));
+      const messages: ChatMessage[] = (data || []).map(row => {
+        // Validar UUID del mensaje cargado
+        const validId = validateAndFixUUID(row.id);
+        
+        return {
+          id: validId,
+          type: row.type as 'user' | 'assistant' | 'notification' | 'suggestion',
+          content: row.content,
+          timestamp: new Date(row.created_at),
+          isRead: row.is_read,
+          priority: row.priority as 'low' | 'medium' | 'high' | 'urgent' | undefined,
+          contextData: row.context_data,
+          error: row.has_error
+        };
+      });
 
-      console.log(`✅ Loaded ${messages.length} messages from Supabase`);
+      console.log(`✅ Successfully loaded ${messages.length} messages from Supabase`);
       return messages;
     } catch (error) {
-      console.error('❌ Exception loading messages:', error);
+      console.error('❌ Critical error loading messages:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      
+      // En caso de error crítico, devolver array vacío pero notificar
       return [];
     } finally {
       setIsLoading(false);
     }
   }, [user]);
 
-  // Guardar mensaje en Supabase
+  // Guardar mensaje en Supabase con validación UUID robusta
   const saveMessage = useCallback(async (message: ChatMessage): Promise<void> => {
-    if (!user) return;
+    if (!user) {
+      console.warn('⚠️ Cannot save message: no authenticated user');
+      return;
+    }
     
-    console.log('💾 Saving message to Supabase:', message.id);
+    // Validar y corregir UUID antes de guardar
+    const validatedMessage = {
+      ...message,
+      id: validateAndFixUUID(message.id)
+    };
+    
+    console.log('💾 Saving message to Supabase:', {
+      id: validatedMessage.id,
+      type: validatedMessage.type,
+      contentLength: validatedMessage.content.length,
+      userId: user.id
+    });
     
     try {
+      const messageData = {
+        id: validatedMessage.id,
+        user_id: user.id,
+        type: validatedMessage.type,
+        content: validatedMessage.content,
+        priority: validatedMessage.priority || null,
+        context_data: validatedMessage.contextData || {},
+        is_read: validatedMessage.isRead,
+        has_error: validatedMessage.error || false,
+        created_at: validatedMessage.timestamp.toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('📦 Message data to insert:', {
+        id: messageData.id,
+        user_id: messageData.user_id,
+        type: messageData.type,
+        priority: messageData.priority
+      });
+
       const { error } = await supabase
         .from('ai_chat_messages')
-        .insert({
-          id: message.id,
-          user_id: user.id,
-          type: message.type,
-          content: message.content,
-          priority: message.priority || null,
-          context_data: message.contextData || {},
-          is_read: message.isRead,
-          has_error: message.error || false,
-          created_at: message.timestamp.toISOString(),
-          updated_at: new Date().toISOString()
-        });
+        .insert(messageData);
 
       if (error) {
-        console.error('❌ Error saving message:', error);
+        console.error('❌ Supabase insert error:', error);
+        console.error('❌ Failed message data:', messageData);
         throw error;
       }
 
-      console.log('✅ Message saved successfully:', message.id);
+      console.log('✅ Message saved successfully to Supabase:', validatedMessage.id);
     } catch (error) {
-      console.error('❌ Exception saving message:', error);
+      console.error('❌ Critical error saving message:', error);
+      console.error('❌ Message that failed:', validatedMessage);
       throw error;
     }
   }, [user]);
 
   // Actualizar mensaje en Supabase
   const updateMessage = useCallback(async (messageId: string, updates: Partial<ChatMessage>): Promise<void> => {
-    if (!user) return;
+    if (!user) {
+      console.warn('⚠️ Cannot update message: no authenticated user');
+      return;
+    }
     
-    console.log('🔄 Updating message in Supabase:', messageId);
+    const validatedId = validateAndFixUUID(messageId);
+    console.log('🔄 Updating message in Supabase:', validatedId);
     
     try {
       const updateData: any = {
@@ -102,26 +143,29 @@ export const useAIMessagesPersistence = () => {
       const { error } = await supabase
         .from('ai_chat_messages')
         .update(updateData)
-        .eq('id', messageId)
+        .eq('id', validatedId)
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('❌ Error updating message:', error);
+        console.error('❌ Supabase update error:', error);
         throw error;
       }
 
-      console.log('✅ Message updated successfully:', messageId);
+      console.log('✅ Message updated successfully:', validatedId);
     } catch (error) {
-      console.error('❌ Exception updating message:', error);
+      console.error('❌ Critical error updating message:', error);
       throw error;
     }
   }, [user]);
 
   // Marcar múltiples mensajes como leídos
   const markAllAsRead = useCallback(async (): Promise<void> => {
-    if (!user) return;
+    if (!user) {
+      console.warn('⚠️ Cannot mark all as read: no authenticated user');
+      return;
+    }
     
-    console.log('👁️ Marking all messages as read in Supabase');
+    console.log('👁️ Marking all messages as read in Supabase for user:', user.id);
     
     try {
       const { error } = await supabase
@@ -138,18 +182,21 @@ export const useAIMessagesPersistence = () => {
         throw error;
       }
 
-      console.log('✅ All messages marked as read');
+      console.log('✅ All messages marked as read successfully');
     } catch (error) {
-      console.error('❌ Exception marking all as read:', error);
+      console.error('❌ Critical error marking all as read:', error);
       throw error;
     }
   }, [user]);
 
   // Limpiar chat completo
   const clearChat = useCallback(async (): Promise<void> => {
-    if (!user) return;
+    if (!user) {
+      console.warn('⚠️ Cannot clear chat: no authenticated user');
+      return;
+    }
     
-    console.log('🗑️ Clearing chat in Supabase');
+    console.log('🗑️ Clearing all chat messages in Supabase for user:', user.id);
     
     try {
       const { error } = await supabase
@@ -164,7 +211,7 @@ export const useAIMessagesPersistence = () => {
 
       console.log('✅ Chat cleared successfully');
     } catch (error) {
-      console.error('❌ Exception clearing chat:', error);
+      console.error('❌ Critical error clearing chat:', error);
       throw error;
     }
   }, [user]);
@@ -173,7 +220,7 @@ export const useAIMessagesPersistence = () => {
   useEffect(() => {
     if (!user || !isInitialized) return;
 
-    console.log('🔄 Setting up realtime subscription for AI messages');
+    console.log('🔄 Setting up realtime subscription for AI messages, user:', user.id);
     
     const channel = supabase
       .channel('ai-chat-messages')

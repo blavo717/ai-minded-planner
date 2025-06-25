@@ -5,13 +5,26 @@ import { useTasks } from '@/hooks/useTasks';
 import { useAITaskMonitor } from '@/hooks/useAITaskMonitor';
 
 export const useSmartMessaging = () => {
-  const { addNotification, addSuggestion } = useAIAssistant();
+  const { addNotification, addSuggestion, isInitialized: isAIInitialized } = useAIAssistant();
   const { mainTasks, getTasksNeedingFollowup, getTasksWithoutRecentActivity } = useTasks();
   const { monitoringData } = useAITaskMonitor();
 
+  // Debug: estado actual
+  console.log('🎯 useSmartMessaging state:', {
+    isAIInitialized,
+    taskCount: mainTasks.length,
+    monitoringDataCount: monitoringData.length,
+    hasFollowupTasks: getTasksNeedingFollowup().length > 0
+  });
+
   // Detectar tareas que necesitan seguimiento (más permisivo para testing)
   const checkFollowupTasks = useCallback(() => {
-    console.log('🔍 Checking followup tasks...');
+    console.log('🔍 checkFollowupTasks: Starting analysis...');
+    
+    if (!isAIInitialized) {
+      console.log('⏳ checkFollowupTasks: AI not initialized yet, skipping');
+      return false;
+    }
     
     // Lógica más permisiva para generar notificaciones durante testing
     const pendingTasks = mainTasks.filter(task => 
@@ -19,6 +32,13 @@ export const useSmartMessaging = () => {
     );
     
     const followupTasks = getTasksNeedingFollowup();
+    
+    console.log('📊 checkFollowupTasks stats:', {
+      pendingCount: pendingTasks.length,
+      followupCount: followupTasks.length,
+      pendingTasks: pendingTasks.map(t => ({ id: t.id, title: t.title, status: t.status })),
+      followupTasks: followupTasks.map(t => ({ id: t.id, title: t.title, needs_followup: t.needs_followup }))
+    });
     
     // Si hay tareas pendientes pero no hay followup específicos, crear una notificación general
     if (pendingTasks.length > 0 && followupTasks.length === 0) {
@@ -46,16 +66,31 @@ export const useSmartMessaging = () => {
       return true;
     }
     
-    console.log('✅ No followup tasks found');
+    console.log('✅ checkFollowupTasks: No followup tasks found');
     return false;
-  }, [getTasksNeedingFollowup, addNotification, mainTasks]);
+  }, [getTasksNeedingFollowup, addNotification, mainTasks, isAIInitialized]);
 
   // Detectar tareas sin actividad reciente (más permisivo)
   const checkInactiveTasks = useCallback(() => {
-    console.log('🔍 Checking inactive tasks...');
+    console.log('🔍 checkInactiveTasks: Starting analysis...');
+    
+    if (!isAIInitialized) {
+      console.log('⏳ checkInactiveTasks: AI not initialized yet, skipping');
+      return false;
+    }
     
     // Lógica más permisiva: buscar tareas de más de 3 días en lugar de 7
     const inactiveTasks = getTasksWithoutRecentActivity(3);
+    
+    console.log('📊 checkInactiveTasks stats:', {
+      inactiveCount: inactiveTasks.length,
+      totalTasks: mainTasks.length,
+      inactiveTasks: inactiveTasks.map(t => ({ 
+        id: t.id, 
+        title: t.title, 
+        last_worked_at: t.last_worked_at 
+      }))
+    });
     
     if (inactiveTasks.length > 0) {
       const taskTitles = inactiveTasks.slice(0, 2).map(t => t.title).join(', ');
@@ -83,13 +118,19 @@ export const useSmartMessaging = () => {
       return true;
     }
     
-    console.log('✅ No inactive tasks found');
+    console.log('✅ checkInactiveTasks: No inactive tasks found');
     return false;
-  }, [getTasksWithoutRecentActivity, addSuggestion, mainTasks]);
+  }, [getTasksWithoutRecentActivity, addSuggestion, mainTasks, isAIInitialized]);
 
   // Detectar patrones de productividad (más robusto)
   const checkProductivityPatterns = useCallback(() => {
-    console.log('🔍 Checking productivity patterns...');
+    console.log('🔍 checkProductivityPatterns: Starting analysis...');
+    
+    if (!isAIInitialized) {
+      console.log('⏳ checkProductivityPatterns: AI not initialized yet, skipping');
+      return false;
+    }
+    
     console.log(`📊 Available monitoring data: ${monitoringData.length} entries`);
     
     const healthChecks = monitoringData.filter(m => m.monitoring_type === 'health_check');
@@ -143,13 +184,19 @@ export const useSmartMessaging = () => {
       return true;
     }
     
-    console.log('📊 No productivity patterns found');
+    console.log('📊 checkProductivityPatterns: No productivity patterns found');
     return false;
-  }, [monitoringData, addSuggestion]);
+  }, [monitoringData, addSuggestion, isAIInitialized]);
 
   // Detectar deadlines próximos (más agresivo para testing)
   const checkUpcomingDeadlines = useCallback(() => {
-    console.log('🔍 Checking upcoming deadlines...');
+    console.log('🔍 checkUpcomingDeadlines: Starting analysis...');
+    
+    if (!isAIInitialized) {
+      console.log('⏳ checkUpcomingDeadlines: AI not initialized yet, skipping');
+      return false;
+    }
+    
     console.log(`📅 Total tasks to check: ${mainTasks.length}`);
     
     const now = new Date();
@@ -173,9 +220,13 @@ export const useSmartMessaging = () => {
       task.priority === 'high' && task.status !== 'completed' && !task.due_date
     );
     
-    console.log(`⚠️ Urgent tasks (due within 24h): ${urgentTasks.length}`);
-    console.log(`📅 Soon tasks (due within week): ${soonTasks.length}`);
-    console.log(`🔥 High priority tasks without deadline: ${highPriorityTasks.length}`);
+    console.log('📊 checkUpcomingDeadlines stats:', {
+      urgentCount: urgentTasks.length,
+      soonCount: soonTasks.length,
+      highPriorityCount: highPriorityTasks.length,
+      urgentTasks: urgentTasks.map(t => ({ id: t.id, title: t.title, due_date: t.due_date })),
+      soonTasks: soonTasks.map(t => ({ id: t.id, title: t.title, due_date: t.due_date }))
+    });
     
     let notificationsAdded = false;
     
@@ -210,30 +261,52 @@ export const useSmartMessaging = () => {
     }
     
     if (!notificationsAdded) {
-      console.log('✅ No urgent or upcoming deadlines found');
+      console.log('✅ checkUpcomingDeadlines: No urgent or upcoming deadlines found');
     }
     
     return notificationsAdded;
-  }, [mainTasks, addNotification, addSuggestion]);
+  }, [mainTasks, addNotification, addSuggestion, isAIInitialized]);
 
   // Ejecutar chequeos con lógica mejorada
   useEffect(() => {
-    console.log('🔄 Setting up smart messaging intervals...');
+    // Solo ejecutar si AI está inicializado
+    if (!isAIInitialized) {
+      console.log('⏳ Smart messaging waiting for AI initialization...');
+      return;
+    }
     
-    // Chequeo inicial después de 2 segundos
+    console.log('🔄 Setting up smart messaging intervals...');
+    console.log('📊 Current data state:', {
+      taskCount: mainTasks.length,
+      monitoringDataCount: monitoringData.length,
+      isAIInitialized
+    });
+    
+    // Chequeo inicial después de 3 segundos (dar tiempo a que todo esté listo)
     const initialTimeout = setTimeout(() => {
       console.log('🚀 Running initial smart messaging checks...');
+      console.log('📊 Data available for analysis:', {
+        tasks: mainTasks.length,
+        monitoringData: monitoringData.length
+      });
+      
       const results = {
         followup: checkFollowupTasks(),
         deadlines: checkUpcomingDeadlines(),
         productivity: checkProductivityPatterns()
       };
       console.log('📊 Initial check results:', results);
-    }, 2000);
+    }, 3000);
 
-    // Chequeos periódicos cada 3 minutos para testing más frecuente
+    // Chequeos periódicos cada 5 minutos (más espaciado para evitar spam)
     const interval = setInterval(() => {
       console.log('🔄 Running periodic smart messaging checks...');
+      console.log('📊 Current state for periodic check:', {
+        tasks: mainTasks.length,
+        monitoringData: monitoringData.length,
+        isAIInitialized
+      });
+      
       const results = {
         followup: checkFollowupTasks(),
         inactive: checkInactiveTasks(),
@@ -241,18 +314,24 @@ export const useSmartMessaging = () => {
         productivity: checkProductivityPatterns()
       };
       console.log('📊 Periodic check results:', results);
-    }, 3 * 60 * 1000);
+    }, 5 * 60 * 1000);
 
     return () => {
       console.log('🛑 Cleaning up smart messaging intervals');
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [checkFollowupTasks, checkInactiveTasks, checkUpcomingDeadlines, checkProductivityPatterns]);
+  }, [checkFollowupTasks, checkInactiveTasks, checkUpcomingDeadlines, checkProductivityPatterns, isAIInitialized]);
 
   // Funciones para trigger manual
   const triggerTaskAnalysis = useCallback(() => {
     console.log('🎯 Manual task analysis triggered');
+    
+    if (!isAIInitialized) {
+      console.log('❌ Cannot trigger analysis: AI not initialized');
+      return;
+    }
+    
     const results = {
       followup: checkFollowupTasks(),
       inactive: checkInactiveTasks(),
@@ -268,10 +347,16 @@ export const useSmartMessaging = () => {
         { type: 'analysis_complete', timestamp: new Date().toISOString() }
       );
     }
-  }, [checkFollowupTasks, checkInactiveTasks, checkUpcomingDeadlines, addSuggestion]);
+  }, [checkFollowupTasks, checkInactiveTasks, checkUpcomingDeadlines, addSuggestion, isAIInitialized]);
 
   const triggerProductivityAnalysis = useCallback(() => {
     console.log('🎯 Manual productivity analysis triggered');
+    
+    if (!isAIInitialized) {
+      console.log('❌ Cannot trigger productivity analysis: AI not initialized');
+      return;
+    }
+    
     const result = checkProductivityPatterns();
     
     if (!result) {
@@ -281,7 +366,7 @@ export const useSmartMessaging = () => {
         { type: 'productivity_analysis', timestamp: new Date().toISOString() }
       );
     }
-  }, [checkProductivityPatterns, addSuggestion]);
+  }, [checkProductivityPatterns, addSuggestion, isAIInitialized]);
 
   return {
     triggerTaskAnalysis,
