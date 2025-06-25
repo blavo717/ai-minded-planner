@@ -27,8 +27,28 @@ export const useLLMService = () => {
 
   const makeLLMRequestMutation = useMutation({
     mutationFn: async (request: LLMRequest): Promise<LLMResponse> => {
-      if (!user) throw new Error('Usuario no autenticado');
-      if (!activeConfiguration) throw new Error('No hay configuración LLM activa');
+      console.log('🚀 Starting LLM request:', {
+        functionName: request.functionName,
+        userPrompt: request.userPrompt.substring(0, 100) + '...',
+        hasActiveConfig: !!activeConfiguration,
+        userId: user?.id
+      });
+      
+      if (!user) {
+        console.error('❌ Usuario no autenticado');
+        throw new Error('Usuario no autenticado');
+      }
+      
+      if (!activeConfiguration) {
+        console.error('❌ No hay configuración LLM activa');
+        throw new Error('No hay configuración LLM activa. Ve a Configuración > LLM para configurar tu API key.');
+      }
+
+      console.log('📡 Invoking edge function with config:', {
+        model: activeConfiguration.model_name,
+        temperature: activeConfiguration.temperature,
+        max_tokens: request.maxTokensOverride || activeConfiguration.max_tokens
+      });
 
       const { data, error } = await supabase.functions.invoke('openrouter-chat', {
         body: {
@@ -46,16 +66,40 @@ export const useLLMService = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase function error:', error);
+        
+        // Proporcionar mensajes de error más específicos
+        if (error.message?.includes('Failed to fetch')) {
+          throw new Error('No se pudo conectar con el servicio. Verifica tu conexión a internet.');
+        } else if (error.message?.includes('API key')) {
+          throw new Error('Problema con la API key de OpenRouter. Verifica tu configuración.');
+        } else if (error.message?.includes('not found')) {
+          throw new Error('El modelo configurado no está disponible en OpenRouter.');
+        } else {
+          throw new Error(error.message || 'Error al conectar con el servicio de IA');
+        }
+      }
+
+      if (!data?.response) {
+        console.error('❌ No response in data:', data);
+        throw new Error('Respuesta vacía del servicio de IA');
+      }
+
+      console.log('✅ LLM request successful:', {
+        model: data.model,
+        responseLength: data.response.length,
+        usage: data.usage
+      });
       
       return {
-        content: data.content,
+        content: data.response,
         usage: data.usage,
-        model_used: activeConfiguration.model_name
+        model_used: data.model || activeConfiguration.model_name
       };
     },
     onError: (error) => {
-      console.error('Error en llamada LLM:', error);
+      console.error('❌ Error en llamada LLM:', error);
     }
   });
 

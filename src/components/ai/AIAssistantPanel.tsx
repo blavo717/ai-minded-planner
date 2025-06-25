@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   MessageCircle, 
   X, 
@@ -13,10 +14,15 @@ import {
   Maximize2,
   Trash2,
   Settings,
-  Bot
+  Bot,
+  Wifi,
+  WifiOff,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useSmartMessaging } from '@/hooks/useSmartMessaging';
+import { useLLMConfigurations } from '@/hooks/useLLMConfigurations';
 import ChatMessage from './ChatMessage';
 import NotificationBadge from './NotificationBadge';
 
@@ -27,6 +33,7 @@ const AIAssistantPanel = () => {
     messages,
     isTyping,
     isLoading,
+    connectionStatus,
     sendMessage,
     markAsRead,
     markAllAsRead,
@@ -35,6 +42,7 @@ const AIAssistantPanel = () => {
   } = useAIAssistant();
 
   const { triggerTaskAnalysis } = useSmartMessaging();
+  const { activeConfiguration } = useLLMConfigurations();
   
   const [inputMessage, setInputMessage] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
@@ -66,7 +74,9 @@ const AIAssistantPanel = () => {
     // Añadir contexto de página actual
     const contextData = {
       currentPage: window.location.pathname,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      hasActiveConfig: !!activeConfiguration
     };
     
     await sendMessage(message, contextData);
@@ -85,6 +95,32 @@ const AIAssistantPanel = () => {
     // Marcar todos los mensajes como leídos cuando se abre el chat
     if (badgeInfo.count > 0) {
       setTimeout(() => markAllAsRead(), 500);
+    }
+  };
+
+  const getConnectionIcon = () => {
+    switch (connectionStatus) {
+      case 'connecting':
+        return <Loader2 className="h-4 w-4 animate-spin text-yellow-600" />;
+      case 'connected':
+        return <Wifi className="h-4 w-4 text-green-600" />;
+      case 'error':
+        return <WifiOff className="h-4 w-4 text-red-600" />;
+      default:
+        return <Bot className="h-5 w-5" />;
+    }
+  };
+
+  const getConnectionStatus = () => {
+    switch (connectionStatus) {
+      case 'connecting':
+        return 'Conectando...';
+      case 'connected':
+        return 'Conectado';
+      case 'error':
+        return 'Error de conexión';
+      default:
+        return 'Asistente IA';
     }
   };
 
@@ -109,14 +145,19 @@ const AIAssistantPanel = () => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-fade-in">
+    <div className="fixed bottom-6 right-6 z-50 animate-fade-in" data-testid="ai-assistant-panel">
       <Card className="w-96 h-[500px] shadow-2xl border-2 border-gray-200 bg-white">
         {/* Header */}
         <CardHeader className="pb-2 border-b bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Bot className="h-5 w-5" />
-              <span className="font-semibold">Asistente IA</span>
+              {getConnectionIcon()}
+              <div className="flex flex-col">
+                <span className="font-semibold">{getConnectionStatus()}</span>
+                {!activeConfiguration && (
+                  <span className="text-xs text-blue-100">⚙️ Config LLM requerida</span>
+                )}
+              </div>
               {badgeInfo.count > 0 && (
                 <Badge className="bg-white text-blue-600 text-xs">
                   {badgeInfo.count} nuevos
@@ -149,6 +190,16 @@ const AIAssistantPanel = () => {
         {/* Content */}
         {!isMinimized && (
           <CardContent className="p-0 flex flex-col h-[440px]">
+            {/* Configuration Alert */}
+            {!activeConfiguration && (
+              <Alert className="m-4 mb-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  <strong>Configuración requerida:</strong> Ve a Configuración → LLM para configurar tu API key de OpenRouter.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {/* Messages Area */}
             <ScrollArea className="flex-1 p-4">
               {messages.length === 0 ? (
@@ -157,15 +208,22 @@ const AIAssistantPanel = () => {
                   <p className="text-sm">¡Hola! Soy tu asistente de productividad.</p>
                   <p className="text-xs mt-2">Pregúntame sobre tus tareas, necesidades de planificación o cualquier cosa relacionada con tu productividad.</p>
                   
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={triggerTaskAnalysis}
                       className="text-xs"
+                      disabled={!activeConfiguration}
                     >
                       Analizar mis tareas
                     </Button>
+                    
+                    {!activeConfiguration && (
+                      <p className="text-xs text-red-600">
+                        Configura LLM primero para usar funciones IA
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -226,20 +284,26 @@ const AIAssistantPanel = () => {
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Escribe tu mensaje..."
-                  disabled={isLoading}
+                  placeholder={activeConfiguration ? "Escribe tu mensaje..." : "Configura LLM primero..."}
+                  disabled={isLoading || !activeConfiguration}
                   className="flex-1"
                 />
                 
                 <Button
                   onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isLoading}
+                  disabled={!inputMessage.trim() || isLoading || !activeConfiguration}
                   size="sm"
                   className="px-3"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
+              
+              {connectionStatus === 'error' && (
+                <p className="text-xs text-red-600 mt-2">
+                  ❌ Error de conexión. Verifica tu configuración LLM.
+                </p>
+              )}
             </div>
           </CardContent>
         )}
