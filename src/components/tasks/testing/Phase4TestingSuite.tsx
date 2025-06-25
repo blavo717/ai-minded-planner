@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,14 +36,15 @@ interface TestResult {
   details?: any;
   duration?: number;
   error?: string;
-  actualError?: boolean; // Nueva propiedad para distinguir errores reales
+  actualError?: boolean;
 }
 
-interface TestSuiteState {
+interface TestSuiteMetrics {
   passedTests: number;
   failedTests: number;
-  realErrors: number; // Contador de errores reales
+  realErrors: number;
   executionComplete: boolean;
+  totalTests: number;
 }
 
 const Phase4TestingSuite = () => {
@@ -74,12 +76,47 @@ const Phase4TestingSuite = () => {
   const [currentTestIndex, setCurrentTestIndex] = useState(-1);
   const [debugMode, setDebugMode] = useState(false);
   const [lastGeneratedPlan, setLastGeneratedPlan] = useState<DailyPlan | null>(null);
-  const [suiteState, setSuiteState] = useState<TestSuiteState>({
+  const [suiteMetrics, setSuiteMetrics] = useState<TestSuiteMetrics>({
     passedTests: 0,
     failedTests: 0,
     realErrors: 0,
-    executionComplete: false
+    executionComplete: false,
+    totalTests: 10
   });
+
+  // Función para calcular métricas finales basadas en resultados reales
+  const calculateFinalMetrics = useCallback((results: TestResult[]): TestSuiteMetrics => {
+    const passedTests = results.filter(r => r.status === 'passed').length;
+    const failedTests = results.filter(r => r.status === 'failed').length;
+    const realErrors = results.filter(r => r.actualError === true).length;
+    const totalTests = results.length;
+    
+    console.log('[Phase4 Metrics] Calculating final metrics:', {
+      passedTests,
+      failedTests,
+      realErrors,
+      totalTests,
+      results: results.map(r => ({ name: r.name, status: r.status, actualError: r.actualError }))
+    });
+    
+    return {
+      passedTests,
+      failedTests,
+      realErrors,
+      executionComplete: true,
+      totalTests
+    };
+  }, []);
+
+  // UseEffect para actualizar métricas cuando cambien los resultados
+  useEffect(() => {
+    if (testResults.some(r => r.status !== 'pending')) {
+      const newMetrics = calculateFinalMetrics(testResults);
+      setSuiteMetrics(newMetrics);
+      
+      console.log('[Phase4 State] Metrics updated:', newMetrics);
+    }
+  }, [testResults, calculateFinalMetrics]);
 
   // Helper function mejorada para evaluación real
   const evaluateTestResult = (result: any, testName: string): { success: boolean; error?: string } => {
@@ -106,23 +143,11 @@ const Phase4TestingSuite = () => {
   };
 
   const updateTestResult = useCallback((index: number, updates: Partial<TestResult>) => {
+    console.log(`[Phase4 Update] Updating test ${index}:`, updates);
+    
     setTestResults(prev => {
-      const newResults = prev.map((test, i) => 
-        i === index ? { ...test, ...updates } : test
-      );
-      
-      // Actualizar contadores del suite
-      const passed = newResults.filter(t => t.status === 'passed').length;
-      const failed = newResults.filter(t => t.status === 'failed').length;
-      const realErrors = newResults.filter(t => t.actualError === true).length;
-      
-      setSuiteState(prev => ({
-        ...prev,
-        passedTests: passed,
-        failedTests: failed,
-        realErrors: realErrors
-      }));
-      
+      const newResults = [...prev];
+      newResults[index] = { ...newResults[index], ...updates };
       return newResults;
     });
   }, []);
@@ -133,7 +158,7 @@ const Phase4TestingSuite = () => {
     }
   };
 
-  // Test 1: Verificar Configuración LLM (Mejorado)
+  // Test 1: Verificar Configuración LLM
   const testLLMConfiguration = async (index: number) => {
     const startTime = Date.now();
     updateTestResult(index, { status: 'running', message: 'Verificando configuración LLM...' });
@@ -153,7 +178,6 @@ const Phase4TestingSuite = () => {
         throw new Error('Configuración LLM no está activa');
       }
 
-      // Verificar que hay API key configurada
       if (!activeConfiguration.api_key_name) {
         throw new Error('No hay API key configurada');
       }
@@ -170,6 +194,72 @@ const Phase4TestingSuite = () => {
           active: activeConfiguration.is_active,
           hasApiKey: !!activeConfiguration.api_key_name
         }
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      updateTestResult(index, {
+        status: 'failed',
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+        duration,
+        actualError: true,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  };
+
+  const testTasksAvailable = async (index: number) => {
+    const startTime = Date.now();
+    updateTestResult(index, { status: 'running', message: 'Verificando tareas disponibles...' });
+    
+    try {
+      if (mainTasks.length === 0) {
+        throw new Error('No hay tareas principales para planificar');
+      }
+
+      const pendingTasks = mainTasks.filter(t => ['pending', 'in_progress'].includes(t.status));
+      if (pendingTasks.length === 0) {
+        throw new Error('No hay tareas pendientes o en progreso');
+      }
+
+      const duration = Date.now() - startTime;
+      updateTestResult(index, {
+        status: 'passed',
+        message: `${mainTasks.length} tareas principales, ${pendingTasks.length} planificables`,
+        duration,
+        actualError: false
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      updateTestResult(index, {
+        status: 'failed',
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+        duration,
+        actualError: true,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  };
+
+  const testDailyPlansTable = async (index: number) => {
+    const startTime = Date.now();
+    updateTestResult(index, { status: 'running', message: 'Validando tabla ai_daily_plans...' });
+    
+    try {
+      const { data, error } = await supabase
+        .from('ai_daily_plans')
+        .select('id, user_id, plan_date')
+        .limit(1);
+
+      if (error) {
+        throw new Error(`Error de base de datos: ${error.message}`);
+      }
+
+      const duration = Date.now() - startTime;
+      updateTestResult(index, {
+        status: 'passed',
+        message: 'Tabla ai_daily_plans accesible',
+        duration,
+        actualError: false
       });
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -348,6 +438,42 @@ const Phase4TestingSuite = () => {
     }
   };
 
+  const testOptimizationAlgorithm = async (index: number) => {
+    const startTime = Date.now();
+    updateTestResult(index, { status: 'running', message: 'Verificando algoritmo de optimización...' });
+    
+    try {
+      const planToAnalyze = lastGeneratedPlan || todaysPlan;
+      
+      if (!planToAnalyze || !planToAnalyze.planned_tasks) {
+        throw new Error('No hay plan generado para analizar');
+      }
+
+      const tasks = planToAnalyze.planned_tasks;
+      const taskBlocks = tasks.filter(b => b.type === 'task');
+      
+      if (taskBlocks.length === 0) {
+        throw new Error('El plan no contiene tareas para analizar');
+      }
+
+      const duration = Date.now() - startTime;
+      updateTestResult(index, {
+        status: 'passed',
+        message: `Algoritmo funcionando: ${taskBlocks.length} tareas`,
+        duration,
+        actualError: false
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      updateTestResult(index, {
+        status: 'failed',
+        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+        duration,
+        actualError: true
+      });
+    }
+  };
+
   // Test 7: Test Persistencia Datos (Mejorado)
   const testDataPersistence = async (index: number) => {
     const startTime = Date.now();
@@ -415,109 +541,6 @@ const Phase4TestingSuite = () => {
         duration,
         actualError: true,
         error: error instanceof Error ? error.message : 'Error desconocido'
-      });
-    }
-  };
-
-  // Resto de tests simplificados para mantener la funcionalidad
-  const testTasksAvailable = async (index: number) => {
-    const startTime = Date.now();
-    updateTestResult(index, { status: 'running', message: 'Verificando tareas disponibles...' });
-    
-    try {
-      if (mainTasks.length === 0) {
-        throw new Error('No hay tareas principales para planificar');
-      }
-
-      const pendingTasks = mainTasks.filter(t => ['pending', 'in_progress'].includes(t.status));
-      if (pendingTasks.length === 0) {
-        throw new Error('No hay tareas pendientes o en progreso');
-      }
-
-      const duration = Date.now() - startTime;
-      updateTestResult(index, {
-        status: 'passed',
-        message: `${mainTasks.length} tareas principales, ${pendingTasks.length} planificables`,
-        duration,
-        actualError: false
-      });
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      updateTestResult(index, {
-        status: 'failed',
-        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
-        duration,
-        actualError: true,
-        error: error instanceof Error ? error.message : 'Error desconocido'
-      });
-    }
-  };
-
-  const testDailyPlansTable = async (index: number) => {
-    const startTime = Date.now();
-    updateTestResult(index, { status: 'running', message: 'Validando tabla ai_daily_plans...' });
-    
-    try {
-      const { data, error } = await supabase
-        .from('ai_daily_plans')
-        .select('id, user_id, plan_date')
-        .limit(1);
-
-      if (error) {
-        throw new Error(`Error de base de datos: ${error.message}`);
-      }
-
-      const duration = Date.now() - startTime;
-      updateTestResult(index, {
-        status: 'passed',
-        message: 'Tabla ai_daily_plans accesible',
-        duration,
-        actualError: false
-      });
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      updateTestResult(index, {
-        status: 'failed',
-        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
-        duration,
-        actualError: true,
-        error: error instanceof Error ? error.message : 'Error desconocido'
-      });
-    }
-  };
-
-  const testOptimizationAlgorithm = async (index: number) => {
-    const startTime = Date.now();
-    updateTestResult(index, { status: 'running', message: 'Verificando algoritmo de optimización...' });
-    
-    try {
-      const planToAnalyze = lastGeneratedPlan || todaysPlan;
-      
-      if (!planToAnalyze || !planToAnalyze.planned_tasks) {
-        throw new Error('No hay plan generado para analizar');
-      }
-
-      const tasks = planToAnalyze.planned_tasks;
-      const taskBlocks = tasks.filter(b => b.type === 'task');
-      
-      if (taskBlocks.length === 0) {
-        throw new Error('El plan no contiene tareas para analizar');
-      }
-
-      const duration = Date.now() - startTime;
-      updateTestResult(index, {
-        status: 'passed',
-        message: `Algoritmo funcionando: ${taskBlocks.length} tareas`,
-        duration,
-        actualError: false
-      });
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      updateTestResult(index, {
-        status: 'failed',
-        message: `Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
-        duration,
-        actualError: true
       });
     }
   };
@@ -615,16 +638,32 @@ const Phase4TestingSuite = () => {
   };
 
   const runAllTests = async () => {
+    console.log('[Phase4 Start] Iniciando suite de tests con corrección de contadores');
+    
     setIsRunning(true);
     setCurrentTestIndex(0);
-    setSuiteState({
+    
+    // Resetear estado inicial
+    setSuiteMetrics({
       passedTests: 0,
       failedTests: 0,
       realErrors: 0,
-      executionComplete: false
+      executionComplete: false,
+      totalTests: 10
     });
     
-    logDebug('Starting complete test suite with improved error detection');
+    // Resetear todos los tests a pending
+    setTestResults(prev => prev.map(test => ({ 
+      ...test, 
+      status: 'pending' as const,
+      message: undefined,
+      details: undefined,
+      duration: undefined,
+      error: undefined,
+      actualError: undefined
+    })));
+    
+    logDebug('Starting complete test suite with improved counter logic');
 
     // Limpiar datos de test anteriores
     try {
@@ -669,64 +708,67 @@ const Phase4TestingSuite = () => {
     setCurrentTestIndex(-1);
     setIsRunning(false);
     
-    // Evaluación final mejorada
-    const finalResults = testResults;
-    const passedTests = finalResults.filter(t => t.status === 'passed').length;
-    const failedTests = finalResults.filter(t => t.status === 'failed').length;
-    const realErrors = finalResults.filter(t => t.actualError === true).length;
-    const totalTests = finalResults.length;
+    // Esperar a que todos los states se actualicen
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    setSuiteState(prev => ({
-      ...prev,
-      executionComplete: true,
-      realErrors
-    }));
-    
-    logDebug('Test suite completed', { passedTests, failedTests, realErrors, totalTests });
-    
-    // Toast mejorado que refleja el estado real
-    const hasRealErrors = realErrors > 0;
-    const allTestsCompleted = passedTests + failedTests === totalTests;
-    
-    if (hasRealErrors) {
-      toast({
-        title: "❌ Testing Phase 4 - Errores Detectados",
-        description: `${realErrors} errores reales encontrados de ${totalTests} tests ejecutados`,
-        variant: "destructive"
-      });
-    } else if (allTestsCompleted && passedTests === totalTests) {
-      toast({
-        title: "✅ Testing Phase 4 - Éxito Completo",
-        description: `Todos los ${totalTests} tests pasaron sin errores reales`,
-        variant: "default"
-      });
-    } else {
-      toast({
-        title: "⚠️ Testing Phase 4 - Completado con Advertencias",
-        description: `${passedTests}/${totalTests} tests pasaron, ${failedTests} fallaron`,
-        variant: "destructive"
-      });
-    }
+    // Calcular métricas finales usando los resultados reales
+    setTestResults(currentResults => {
+      const finalMetrics = calculateFinalMetrics(currentResults);
+      setSuiteMetrics(finalMetrics);
+      
+      console.log('[Phase4 Final] Métricas calculadas:', finalMetrics);
+      
+      // Toast mejorado que refleja el estado real
+      const hasRealErrors = finalMetrics.realErrors > 0;
+      const allTestsCompleted = finalMetrics.passedTests + finalMetrics.failedTests === finalMetrics.totalTests;
+      
+      if (hasRealErrors) {
+        toast({
+          title: "❌ Testing Phase 4 - Errores Detectados",
+          description: `${finalMetrics.realErrors} errores reales encontrados de ${finalMetrics.totalTests} tests ejecutados`,
+          variant: "destructive"
+        });
+      } else if (allTestsCompleted && finalMetrics.passedTests === finalMetrics.totalTests) {
+        toast({
+          title: "✅ Testing Phase 4 - Éxito Completo",
+          description: `Todos los ${finalMetrics.totalTests} tests pasaron sin errores reales`,
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "⚠️ Testing Phase 4 - Completado con Advertencias",
+          description: `${finalMetrics.passedTests}/${finalMetrics.totalTests} tests pasaron, ${finalMetrics.failedTests} fallaron`,
+          variant: "destructive"
+        });
+      }
+      
+      return currentResults;
+    });
   };
 
   const resetTests = async () => {
+    console.log('[Phase4 Reset] Reseteando tests y limpiando datos');
+    
     setTestResults(prev => prev.map(test => ({ 
       ...test, 
-      status: 'pending', 
+      status: 'pending' as const,
       message: undefined, 
       details: undefined, 
       duration: undefined,
       error: undefined,
       actualError: undefined
     })));
+    
     setCurrentTestIndex(-1);
     setIsRunning(false);
     setLastGeneratedPlan(null);
-    setSuiteState({
+    
+    setSuiteMetrics({
       passedTests: 0,
       failedTests: 0,
       realErrors: 0,
-      executionComplete: false
+      executionComplete: false,
+      totalTests: 10
     });
     
     // Limpiar datos de test
@@ -759,9 +801,9 @@ const Phase4TestingSuite = () => {
     }
   };
 
-  const progress = suiteState.executionComplete ? 
+  const progress = suiteMetrics.executionComplete ? 
     100 : 
-    ((suiteState.passedTests + suiteState.failedTests) / testResults.length) * 100;
+    ((suiteMetrics.passedTests + suiteMetrics.failedTests) / suiteMetrics.totalTests) * 100;
 
   // Verificar requisitos previos
   const systemReady = activeConfiguration && mainTasks.length > 0;
@@ -772,7 +814,7 @@ const Phase4TestingSuite = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-purple-600" />
-            Phase 4 Testing Suite - Detección de Errores Mejorada
+            Phase 4 Testing Suite - Contadores Corregidos
           </CardTitle>
         </CardHeader>
         
@@ -795,20 +837,20 @@ const Phase4TestingSuite = () => {
             </Alert>
           )}
 
-          {/* Métricas mejoradas */}
+          {/* Métricas corregidas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-green-50 rounded-lg border">
-              <div className="text-2xl font-bold text-green-600">{suiteState.passedTests}</div>
+              <div className="text-2xl font-bold text-green-600">{suiteMetrics.passedTests}</div>
               <div className="text-sm text-muted-foreground">Tests Pasados</div>
             </div>
             
             <div className="text-center p-4 bg-red-50 rounded-lg border">
-              <div className="text-2xl font-bold text-red-600">{suiteState.realErrors}</div>
+              <div className="text-2xl font-bold text-red-600">{suiteMetrics.realErrors}</div>
               <div className="text-sm text-muted-foreground">Errores Reales</div>
             </div>
             
             <div className="text-center p-4 bg-orange-50 rounded-lg border">
-              <div className="text-2xl font-bold text-orange-600">{suiteState.failedTests}</div>
+              <div className="text-2xl font-bold text-orange-600">{suiteMetrics.failedTests}</div>
               <div className="text-sm text-muted-foreground">Tests Fallidos</div>
             </div>
             
@@ -821,20 +863,23 @@ const Phase4TestingSuite = () => {
           </div>
 
           {/* Indicador de estado mejorado */}
-          {suiteState.executionComplete && (
-            <Alert className={suiteState.realErrors > 0 ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}>
+          {suiteMetrics.executionComplete && (
+            <Alert className={suiteMetrics.realErrors > 0 ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}>
               <div className="flex items-center gap-2">
-                {suiteState.realErrors > 0 ? (
+                {suiteMetrics.realErrors > 0 ? (
                   <XCircle className="h-4 w-4 text-red-500" />
                 ) : (
                   <CheckCircle className="h-4 w-4 text-green-500" />
                 )}
                 <AlertDescription>
                   <div className="font-medium">
-                    {suiteState.realErrors > 0 ? 
-                      `❌ Se detectaron ${suiteState.realErrors} errores reales en el sistema` :
+                    {suiteMetrics.realErrors > 0 ? 
+                      `❌ Se detectaron ${suiteMetrics.realErrors} errores reales en el sistema` :
                       "✅ Todos los tests pasaron sin errores reales detectados"
                     }
+                  </div>
+                  <div className="text-sm mt-1">
+                    Resumen: {suiteMetrics.passedTests} pasaron, {suiteMetrics.failedTests} fallaron de {suiteMetrics.totalTests} tests
                   </div>
                 </AlertDescription>
               </div>
@@ -845,7 +890,7 @@ const Phase4TestingSuite = () => {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Progreso de Testing</span>
-              <span>{suiteState.passedTests + suiteState.failedTests}/{testResults.length}</span>
+              <span>{suiteMetrics.passedTests + suiteMetrics.failedTests}/{suiteMetrics.totalTests}</span>
             </div>
             <Progress value={progress} className="h-2" />
           </div>
@@ -865,7 +910,7 @@ const Phase4TestingSuite = () => {
               ) : (
                 <>
                   <Play className="h-4 w-4" />
-                  Ejecutar Tests Mejorados
+                  Ejecutar Tests Corregidos
                 </>
               )}
             </Button>
@@ -890,7 +935,7 @@ const Phase4TestingSuite = () => {
 
           <Separator />
 
-          {/* Resultados de tests mejorados */}
+          {/* Resultados de tests */}
           <div className="space-y-3">
             <h4 className="font-medium text-gray-900">Resultados de Tests:</h4>
             
@@ -967,16 +1012,16 @@ const Phase4TestingSuite = () => {
             </div>
           )}
 
-          {/* Guía de testing mejorada */}
+          {/* Guía de testing corregida */}
           <div className="border-t pt-4">
-            <h5 className="font-medium text-sm mb-2">Mejoras Implementadas en Testing Phase 4:</h5>
+            <h5 className="font-medium text-sm mb-2">Correcciones Implementadas en Phase 4:</h5>
             <div className="text-xs text-muted-foreground space-y-1">
-              <p>✅ Detección real de errores vs falsos positivos</p>
-              <p>✅ Evaluación mejorada de respuestas HTTP</p>
-              <p>✅ Validación de integridad de datos</p>
-              <p>✅ Timeouts y manejo robusto de estados</p>
-              <p>✅ Contadores precisos de errores reales</p>
-              <p>✅ Notificaciones que reflejan el estado real</p>
+              <p>✅ Lógica de contadores corregida con cálculo final</p>
+              <p>✅ Estados asíncronos manejados con useEffect</p>
+              <p>✅ Métricas calculadas basado en resultados reales</p>
+              <p>✅ Notificaciones que reflejan el estado verdadero</p>
+              <p>✅ Logging detallado para debugging de contadores</p>
+              <p>✅ Validación de integridad entre tests individuales y métricas globales</p>
             </div>
           </div>
         </CardContent>
