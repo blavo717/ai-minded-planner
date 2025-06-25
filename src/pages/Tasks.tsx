@@ -13,6 +13,8 @@ import TaskList from '@/components/tasks/TaskList';
 import AIInsightsPanel from '@/components/tasks/ai/AIInsightsPanel';
 import AIMonitoringDashboard from '@/components/tasks/ai/AIMonitoringDashboard';
 import AITestingPanel from '@/components/tasks/ai/AITestingPanel';
+import Phase1TestingSuite from '@/components/tasks/testing/Phase1TestingSuite';
+import Phase1Demo from '@/components/tasks/testing/Phase1Demo';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
 
@@ -37,6 +39,7 @@ const TasksContent = () => {
   } = useTasksContext();
   
   const [showAIMonitoring, setShowAIMonitoring] = useState(false);
+  const [showTesting, setShowTesting] = useState(false);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -142,7 +145,16 @@ const TasksContent = () => {
         onCreateTask={() => setIsCreateTaskOpen(true)}
         showAIMonitoring={showAIMonitoring}
         onToggleAIMonitoring={() => setShowAIMonitoring(!showAIMonitoring)}
+        showTesting={showTesting}
+        onToggleTesting={() => setShowTesting(!showTesting)}
       />
+
+      {showTesting && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Phase1TestingSuite />
+          <Phase1Demo />
+        </div>
+      )}
 
       {showInsights && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -169,35 +181,39 @@ const TasksContent = () => {
         </div>
       )}
 
-      <AdvancedFilters
-        projects={projects}
-        profiles={profiles}
-        availableTags={availableTags}
-        filters={filters}
-        onFiltersChange={setFilters}
-      />
+      {!showTesting && (
+        <>
+          <AdvancedFilters
+            projects={projects}
+            profiles={profiles}
+            availableTags={availableTags}
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
 
-      <TaskViewControls
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        taskCount={filteredTasks.length}
-      />
+          <TaskViewControls
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            taskCount={filteredTasks.length}
+          />
 
-      {viewMode === 'kanban' ? (
-        <KanbanBoard
-          tasks={filteredTasks}
-          getSubtasksForTask={getSubtasksForTask}
-          onEditTask={handleEditTask}
-        />
-      ) : (
-        <TaskList
-          tasks={filteredTasks}
-          getSubtasksForTask={getSubtasksForTask}
-          onEditTask={handleEditTask}
-          onManageDependencies={handleManageDependencies}
-          onAssignTask={handleAssignTask}
-          onCreateSubtask={handleCreateSubtask}
-        />
+          {viewMode === 'kanban' ? (
+            <KanbanBoard
+              tasks={filteredTasks}
+              getSubtasksForTask={getSubtasksForTask}
+              onEditTask={handleEditTask}
+            />
+          ) : (
+            <TaskList
+              tasks={filteredTasks}
+              getSubtasksForTask={getSubtasksForTask}
+              onEditTask={handleEditTask}
+              onManageDependencies={handleManageDependencies}
+              onAssignTask={handleAssignTask}
+              onCreateSubtask={handleCreateSubtask}
+            />
+          )}
+        </>
       )}
 
       <TaskModals />
