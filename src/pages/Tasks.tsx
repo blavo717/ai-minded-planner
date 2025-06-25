@@ -13,8 +13,7 @@ import TasksHeader from '@/components/tasks/TasksHeader';
 import TaskViewControls from '@/components/tasks/TaskViewControls';
 import TaskList from '@/components/tasks/TaskList';
 import AIInsightsPanel from '@/components/tasks/ai/AIInsightsPanel';
-import AIMonitoringDashboard from '@/components/tasks/ai/AIMonitoringDashboard';
-import AITestingPanel from '@/components/tasks/ai/AITestingPanel';
+import PostRefactorValidation from '@/components/tasks/testing/PostRefactorValidation';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
 
@@ -31,7 +30,8 @@ const TasksContent = () => {
     setIsCreateTaskOpen,
   } = useTasksContext();
   
-  const [showAIMonitoring, setShowAIMonitoring] = useState(false);
+  // Estado temporal para mostrar validación post-refactor
+  const [showPostRefactorValidation, setShowPostRefactorValidation] = useState(true);
   
   const { filters, setFilters, filteredTasks, availableTags } = useTaskFilters(mainTasks, getSubtasksForTask);
   const { handleEditTask, handleManageDependencies, handleAssignTask, handleCreateSubtask } = useTaskHandlers();
@@ -42,9 +42,23 @@ const TasksContent = () => {
         showInsights={showInsights}
         onToggleInsights={() => setShowInsights(!showInsights)}
         onCreateTask={() => setIsCreateTaskOpen(true)}
-        showAIMonitoring={showAIMonitoring}
-        onToggleAIMonitoring={() => setShowAIMonitoring(!showAIMonitoring)}
       />
+
+      {/* Validación Post-Refactor - Temporal */}
+      {showPostRefactorValidation && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">🔍 Validación Post-Refactor</h2>
+            <button
+              onClick={() => setShowPostRefactorValidation(false)}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Ocultar validación
+            </button>
+          </div>
+          <PostRefactorValidation />
+        </div>
+      )}
 
       {showInsights && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -56,17 +70,6 @@ const TasksContent = () => {
           </div>
           <div>
             <ProductivityTimer />
-          </div>
-        </div>
-      )}
-
-      {showAIMonitoring && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <AIMonitoringDashboard />
-          </div>
-          <div>
-            <AITestingPanel />
           </div>
         </div>
       )}
