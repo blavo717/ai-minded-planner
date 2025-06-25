@@ -218,11 +218,11 @@ const AIAnalysisPanel = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <h4 className="font-medium">{insight.title}</h4>
-                            <Badge variant={getPriorityColor(insight.priority)} size="sm">
+                            <Badge variant={getPriorityColor(insight.priority)}>
                               {getPriorityLabel(insight.priority)}
                             </Badge>
                             {!insight.is_read && (
-                              <Badge variant="outline" size="sm">Nuevo</Badge>
+                              <Badge variant="outline">Nuevo</Badge>
                             )}
                           </div>
                           <p className="text-sm text-muted-foreground mb-2">
