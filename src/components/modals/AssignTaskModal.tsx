@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,7 +30,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useTasks, CreateTaskAssignmentData, Profile } from '@/hooks/useTasks';
+import { useTaskAssignmentMutations } from '@/hooks/useTaskAssignmentMutations';
+import { CreateTaskAssignmentData } from '@/hooks/useTaskAssignments';
+import { Profile } from '@/hooks/useProfiles';
 
 const assignmentSchema = z.object({
   assigned_to: z.string().min(1, 'Debe seleccionar un usuario'),
@@ -58,7 +59,7 @@ const roleLabels = {
 };
 
 const AssignTaskModal = ({ isOpen, onClose, taskId, taskTitle, profiles }: AssignTaskModalProps) => {
-  const { createTaskAssignment, isCreatingTaskAssignment } = useTasks();
+  const { createTaskAssignment, isCreatingTaskAssignment } = useTaskAssignmentMutations();
 
   const form = useForm<AssignmentFormData>({
     resolver: zodResolver(assignmentSchema),

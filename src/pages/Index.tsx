@@ -1,6 +1,7 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { useTasks } from '@/hooks/useTasks';
+import { useProjects } from '@/hooks/useProjects';
 import { Brain } from 'lucide-react';
 import { CheckCircle, Clock, AlertTriangle, FolderOpen } from 'lucide-react';
 import StatsCard from '@/components/Dashboard/StatsCard';
@@ -11,7 +12,10 @@ import MainLayout from '@/components/Layout/MainLayout';
 
 const Index = () => {
   const { user } = useAuth();
-  const { tasks, projects, isLoading } = useTasks();
+  const { tasks, isLoading: tasksLoading } = useTasks();
+  const { projects, isLoading: projectsLoading } = useProjects();
+
+  const isLoading = tasksLoading || projectsLoading;
 
   // Calculate statistics
   const pendingTasks = tasks.filter(task => task.status === 'pending').length;

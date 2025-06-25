@@ -15,7 +15,8 @@ import {
   Trash2,
   Edit
 } from 'lucide-react';
-import { useTasks } from '@/hooks/useTasks';
+import { useExternalContacts } from '@/hooks/useExternalContacts';
+import { useExternalContactMutations } from '@/hooks/useExternalContactMutations';
 import CreateExternalContactModal from '@/components/modals/CreateExternalContactModal';
 
 const contactTypeColors = {
@@ -37,7 +38,8 @@ const contactTypeLabels = {
 const Contacts = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const { externalContacts, deleteExternalContact, isDeletingExternalContact } = useTasks();
+  const { externalContacts } = useExternalContacts();
+  const { deleteExternalContact, isDeletingExternalContact } = useExternalContactMutations();
 
   const filteredContacts = externalContacts.filter(contact =>
     contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

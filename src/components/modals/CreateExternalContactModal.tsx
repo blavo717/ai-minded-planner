@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useTasks, CreateExternalContactData } from '@/hooks/useTasks';
+import { useExternalContactMutations } from '@/hooks/useExternalContactMutations';
+import { CreateExternalContactData } from '@/hooks/useExternalContacts';
 
 const contactSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
@@ -56,7 +56,7 @@ const contactTypeLabels = {
 };
 
 const CreateExternalContactModal = ({ isOpen, onClose }: CreateExternalContactModalProps) => {
-  const { createExternalContact, isCreatingExternalContact } = useTasks();
+  const { createExternalContact, isCreatingExternalContact } = useExternalContactMutations();
 
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useTasks, Task } from '@/hooks/useTasks';
+import { useTaskMutations } from '@/hooks/useTaskMutations';
+import { useProjects } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,7 +37,9 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const Tasks = () => {
-  const { tasks, projects, updateTask, deleteTask, isUpdatingTask, isDeletingTask } = useTasks();
+  const { tasks } = useTasks();
+  const { projects } = useProjects();
+  const { updateTask, deleteTask, isUpdatingTask, isDeletingTask } = useTaskMutations();
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');

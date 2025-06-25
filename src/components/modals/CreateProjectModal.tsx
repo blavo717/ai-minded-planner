@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,7 +19,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { useTasks, CreateProjectData } from '@/hooks/useTasks';
+import { useProjectMutations } from '@/hooks/useProjectMutations';
+import { CreateProjectData } from '@/hooks/useProjects';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
@@ -49,7 +49,7 @@ const predefinedColors = [
 ];
 
 const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
-  const { createProject, isCreatingProject } = useTasks();
+  const { createProject, isCreatingProject } = useProjectMutations();
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
