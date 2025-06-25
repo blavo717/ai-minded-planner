@@ -19,6 +19,8 @@ import Phase2TestingSuite from '@/components/tasks/testing/Phase2TestingSuite';
 import Phase2Demo from '@/components/tasks/testing/Phase2Demo';
 import Phase3IntegralSuite from '@/components/tasks/testing/Phase3IntegralSuite';
 import Phase3Demo from '@/components/tasks/testing/Phase3Demo';
+import Phase4UXSuite from '@/components/tasks/testing/Phase4UXSuite';
+import Phase4UXDemo from '@/components/tasks/testing/Phase4UXDemo';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
 
@@ -46,6 +48,7 @@ const TasksContent = () => {
   const [showTesting, setShowTesting] = useState(false);
   const [showPhase2Testing, setShowPhase2Testing] = useState(false);
   const [showPhase3Testing, setShowPhase3Testing] = useState(false);
+  const [showPhase4UX, setShowPhase4UX] = useState(false);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -157,6 +160,8 @@ const TasksContent = () => {
         onTogglePhase2Testing={() => setShowPhase2Testing(!showPhase2Testing)}
         showPhase3Testing={showPhase3Testing}
         onTogglePhase3Testing={() => setShowPhase3Testing(!showPhase3Testing)}
+        showPhase4UX={showPhase4UX}
+        onTogglePhase4UX={() => setShowPhase4UX(!showPhase4UX)}
       />
 
       {showTesting && (
@@ -177,6 +182,13 @@ const TasksContent = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Phase3IntegralSuite />
           <Phase3Demo />
+        </div>
+      )}
+
+      {showPhase4UX && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Phase4UXSuite />
+          <Phase4UXDemo />
         </div>
       )}
 
@@ -205,7 +217,7 @@ const TasksContent = () => {
         </div>
       )}
 
-      {!showTesting && !showPhase2Testing && !showPhase3Testing && (
+      {!showTesting && !showPhase2Testing && !showPhase3Testing && !showPhase4UX && (
         <>
           <AdvancedFilters
             projects={projects}

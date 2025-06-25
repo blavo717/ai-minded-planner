@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +12,8 @@ import {
   Activity,
   Zap,
   TrendingUp,
-  Workflow
+  Workflow,
+  Palette
 } from 'lucide-react';
 
 interface TasksHeaderProps {
@@ -26,6 +28,8 @@ interface TasksHeaderProps {
   onTogglePhase2Testing: () => void;
   showPhase3Testing: boolean;
   onTogglePhase3Testing: () => void;
+  showPhase4UX: boolean;
+  onTogglePhase4UX: () => void;
 }
 
 const TasksHeader = ({ 
@@ -39,7 +43,9 @@ const TasksHeader = ({
   showPhase2Testing,
   onTogglePhase2Testing,
   showPhase3Testing,
-  onTogglePhase3Testing
+  onTogglePhase3Testing,
+  showPhase4UX,
+  onTogglePhase4UX
 }: TasksHeaderProps) => {
   return (
     <div className="flex items-center justify-between">
@@ -94,6 +100,15 @@ const TasksHeader = ({
         >
           <Workflow className="h-4 w-4" />
           {showPhase3Testing ? "Ocultar Fase 3" : "Testing Integral"}
+        </Button>
+        
+        <Button
+          variant={showPhase4UX ? "default" : "outline"}
+          onClick={onTogglePhase4UX}
+          className="flex items-center gap-2"
+        >
+          <Palette className="h-4 w-4" />
+          {showPhase4UX ? "Ocultar Fase 4" : "Refinamiento UX"}
         </Button>
         
         <Button onClick={onCreateTask} className="flex items-center gap-2">
