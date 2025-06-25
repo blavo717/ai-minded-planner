@@ -31,8 +31,9 @@ const TaskModals = () => {
   return (
     <>
       <CreateTaskModal
-        open={isCreateTaskOpen}
-        onOpenChange={setIsCreateTaskOpen}
+        isOpen={isCreateTaskOpen}
+        onClose={() => setIsCreateTaskOpen(false)}
+        projects={projects}
       />
 
       {editingTask && (
