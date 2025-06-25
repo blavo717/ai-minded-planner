@@ -1,57 +1,50 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Palette, Zap, AlertCircle } from 'lucide-react';
 import { LLMConfiguration } from '@/hooks/useLLMConfigurations';
 import { useOpenRouterModels } from '@/hooks/useOpenRouterModels';
-import { formatPricing } from '@/services/openRouterService';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import LLMTemplateSelector from './LLMTemplateSelector';
+import { LLMTemplate } from '@/data/llmTemplates';
 
-const configSchema = z.object({
+const formSchema = z.object({
   model_name: z.string().min(1, 'Selecciona un modelo'),
-  temperature: z.number().min(0).max(1),
-  max_tokens: z.number().min(1).max(8000),
+  temperature: z.number().min(0).max(2),
+  max_tokens: z.number().min(1).max(4000),
   top_p: z.number().min(0).max(1),
   frequency_penalty: z.number().min(-2).max(2),
   presence_penalty: z.number().min(-2).max(2),
   is_active: z.boolean(),
 });
 
-type ConfigFormData = z.infer<typeof configSchema>;
+type FormData = z.infer<typeof formSchema>;
 
 interface LLMConfigurationFormProps {
   configuration?: LLMConfiguration;
   onSubmit: (data: Partial<LLMConfiguration>) => void;
-  onCancel?: () => void;
+  onCancel: () => void;
   isLoading?: boolean;
 }
 
-const LLMConfigurationForm = ({ 
-  configuration, 
-  onSubmit, 
-  onCancel, 
-  isLoading 
-}: LLMConfigurationFormProps) => {
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
-  const [connectionError, setConnectionError] = useState<string>('');
-  const [tempConfigId, setTempConfigId] = useState<string>('');
-  const { models, groupedModels, isLoading: modelsLoading } = useOpenRouterModels();
-  const { toast } = useToast();
-  
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<ConfigFormData>({
-    resolver: zodResolver(configSchema),
+const LLMConfigurationForm = ({ configuration, onSubmit, onCancel, isLoading }: LLMConfigurationFormProps) => {
+  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [testMessage, setTestMessage] = useState('');
+  const [showTemplates, setShowTemplates] = useState(false);
+  const { groupedModels, isLoading: modelsLoading } = useOpenRouterModels();
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       model_name: configuration?.model_name || 'openai/gpt-4o-mini',
       temperature: configuration?.temperature || 0.7,
@@ -63,360 +56,339 @@ const LLMConfigurationForm = ({
     },
   });
 
-  const selectedModelId = watch('model_name');
-  const selectedModel = models.find(model => model.id === selectedModelId);
-  const temperature = watch('temperature');
-  const maxTokens = watch('max_tokens');
-  const topP = watch('top_p');
-  const frequencyPenalty = watch('frequency_penalty');
-  const presencePenalty = watch('presence_penalty');
+  const handleTemplateSelect = (template: LLMTemplate) => {
+    form.setValue('model_name', template.configuration.model_name);
+    form.setValue('temperature', template.configuration.temperature);
+    form.setValue('max_tokens', template.configuration.max_tokens);
+    form.setValue('top_p', template.configuration.top_p);
+    form.setValue('frequency_penalty', template.configuration.frequency_penalty);
+    form.setValue('presence_penalty', template.configuration.presence_penalty);
+  };
 
-  const testConnection = async (formData: ConfigFormData) => {
-    setConnectionStatus('testing');
-    setConnectionError('');
+  const testConnection = async (formData: FormData) => {
+    setTestStatus('testing');
+    setTestMessage('Probando conexión con el modelo...');
 
     try {
       // Crear configuración temporal para prueba
-      const { data: tempConfig, error: createError } = await supabase
-        .from('llm_configurations')
-        .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          ...formData,
-          provider: 'openrouter',
-          api_key_name: 'OPENROUTER_API_KEY',
-        })
-        .select()
-        .single();
+      const tempConfig = {
+        id: configuration?.id || 'temp',
+        user_id: 'temp',
+        provider: 'openrouter',
+        api_key_name: 'OPENROUTER_API_KEY',
+        ...formData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-      if (createError || !tempConfig) {
-        throw new Error('Error creando configuración temporal');
-      }
-
-      setTempConfigId(tempConfig.id);
-
-      // Probar la conexión
-      const { data, error } = await supabase.functions.invoke('test-llm-connection', {
-        body: { configId: tempConfig.id }
+      const response = await fetch('/api/test-llm-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: tempConfig }),
       });
 
-      if (error || !data?.success) {
-        throw new Error(data?.error || error?.message || 'Error en la prueba de conexión');
+      const result = await response.json();
+
+      if (result.success) {
+        setTestStatus('success');
+        setTestMessage(`Conexión exitosa con ${result.model}`);
+        return true;
+      } else {
+        setTestStatus('error');
+        setTestMessage(result.error || 'Error en la conexión');
+        return false;
       }
-
-      setConnectionStatus('success');
-      toast({
-        title: "Conexión exitosa",
-        description: `El modelo ${formData.model_name} está funcionando correctamente.`,
-      });
-
-    } catch (error: any) {
-      setConnectionStatus('error');
-      setConnectionError(error.message);
-      toast({
-        title: "Error de conexión",
-        description: error.message,
-        variant: "destructive",
-      });
-
-      // Limpiar configuración temporal si falló
-      if (tempConfigId) {
-        await supabase
-          .from('llm_configurations')
-          .delete()
-          .eq('id', tempConfigId);
-      }
+    } catch (error) {
+      setTestStatus('error');
+      setTestMessage('Error al probar la conexión');
+      return false;
     }
   };
 
-  const handleFormSubmit = async (data: ConfigFormData) => {
-    // Si no hemos probado la conexión, probarla primero
-    if (connectionStatus !== 'success') {
-      await testConnection(data);
-      return;
-    }
-
-    // Si la conexión fue exitosa, guardar la configuración
-    if (tempConfigId && !configuration) {
-      // Actualizar la configuración temporal para que sea permanente
-      const { error } = await supabase
-        .from('llm_configurations')
-        .update({ is_active: data.is_active })
-        .eq('id', tempConfigId);
-
-      if (!error) {
-        toast({
-          title: "Configuración guardada",
-          description: "La configuración del LLM ha sido guardada exitosamente.",
-        });
-        onSubmit({ ...data, id: tempConfigId });
-      }
-    } else {
-      // Editar configuración existente
+  const handleSubmit = async (data: FormData) => {
+    // Probar conexión antes de guardar
+    const connectionSuccess = await testConnection(data);
+    
+    if (connectionSuccess) {
       onSubmit(data);
     }
   };
 
-  const providerNames: { [key: string]: string } = {
-    'openai': 'OpenAI',
-    'anthropic': 'Anthropic',
-    'meta-llama': 'Meta',
-    'mistralai': 'Mistral',
-    'google': 'Google',
-    'cohere': 'Cohere',
-    'huggingfaceh4': 'Hugging Face',
-  };
+  if (showTemplates) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5" />
+            Plantillas de Configuración
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LLMTemplateSelector
+            onSelectTemplate={handleTemplateSelect}
+            isVisible={showTemplates}
+            onClose={() => setShowTemplates(false)}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>
-          {configuration ? 'Editar Configuración' : 'Nueva Configuración'} LLM
+          {configuration ? 'Editar Configuración' : 'Nueva Configuración LLM'}
         </CardTitle>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTemplates(true)}
+          >
+            <Palette className="h-4 w-4 mr-2" />
+            Usar Plantilla
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-          {/* Estado de la API Key */}
-          <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription>
-              API Key de OpenRouter configurada correctamente en Supabase.
-              <a 
-                href="https://openrouter.ai/keys" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="ml-2 text-blue-600 hover:underline inline-flex items-center gap-1"
-              >
-                Gestionar API Keys <ExternalLink className="h-3 w-3" />
-              </a>
-            </AlertDescription>
-          </Alert>
-
-          {/* Estado de Conexión */}
-          {connectionStatus !== 'idle' && (
-            <Alert className={
-              connectionStatus === 'success' ? 'border-green-200 bg-green-50' :
-              connectionStatus === 'error' ? 'border-red-200 bg-red-50' :
-              'border-blue-200 bg-blue-50'
-            }>
-              {connectionStatus === 'testing' && <Loader2 className="h-4 w-4 animate-spin" />}
-              {connectionStatus === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
-              {connectionStatus === 'error' && <AlertCircle className="h-4 w-4 text-red-600" />}
-              <AlertDescription>
-                {connectionStatus === 'testing' && 'Probando conexión con el modelo...'}
-                {connectionStatus === 'success' && 'Conexión exitosa. Ahora puedes guardar la configuración.'}
-                {connectionStatus === 'error' && `Error: ${connectionError}`}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Selección de Modelo */}
-          <div className="space-y-2">
-            <Label htmlFor="model_name">Modelo</Label>
-            {modelsLoading ? (
-              <div className="flex items-center gap-2 p-3 border rounded-md">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm text-muted-foreground">Cargando modelos...</span>
-              </div>
-            ) : (
-              <Select
-                value={selectedModelId}
-                onValueChange={(value) => {
-                  setValue('model_name', value);
-                  setConnectionStatus('idle'); // Reset connection status when model changes
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un modelo" />
-                </SelectTrigger>
-                <SelectContent className="max-h-80">
-                  {Object.entries(groupedModels).map(([provider, providerModels]) => (
-                    <div key={provider}>
-                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                        {providerNames[provider] || provider}
-                      </div>
-                      {providerModels.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex flex-col">
-                              <span className="font-medium">{model.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {formatPricing(model.pricing.prompt, model.pricing.completion)}
-                              </span>
-                            </div>
-                            <Badge variant="outline" className="ml-2 text-xs">
-                              {model.context_length.toLocaleString()} ctx
-                            </Badge>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            {/* Selección de Modelo */}
+            <FormField
+              control={form.control}
+              name="model_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Modelo</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={modelsLoading}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un modelo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.entries(groupedModels).map(([provider, models]) => (
+                        <div key={provider}>
+                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">
+                            {provider}
                           </div>
-                        </SelectItem>
+                          {models.slice(0, 5).map((model) => (
+                            <SelectItem key={model.id} value={model.id}>
+                              <div className="flex flex-col">
+                                <span>{model.name}</span>
+                                {model.description && (
+                                  <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                    {model.description}
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </div>
                       ))}
-                    </div>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            
-            {selectedModel && (
-              <div className="p-3 bg-gray-50 rounded-md">
-                <p className="text-sm text-muted-foreground mb-2">
-                  {selectedModel.description}
-                </p>
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <Badge variant="secondary">
-                    {selectedModel.context_length.toLocaleString()} tokens de contexto
-                  </Badge>
-                  <Badge variant="secondary">
-                    {selectedModel.architecture.modality}
-                  </Badge>
-                  <Badge variant="outline">
-                    {formatPricing(selectedModel.pricing.prompt, selectedModel.pricing.completion)}
-                  </Badge>
-                </div>
-              </div>
-            )}
-            
-            {errors.model_name && (
-              <p className="text-sm text-destructive">{errors.model_name.message}</p>
-            )}
-          </div>
-
-          {/* Parámetros del Modelo */}
-          {/* Temperatura */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Temperatura</Label>
-              <span className="text-sm font-mono">{temperature}</span>
-            </div>
-            <Slider
-              value={[temperature]}
-              onValueChange={(value) => {
-                setValue('temperature', value[0]);
-                setConnectionStatus('idle');
-              }}
-              max={1}
-              min={0}
-              step={0.1}
-              className="w-full"
-            />
-            <p className="text-xs text-muted-foreground">
-              Controla la creatividad. 0 = más determinista, 1 = más creativo
-            </p>
-          </div>
-
-          {/* Max Tokens */}
-          <div className="space-y-2">
-            <Label htmlFor="max_tokens">Máximo de Tokens</Label>
-            <Input
-              id="max_tokens"
-              type="number"
-              min={1}
-              max={8000}
-              {...register('max_tokens', { 
-                valueAsNumber: true,
-                onChange: () => setConnectionStatus('idle')
-              })}
-            />
-            <p className="text-xs text-muted-foreground">
-              Límite de tokens para la respuesta (1-8000)
-            </p>
-          </div>
-
-          {/* Configuración Avanzada */}
-          <div className="space-y-4 pt-4 border-t">
-            <h4 className="font-medium">Configuración Avanzada</h4>
-            
-            {/* Top-p */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Top-p</Label>
-                <span className="text-sm font-mono">{topP}</span>
-              </div>
-              <Slider
-                value={[topP]}
-                onValueChange={(value) => {
-                  setValue('top_p', value[0]);
-                  setConnectionStatus('idle');
-                }}
-                max={1}
-                min={0}
-                step={0.05}
-                className="w-full"
-              />
-            </div>
-
-            {/* Frequency Penalty */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Penalización de Frecuencia</Label>
-                <span className="text-sm font-mono">{frequencyPenalty}</span>
-              </div>
-              <Slider
-                value={[frequencyPenalty]}
-                onValueChange={(value) => {
-                  setValue('frequency_penalty', value[0]);
-                  setConnectionStatus('idle');
-                }}
-                max={2}
-                min={-2}
-                step={0.1}
-                className="w-full"
-              />
-            </div>
-
-            {/* Presence Penalty */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Penalización de Presencia</Label>
-                <span className="text-sm font-mono">{presencePenalty}</span>
-              </div>
-              <Slider
-                value={[presencePenalty]}
-                onValueChange={(value) => {
-                  setValue('presence_penalty', value[0]);
-                  setConnectionStatus('idle');
-                }}
-                max={2}
-                min={-2}
-                step={0.1}
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          {/* Configuración activa */}
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="is_active"
-              checked={watch('is_active')}
-              onCheckedChange={(checked) => setValue('is_active', checked)}
-            />
-            <Label htmlFor="is_active">Configuración activa</Label>
-          </div>
-
-          {/* Botones */}
-          <div className="flex gap-2 pt-4">
-            <Button 
-              type="submit" 
-              disabled={isLoading || connectionStatus === 'testing'}
-              className={connectionStatus === 'success' ? 'bg-green-600 hover:bg-green-700' : ''}
-            >
-              {connectionStatus === 'testing' ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Probando Conexión...
-                </>
-              ) : connectionStatus === 'success' ? (
-                'Guardar Configuración'
-              ) : (
-                'Probar y Guardar'
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
               )}
-            </Button>
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel}>
+            />
+
+            <Separator />
+
+            {/* Parámetros de Configuración */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium">Parámetros del Modelo</h3>
+              
+              {/* Temperature */}
+              <FormField
+                control={form.control}
+                name="temperature"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Temperatura</FormLabel>
+                      <span className="text-sm text-muted-foreground">{field.value}</span>
+                    </div>
+                    <FormControl>
+                      <Slider
+                        min={0}
+                        max={2}
+                        step={0.1}
+                        value={[field.value]}
+                        onValueChange={(value) => field.onChange(value[0])}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Controla la creatividad de las respuestas (0 = conservador, 2 = muy creativo)
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+
+              {/* Max Tokens */}
+              <FormField
+                control={form.control}
+                name="max_tokens"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Máximo de Tokens</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={4000}
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Longitud máxima de la respuesta
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+
+              {/* Top-p */}
+              <FormField
+                control={form.control}
+                name="top_p"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Top-p</FormLabel>
+                      <span className="text-sm text-muted-foreground">{field.value}</span>
+                    </div>
+                    <FormControl>
+                      <Slider
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={[field.value]}
+                        onValueChange={(value) => field.onChange(value[0])}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Controla la diversidad de las respuestas
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+
+              {/* Frequency Penalty */}
+              <FormField
+                control={form.control}
+                name="frequency_penalty"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Penalización de Frecuencia</FormLabel>
+                      <span className="text-sm text-muted-foreground">{field.value}</span>
+                    </div>
+                    <FormControl>
+                      <Slider
+                        min={-2}
+                        max={2}
+                        step={0.1}
+                        value={[field.value]}
+                        onValueChange={(value) => field.onChange(value[0])}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Penaliza la repetición de palabras
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+
+              {/* Presence Penalty */}
+              <FormField
+                control={form.control}
+                name="presence_penalty"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Penalización de Presencia</FormLabel>
+                      <span className="text-sm text-muted-foreground">{field.value}</span>
+                    </div>
+                    <FormControl>
+                      <Slider
+                        min={-2}
+                        max={2}
+                        step={0.1}
+                        value={[field.value]}
+                        onValueChange={(value) => field.onChange(value[0])}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Fomenta la introducción de nuevos topics
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <Separator />
+
+            {/* Configuración Activa */}
+            <FormField
+              control={form.control}
+              name="is_active"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Configuración Activa</FormLabel>
+                    <FormDescription>
+                      Esta será la configuración predeterminada para las funciones de IA
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {/* Estado del Test */}
+            {testStatus !== 'idle' && (
+              <Alert className={testStatus === 'success' ? 'border-green-200 bg-green-50' : testStatus === 'error' ? 'border-red-200 bg-red-50' : ''}>
+                <div className="flex items-center gap-2">
+                  {testStatus === 'testing' && <Zap className="h-4 w-4 animate-spin" />}
+                  {testStatus === 'success' && <Zap className="h-4 w-4 text-green-600" />}
+                  {testStatus === 'error' && <AlertCircle className="h-4 w-4 text-red-600" />}
+                  <AlertDescription className={testStatus === 'success' ? 'text-green-800' : testStatus === 'error' ? 'text-red-800' : ''}>
+                    {testMessage}
+                  </AlertDescription>
+                </div>
+              </Alert>
+            )}
+
+            {/* Botones */}
+            <div className="flex gap-3">
+              <Button 
+                type="submit" 
+                disabled={isLoading || testStatus === 'testing'}
+                className="flex-1"
+              >
+                {testStatus === 'testing' ? 'Probando conexión...' : 
+                 isLoading ? 'Guardando...' : 
+                 configuration ? 'Actualizar Configuración' : 'Crear Configuración'}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onCancel}
+                disabled={isLoading || testStatus === 'testing'}
+              >
                 Cancelar
               </Button>
-            )}
-          </div>
-        </form>
+            </div>
+          </form>
+        </Form>
       </CardContent>
     </Card>
   );
