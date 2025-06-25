@@ -34,6 +34,7 @@ const TaskModals = () => {
         isOpen={isCreateTaskOpen}
         onClose={() => setIsCreateTaskOpen(false)}
         projects={projects}
+        profiles={profiles}
       />
 
       {editingTask && (

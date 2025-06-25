@@ -9,6 +9,8 @@ import SubtaskHeader from './subtasks/SubtaskHeader';
 import SubtaskItem from './subtasks/SubtaskItem';
 import MicrotaskList from './subtasks/MicrotaskList';
 import TaskCreator from './subtasks/TaskCreator';
+import TaskCreatorModal from './subtasks/TaskCreatorModal';
+import { toast } from '@/hooks/use-toast';
 
 interface SubtaskListProps {
   parentTask: Task;
@@ -18,14 +20,45 @@ interface SubtaskListProps {
 
 const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const { updateTask, deleteTask, createMicrotask } = useTaskMutations();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { updateTask, deleteTask, createMicrotask, isCreatingTask } = useTaskMutations();
   const { getMicrotasksForSubtask } = useTasks();
   const { toggleSubtaskExpansion, isSubtaskExpanded } = useSubtaskExpansion();
 
-  const handleCreateMicrotask = (subtaskId: string, title: string) => {
-    if (title.trim()) {
-      createMicrotask(subtaskId, title.trim());
+  const handleCreateSubtask = (data: { title: string; description?: string; priority?: string; estimated_duration?: number }) => {
+    if (data.title.trim()) {
+      onCreateSubtask(data.title.trim());
+      toast({
+        title: "Subtarea creada",
+        description: `Se ha creado la subtarea "${data.title}" exitosamente.`,
+      });
     }
+  };
+
+  const handleCreateMicrotask = (subtaskId: string, data: { title: string; description?: string; priority?: string; estimated_duration?: number }) => {
+    if (data.title.trim()) {
+      createMicrotask(subtaskId, data.title.trim(), data.description);
+      toast({
+        title: "Microtarea creada",
+        description: `Se ha creado la microtarea "${data.title}" exitosamente.`,
+      });
+    }
+  };
+
+  const handleDeleteSubtask = (taskId: string) => {
+    deleteTask(taskId);
+    toast({
+      title: "Subtarea eliminada",
+      description: "La subtarea se ha eliminado exitosamente.",
+    });
+  };
+
+  const handleDeleteMicrotask = (taskId: string) => {
+    deleteTask(taskId);
+    toast({
+      title: "Microtarea eliminada",
+      description: "La microtarea se ha eliminado exitosamente.",
+    });
   };
 
   const completedCount = subtasks.filter(task => task.status === 'completed').length;
@@ -55,15 +88,15 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
                 isExpanded={isExpanded}
                 onToggleExpanded={() => toggleSubtaskExpansion(subtask.id)}
                 onUpdateTask={updateTask}
-                onDeleteTask={deleteTask}
-                onCreateMicrotask={(title) => handleCreateMicrotask(subtask.id, title)}
+                onDeleteTask={handleDeleteSubtask}
+                onCreateMicrotask={(title) => handleCreateMicrotask(subtask.id, { title })}
               >
                 <MicrotaskList
                   microtasks={microtasks}
                   isExpanded={isExpanded}
                   onUpdateTask={updateTask}
-                  onDeleteTask={deleteTask}
-                  onCreateMicrotask={(title) => handleCreateMicrotask(subtask.id, title)}
+                  onDeleteTask={handleDeleteMicrotask}
+                  onCreateMicrotask={(title) => handleCreateMicrotask(subtask.id, { title })}
                 />
               </SubtaskItem>
             );
@@ -73,9 +106,17 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
             <TaskCreator
               placeholder="Título de la subtarea..."
               buttonText="Añadir Subtarea"
-              onCreateTask={onCreateSubtask}
+              onCreateTask={(title) => setIsCreateModalOpen(true)}
             />
           </div>
+
+          <TaskCreatorModal
+            isOpen={isCreateModalOpen}
+            onClose={() => setIsCreateModalOpen(false)}
+            onCreateTask={handleCreateSubtask}
+            isCreating={isCreatingTask}
+            taskLevel="subtarea"
+          />
         </CardContent>
       )}
     </Card>

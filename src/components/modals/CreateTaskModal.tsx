@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,6 +35,7 @@ import { cn } from '@/lib/utils';
 import { CreateTaskData } from '@/hooks/useTasks';
 import { Project } from '@/hooks/useProjects';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
+import { useTaskAssignmentMutations } from '@/hooks/useTaskAssignmentMutations';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'El título es requerido'),
@@ -44,18 +46,29 @@ const taskSchema = z.object({
   due_date: z.date().optional(),
   estimated_duration: z.number().optional(),
   tags: z.string().optional(),
+  assigned_to: z.string().optional(),
+  role_in_task: z.enum(['responsible', 'reviewer', 'contributor', 'observer']).default('responsible'),
 });
 
 type TaskFormData = z.infer<typeof taskSchema>;
+
+interface Profile {
+  id: string;
+  full_name: string;
+  email: string;
+  role?: string;
+}
 
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   projects: Project[];
+  profiles?: Profile[];
 }
 
-const CreateTaskModal = ({ isOpen, onClose, projects }: CreateTaskModalProps) => {
+const CreateTaskModal = ({ isOpen, onClose, projects, profiles = [] }: CreateTaskModalProps) => {
   const { createTask, isCreatingTask } = useTaskMutations();
+  const { createTaskAssignment } = useTaskAssignmentMutations();
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
@@ -67,10 +80,12 @@ const CreateTaskModal = ({ isOpen, onClose, projects }: CreateTaskModalProps) =>
       project_id: '',
       estimated_duration: undefined,
       tags: '',
+      assigned_to: '',
+      role_in_task: 'responsible',
     },
   });
 
-  const onSubmit = (data: TaskFormData) => {
+  const onSubmit = async (data: TaskFormData) => {
     const taskData: CreateTaskData = {
       title: data.title,
       description: data.description,
@@ -82,14 +97,35 @@ const CreateTaskModal = ({ isOpen, onClose, projects }: CreateTaskModalProps) =>
       tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : undefined,
     };
 
-    createTask(taskData);
-    form.reset();
-    onClose();
+    try {
+      // Crear la tarea primero
+      const createdTask = await new Promise<any>((resolve, reject) => {
+        createTask(taskData, {
+          onSuccess: (task) => resolve(task),
+          onError: (error) => reject(error)
+        });
+      });
+
+      // Si se asignó una persona, crear la asignación
+      if (data.assigned_to && createdTask?.id) {
+        createTaskAssignment({
+          task_id: createdTask.id,
+          assigned_to: data.assigned_to,
+          role_in_task: data.role_in_task,
+          notes: `Asignado durante la creación de la tarea`
+        });
+      }
+
+      form.reset();
+      onClose();
+    } catch (error) {
+      console.error('Error creating task:', error);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Crear Nueva Tarea</DialogTitle>
         </DialogHeader>
@@ -207,6 +243,69 @@ const CreateTaskModal = ({ isOpen, onClose, projects }: CreateTaskModalProps) =>
                 </FormItem>
               )}
             />
+
+            {/* Nueva sección de asignación */}
+            {profiles.length > 0 && (
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="font-medium text-sm">Asignación</h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="assigned_to"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Asignar a</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar persona" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {profiles.map((profile) => (
+                              <SelectItem key={profile.id} value={profile.id}>
+                                <div className="flex flex-col">
+                                  <span>{profile.full_name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {profile.email}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="role_in_task"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Rol</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar rol" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="responsible">Responsable</SelectItem>
+                            <SelectItem value="reviewer">Revisor</SelectItem>
+                            <SelectItem value="contributor">Colaborador</SelectItem>
+                            <SelectItem value="observer">Observador</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
