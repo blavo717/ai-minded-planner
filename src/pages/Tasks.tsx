@@ -1,13 +1,8 @@
-
 import React, { useState } from 'react';
 import { useTasks, Task } from '@/hooks/useTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjects } from '@/hooks/useProjects';
 import { useProfiles } from '@/hooks/useProfiles';
-import CreateTaskModal from '@/components/modals/CreateTaskModal';
-import EditTaskModal from '@/components/tasks/EditTaskModal';
-import ManageDependenciesModal from '@/components/tasks/ManageDependenciesModal';
-import AssignTaskModal from '@/components/modals/AssignTaskModal';
 import KanbanBoard from '@/components/tasks/KanbanBoard';
 import AdvancedFilters from '@/components/tasks/AdvancedFilters';
 import ProductivityInsights from '@/components/AI/ProductivityInsights';
@@ -15,25 +10,28 @@ import ProductivityTimer from '@/components/AI/ProductivityTimer';
 import TasksHeader from '@/components/tasks/TasksHeader';
 import TaskViewControls from '@/components/tasks/TaskViewControls';
 import TaskList from '@/components/tasks/TaskList';
+import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
+import TaskModals from '@/components/tasks/modals/TaskModals';
 
-const Tasks = () => {
+const TasksContent = () => {
   const { mainTasks, getSubtasksForTask } = useTasks();
   const { projects } = useProjects();
   const { profiles } = useProfiles();
   const { createTask } = useTaskMutations();
   
-  // Modal states
-  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDependenciesModalOpen, setIsDependenciesModalOpen] = useState(false);
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [dependenciesTask, setDependenciesTask] = useState<Task | null>(null);
-  const [assigningTask, setAssigningTask] = useState<Task | null>(null);
-  
-  // View states
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
-  const [showInsights, setShowInsights] = useState(false);
+  const {
+    viewMode,
+    setViewMode,
+    showInsights,
+    setShowInsights,
+    setIsCreateTaskOpen,
+    setEditingTask,
+    setIsEditModalOpen,
+    setDependenciesTask,
+    setIsDependenciesModalOpen,
+    setAssigningTask,
+    setIsAssignModalOpen,
+  } = useTasksContext();
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -196,49 +194,16 @@ const Tasks = () => {
       )}
 
       {/* Modals */}
-      <CreateTaskModal
-        isOpen={isCreateTaskOpen}
-        onClose={() => setIsCreateTaskOpen(false)}
-        projects={projects}
-      />
-
-      {editingTask && (
-        <EditTaskModal
-          isOpen={isEditModalOpen}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setEditingTask(null);
-          }}
-          task={editingTask}
-          projects={projects}
-        />
-      )}
-
-      {dependenciesTask && (
-        <ManageDependenciesModal
-          isOpen={isDependenciesModalOpen}
-          onClose={() => {
-            setIsDependenciesModalOpen(false);
-            setDependenciesTask(null);
-          }}
-          taskId={dependenciesTask.id}
-          taskTitle={dependenciesTask.title}
-        />
-      )}
-
-      {assigningTask && (
-        <AssignTaskModal
-          isOpen={isAssignModalOpen}
-          onClose={() => {
-            setIsAssignModalOpen(false);
-            setAssigningTask(null);
-          }}
-          taskId={assigningTask.id}
-          taskTitle={assigningTask.title}
-          profiles={profiles}
-        />
-      )}
+      <TaskModals />
     </div>
+  );
+};
+
+const Tasks = () => {
+  return (
+    <TasksProvider>
+      <TasksContent />
+    </TasksProvider>
   );
 };
 
