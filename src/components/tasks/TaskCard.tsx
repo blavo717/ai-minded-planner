@@ -23,6 +23,7 @@ import { es } from 'date-fns/locale';
 import SubtaskList from './SubtaskList';
 import TaskHealthIndicator from './ai/TaskHealthIndicator';
 import { toast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface TaskCardProps {
   task: Task;
@@ -42,12 +43,12 @@ const TaskCard = ({
   onCreateSubtask 
 }: TaskCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { deleteTask } = useTaskMutations();
 
   const handleDeleteTask = () => {
-    if (confirm(`¿Estás seguro de que deseas eliminar la tarea "${task.title}"? Esto también eliminará todas sus subtareas y microtareas.`)) {
-      deleteTask(task.id);
-    }
+    deleteTask(task.id);
+    setShowDeleteDialog(false);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -74,134 +75,158 @@ const TaskCard = ({
   const totalSubtasks = subtasks.length;
 
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <h3 className="font-semibold text-lg">{task.title}</h3>
-            {task.description && (
-              <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+    <>
+      <Card className="w-full">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg">{task.title}</h3>
+              {task.description && (
+                <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+              )}
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onEditTask(task)}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Editar tarea
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onManageDependencies(task)}>
+                  <GitBranch className="h-4 w-4 mr-2" />
+                  Dependencias
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onAssignTask(task)}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Asignar
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Eliminar tarea
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mt-3">
+            <Badge className={getPriorityColor(task.priority)}>
+              {task.priority}
+            </Badge>
+            
+            <Badge className={getStatusColor(task.status)}>
+              {task.status}
+            </Badge>
+
+            <TaskHealthIndicator taskId={task.id} compact />
+
+            {task.due_date && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                {formatDistanceToNow(new Date(task.due_date), { 
+                  addSuffix: true, 
+                  locale: es 
+                })}
+              </Badge>
+            )}
+
+            {task.estimated_duration && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {task.estimated_duration}h
+              </Badge>
+            )}
+
+            {totalSubtasks > 0 && (
+              <Badge variant="outline">
+                {completedSubtasks}/{totalSubtasks} subtareas
+              </Badge>
             )}
           </div>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEditTask(task)}>
-                <Settings className="h-4 w-4 mr-2" />
-                Editar tarea
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onManageDependencies(task)}>
-                <GitBranch className="h-4 w-4 mr-2" />
-                Dependencias
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onAssignTask(task)}>
-                <Users className="h-4 w-4 mr-2" />
-                Asignar
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={handleDeleteTask}
-                className="text-red-600 focus:text-red-600"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Eliminar tarea
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
 
-        <div className="flex flex-wrap gap-2 mt-3">
-          <Badge className={getPriorityColor(task.priority)}>
-            {task.priority}
-          </Badge>
-          
-          <Badge className={getStatusColor(task.status)}>
-            {task.status}
-          </Badge>
-
-          <TaskHealthIndicator taskId={task.id} compact />
-
-          {task.due_date && (
-            <Badge variant="outline" className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              {formatDistanceToNow(new Date(task.due_date), { 
-                addSuffix: true, 
-                locale: es 
-              })}
-            </Badge>
+          {task.tags && task.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {task.tags.map((tag, index) => (
+                <Badge key={index} variant="secondary" className="text-xs">
+                  #{tag}
+                </Badge>
+              ))}
+            </div>
           )}
+        </CardHeader>
 
-          {task.estimated_duration && (
-            <Badge variant="outline" className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {task.estimated_duration}h
-            </Badge>
-          )}
-
-          {totalSubtasks > 0 && (
-            <Badge variant="outline">
-              {completedSubtasks}/{totalSubtasks} subtareas
-            </Badge>
-          )}
-        </div>
-
-        {task.tags && task.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {task.tags.map((tag, index) => (
-              <Badge key={index} variant="secondary" className="text-xs">
-                #{tag}
-              </Badge>
-            ))}
-          </div>
+        {totalSubtasks > 0 && (
+          <CardContent className="pt-0">
+            <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-between p-2"
+                >
+                  <span className="flex items-center gap-2">
+                    {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    Ver subtareas ({totalSubtasks})
+                  </span>
+                </Button>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent className="mt-2">
+                <SubtaskList
+                  parentTask={task}
+                  subtasks={subtasks}
+                  onCreateSubtask={(title) => onCreateSubtask(task.id, title)}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          </CardContent>
         )}
-      </CardHeader>
 
-      {totalSubtasks > 0 && (
-        <CardContent className="pt-0">
-          <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-            <CollapsibleTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="w-full justify-between p-2"
-              >
-                <span className="flex items-center gap-2">
-                  {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  Ver subtareas ({totalSubtasks})
-                </span>
-              </Button>
-            </CollapsibleTrigger>
-            
-            <CollapsibleContent className="mt-2">
-              <SubtaskList
-                parentTask={task}
-                subtasks={subtasks}
-                onCreateSubtask={(title) => onCreateSubtask(task.id, title)}
-              />
-            </CollapsibleContent>
-          </Collapsible>
-        </CardContent>
-      )}
+        {totalSubtasks === 0 && (
+          <CardContent className="pt-0">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onCreateSubtask(task.id, 'Nueva subtarea')}
+              className="w-full flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Añadir subtarea
+            </Button>
+          </CardContent>
+        )}
+      </Card>
 
-      {totalSubtasks === 0 && (
-        <CardContent className="pt-0">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => onCreateSubtask(task.id, 'Nueva subtarea')}
-            className="w-full flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Añadir subtarea
-          </Button>
-        </CardContent>
-      )}
-    </Card>
+      {/* Dialog de confirmación de eliminación */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar tarea?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar la tarea "{task.title}"? 
+              Esta acción también eliminará todas sus subtareas y microtareas y no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteTask}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

@@ -22,12 +22,13 @@ const MicrotaskList = ({
 }: MicrotaskListProps) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  if (!isExpanded) return null;
-
   const handleCreateMicrotask = (data: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; estimated_duration?: number }) => {
     onCreateMicrotask(data);
     setIsCreateModalOpen(false);
   };
+
+  // Si la subtarea no está expandida, no mostrar nada
+  if (!isExpanded) return null;
 
   return (
     <div className="space-y-3">
@@ -48,12 +49,14 @@ const MicrotaskList = ({
 
       {/* Botón para añadir microtarea - SIEMPRE visible cuando la subtarea está expandida */}
       <div className="ml-6 pl-4 border-l-2 border-gray-200">
-        <TaskCreator
-          placeholder="Título de la microtarea..."
-          buttonText="Añadir Microtarea"
-          onCreateTask={() => setIsCreateModalOpen(true)}
-          size="sm"
-        />
+        <div className="bg-gray-50 rounded-lg p-2 border border-dashed border-gray-300">
+          <TaskCreator
+            placeholder="Añadir microtarea..."
+            buttonText="+ Añadir Microtarea"
+            onCreateTask={() => setIsCreateModalOpen(true)}
+            size="sm"
+          />
+        </div>
       </div>
 
       {/* Modal para crear microtarea */}

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -95,15 +94,14 @@ const SubtaskItem = ({
         </div>
         
         <div className="flex items-center gap-2">
-          {microtasks.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={onToggleExpanded}>
-              {isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </Button>
-          )}
+          {/* Botón de expandir/contraer - SIEMPRE visible */}
+          <Button variant="ghost" size="sm" onClick={onToggleExpanded}>
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </Button>
           
           {subtask.status !== 'completed' && (
             <Button
@@ -132,6 +130,7 @@ const SubtaskItem = ({
 
       <ActivityTracker task={subtask} />
 
+      {/* Renderizar children (MicrotaskList) cuando está expandida */}
       {children}
     </div>
   );
