@@ -7,87 +7,68 @@ import QuickActions from '@/components/Dashboard/QuickActions';
 import ProductivityTimer from '@/components/AI/ProductivityTimer';
 import AIAnalysisPanel from '@/components/AI/AIAnalysisPanel';
 import ProductivityInsights from '@/components/AI/ProductivityInsights';
+import TaskList from '@/components/Dashboard/TaskList';
+import ProjectOverview from '@/components/Dashboard/ProjectOverview';
 import { Brain, BarChart3, CheckSquare, FolderOpen, TrendingUp, Users, Calendar, Clock } from 'lucide-react';
+import { useTasks } from '@/hooks/useTasks';
+import { useProjects } from '@/hooks/useProjects';
 
 const Index = () => {
-  // Mock data for stats
+  const { tasks, isLoading: tasksLoading } = useTasks();
+  const { projects, isLoading: projectsLoading } = useProjects();
+
+  // Calculate real stats from data
+  const completedTasksThisWeek = tasks.filter(task => {
+    if (task.status !== 'completed' || !task.completed_at) return false;
+    const completedDate = new Date(task.completed_at);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return completedDate >= weekAgo;
+  }).length;
+
+  const activeProjects = projects.filter(project => {
+    // A project is active if it has incomplete tasks
+    return tasks.some(task => task.project_id === project.id && task.status !== 'completed');
+  }).length;
+
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(task => task.status === 'completed').length;
+  const productivityPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  // Get unique collaborators (users who have tasks assigned)
+  const collaborators = new Set(tasks.map(task => task.user_id)).size;
+
   const statsData = [
     {
       title: "Tareas Completadas",
-      value: "12",
+      value: completedTasksThisWeek.toString(),
       icon: CheckSquare,
       description: "Esta semana"
     },
     {
       title: "Proyectos Activos",
-      value: "3",
+      value: activeProjects.toString(),
       icon: FolderOpen,
       description: "En progreso"
     },
     {
       title: "Productividad",
-      value: "85%",
+      value: `${productivityPercentage}%`,
       icon: TrendingUp,
       description: "Meta mensual"
     },
     {
       title: "Colaboradores",
-      value: "8",
+      value: collaborators.toString(),
       icon: Users,
       description: "Equipo activo"
-    }
-  ];
-
-  // Mock tasks data
-  const mockTasks = [
-    {
-      id: "1",
-      title: "Revisar propuesta de proyecto",
-      status: "pending" as const,
-      priority: "high" as const,
-      due_date: "2024-01-15",
-      description: "Revisar y aprobar la propuesta del nuevo proyecto"
-    },
-    {
-      id: "2", 
-      title: "Llamada con cliente",
-      status: "in_progress" as const,
-      priority: "medium" as const,
-      due_date: "2024-01-12",
-      description: "Reunión semanal de seguimiento"
-    },
-    {
-      id: "3",
-      title: "Actualizar documentación",
-      status: "completed" as const,
-      priority: "low" as const,
-      due_date: "2024-01-10",
-      description: "Documentar nuevas funcionalidades"
-    }
-  ];
-
-  // Mock projects data
-  const mockProjects = [
-    {
-      id: "1",
-      name: "Aplicación Web",
-      description: "Desarrollo de nueva plataforma",
-      color: "#3b82f6",
-      created_at: "2024-01-01"
-    },
-    {
-      id: "2",
-      name: "Sistema CRM",
-      description: "Implementación de CRM personalizado",
-      color: "#10b981",
-      created_at: "2023-12-15"
     }
   ];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CheckSquare className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'in_progress':
         return <Clock className="h-4 w-4 text-blue-500" />;
       default:
@@ -103,6 +84,22 @@ const Index = () => {
       default: return status;
     }
   };
+
+  if (tasksLoading || projectsLoading) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="h-16 bg-gray-100 rounded animate-pulse" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -157,75 +154,19 @@ const Index = () => {
           {/* Main Dashboard Grid */}
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-6">
-              {/* Tasks List */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    Tareas Recientes
-                    <span className="text-sm font-normal text-muted-foreground">
-                      {mockTasks.length}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {mockTasks.map((task) => (
-                    <div key={task.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex-shrink-0 mt-1">
-                        {getStatusIcon(task.status)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h4 className="text-sm font-medium truncate">{task.title}</h4>
-                        </div>
-                        {task.description && (
-                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                            {task.description}
-                          </p>
-                        )}
-                        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                          <Badge variant="outline" className="text-xs">
-                            {getStatusText(task.status)}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              <TaskList 
+                tasks={tasks} 
+                title="Tareas Recientes"
+                maxItems={5}
+              />
               <QuickActions />
             </div>
             <div className="space-y-6">
-              {/* Projects Overview */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Proyectos Recientes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {mockProjects.map((project) => (
-                      <div
-                        key={project.id}
-                        className="flex items-start justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-start gap-3 flex-1">
-                          <div 
-                            className="w-4 h-4 rounded-full mt-0.5 flex-shrink-0"
-                            style={{ backgroundColor: project.color }}
-                          />
-                          <div className="flex-1 space-y-1">
-                            <h4 className="font-medium text-sm">{project.name}</h4>
-                            {project.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2">
-                                {project.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <ProjectOverview 
+                projects={projects}
+                tasks={tasks}
+                maxItems={4}
+              />
               <ProductivityTimer />
             </div>
           </div>
@@ -233,41 +174,10 @@ const Index = () => {
 
         <TabsContent value="tasks">
           {/* Tasks Tab Content */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Todas las Tareas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {mockTasks.map((task) => (
-                <div key={task.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="flex-shrink-0 mt-1">
-                    {getStatusIcon(task.status)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h4 className="text-sm font-medium truncate">{task.title}</h4>
-                    </div>
-                    {task.description && (
-                      <p className="text-xs text-muted-foreground mb-2">
-                        {task.description}
-                      </p>
-                    )}
-                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                      <Badge variant="outline" className="text-xs">
-                        {getStatusText(task.status)}
-                      </Badge>
-                      {task.due_date && (
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{task.due_date}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          <TaskList 
+            tasks={tasks} 
+            title="Todas las Tareas"
+          />
         </TabsContent>
 
         <TabsContent value="projects">
@@ -277,29 +187,35 @@ const Index = () => {
               <CardTitle>Todos los Proyectos</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {mockProjects.map((project) => (
-                  <div
-                    key={project.id}
-                    className="flex items-start justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-start gap-3 flex-1">
-                      <div 
-                        className="w-4 h-4 rounded-full mt-0.5 flex-shrink-0"
-                        style={{ backgroundColor: project.color }}
-                      />
-                      <div className="flex-1 space-y-1">
-                        <h4 className="font-medium">{project.name}</h4>
-                        {project.description && (
-                          <p className="text-sm text-muted-foreground">
-                            {project.description}
-                          </p>
-                        )}
+              {projects.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">
+                  No hay proyectos para mostrar
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {projects.map((project) => (
+                    <div
+                      key={project.id}
+                      className="flex items-start justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-start gap-3 flex-1">
+                        <div 
+                          className="w-4 h-4 rounded-full mt-0.5 flex-shrink-0"
+                          style={{ backgroundColor: project.color }}
+                        />
+                        <div className="flex-1 space-y-1">
+                          <h4 className="font-medium">{project.name}</h4>
+                          {project.description && (
+                            <p className="text-sm text-muted-foreground">
+                              {project.description}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
