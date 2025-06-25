@@ -9,7 +9,7 @@ import AIAnalysisPanel from '@/components/AI/AIAnalysisPanel';
 import ProductivityInsights from '@/components/AI/ProductivityInsights';
 import TaskList from '@/components/Dashboard/TaskList';
 import ProjectOverview from '@/components/Dashboard/ProjectOverview';
-import { Brain, BarChart3, CheckSquare, FolderOpen, TrendingUp, Users, Calendar, Clock } from 'lucide-react';
+import { Brain, BarChart3, CheckSquare, FolderOpen, TrendingUp, Users, Calendar, Clock, CheckCircle } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 
