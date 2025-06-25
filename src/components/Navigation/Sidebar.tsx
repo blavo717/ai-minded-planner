@@ -9,7 +9,8 @@ import {
   Calendar, 
   BarChart3, 
   Settings,
-  Brain
+  Brain,
+  Users
 } from 'lucide-react';
 
 const navigation = [
@@ -27,6 +28,11 @@ const navigation = [
     name: 'Proyectos',
     href: '/projects',
     icon: FolderOpen,
+  },
+  {
+    name: 'Contactos',
+    href: '/contacts',
+    icon: Users,
   },
   {
     name: 'Calendario',
@@ -59,7 +65,8 @@ const Sidebar = () => {
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-2">
         {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
+          const isActive = location.pathname === item.href || 
+                          (item.href === '/settings' && location.pathname.startsWith('/settings'));
           return (
             <Link
               key={item.name}

@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { Plus, Brain, Key } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Brain, Key, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -66,12 +67,21 @@ const LLMSettings = () => {
   return (
     <div className="container max-w-4xl mx-auto p-6">
       <div className="space-y-6">
+        {/* Breadcrumbs */}
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+          <Link to="/settings" className="hover:text-foreground">
+            Configuración
+          </Link>
+          <ChevronRight className="h-4 w-4" />
+          <span className="text-foreground">Configuración de IA</span>
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <Brain className="h-8 w-8 text-blue-600" />
-              Configuración de LLM
+              Configuración de IA
             </h1>
             <p className="text-muted-foreground mt-1">
               Configura y gestiona tus modelos de lenguaje para las funciones de IA

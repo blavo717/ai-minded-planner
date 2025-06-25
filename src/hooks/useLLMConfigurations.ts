@@ -18,16 +18,8 @@ export interface LLMConfiguration {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  openrouter_api_key?: string; // Campo temporal para el formulario
 }
-
-export const OPENROUTER_MODELS = [
-  { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Más potente y multimodal' },
-  { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI', description: 'Rápido y económico' },
-  { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'Anthropic', description: 'Excelente para razonamiento' },
-  { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', provider: 'Meta', description: 'Open source potente' },
-  { id: 'mistralai/mixtral-8x7b-instruct', name: 'Mixtral 8x7B', provider: 'Mistral', description: 'Multilenguaje eficiente' },
-  { id: 'google/gemini-pro-1.5', name: 'Gemini Pro 1.5', provider: 'Google', description: 'Contexto largo' },
-];
 
 export const useLLMConfigurations = () => {
   const { user } = useAuth();
@@ -55,11 +47,29 @@ export const useLLMConfigurations = () => {
     mutationFn: async (config: Partial<LLMConfiguration>) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Si hay una API key, la guardamos en Supabase Secrets primero
+      if (config.openrouter_api_key) {
+        const { error: secretError } = await supabase.functions.invoke('store-api-key', {
+          body: { 
+            apiKey: config.openrouter_api_key,
+            userId: user.id 
+          }
+        });
+        
+        if (secretError) {
+          console.error('Error storing API key:', secretError);
+          throw new Error('Error al guardar la API key');
+        }
+      }
+
+      // Remover la API key del objeto antes de guardar en la base de datos
+      const { openrouter_api_key, ...configData } = config;
+
       const { error } = await supabase
         .from('llm_configurations')
         .insert({
           user_id: user.id,
-          ...config,
+          ...configData,
         });
 
       if (error) throw error;
@@ -71,13 +81,38 @@ export const useLLMConfigurations = () => {
         description: "La configuración del LLM ha sido guardada exitosamente.",
       });
     },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Error al crear la configuración",
+        variant: "destructive",
+      });
+    },
   });
 
   const updateConfigurationMutation = useMutation({
     mutationFn: async ({ id, ...config }: Partial<LLMConfiguration> & { id: string }) => {
+      // Si hay una API key, la actualizamos en Supabase Secrets
+      if (config.openrouter_api_key) {
+        const { error: secretError } = await supabase.functions.invoke('store-api-key', {
+          body: { 
+            apiKey: config.openrouter_api_key,
+            userId: user?.id 
+          }
+        });
+        
+        if (secretError) {
+          console.error('Error updating API key:', secretError);
+          throw new Error('Error al actualizar la API key');
+        }
+      }
+
+      // Remover la API key del objeto antes de actualizar en la base de datos
+      const { openrouter_api_key, ...configData } = config;
+
       const { error } = await supabase
         .from('llm_configurations')
-        .update(config)
+        .update(configData)
         .eq('id', id);
 
       if (error) throw error;
@@ -87,6 +122,13 @@ export const useLLMConfigurations = () => {
       toast({
         title: "Configuración actualizada",
         description: "Los cambios han sido guardados exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Error al actualizar la configuración",
+        variant: "destructive",
       });
     },
   });

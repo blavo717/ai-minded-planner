@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,9 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { OPENROUTER_MODELS, LLMConfiguration } from '@/hooks/useLLMConfigurations';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Eye, EyeOff, ExternalLink, Loader2 } from 'lucide-react';
+import { LLMConfiguration } from '@/hooks/useLLMConfigurations';
+import { useOpenRouterModels } from '@/hooks/useOpenRouterModels';
+import { formatPricing } from '@/services/openRouterService';
 
 const configSchema = z.object({
   model_name: z.string().min(1, 'Selecciona un modelo'),
@@ -22,6 +25,7 @@ const configSchema = z.object({
   frequency_penalty: z.number().min(-2).max(2),
   presence_penalty: z.number().min(-2).max(2),
   is_active: z.boolean(),
+  openrouter_api_key: z.string().optional(),
 });
 
 type ConfigFormData = z.infer<typeof configSchema>;
@@ -39,6 +43,9 @@ const LLMConfigurationForm = ({
   onCancel, 
   isLoading 
 }: LLMConfigurationFormProps) => {
+  const [showApiKey, setShowApiKey] = useState(false);
+  const { models, groupedModels, isLoading: modelsLoading } = useOpenRouterModels();
+  
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<ConfigFormData>({
     resolver: zodResolver(configSchema),
     defaultValues: {
@@ -49,10 +56,12 @@ const LLMConfigurationForm = ({
       frequency_penalty: configuration?.frequency_penalty || 0.0,
       presence_penalty: configuration?.presence_penalty || 0.0,
       is_active: configuration?.is_active ?? true,
+      openrouter_api_key: '',
     },
   });
 
-  const selectedModel = OPENROUTER_MODELS.find(model => model.id === watch('model_name'));
+  const selectedModelId = watch('model_name');
+  const selectedModel = models.find(model => model.id === selectedModelId);
   const temperature = watch('temperature');
   const maxTokens = watch('max_tokens');
   const topP = watch('top_p');
@@ -61,6 +70,16 @@ const LLMConfigurationForm = ({
 
   const handleFormSubmit = (data: ConfigFormData) => {
     onSubmit(data);
+  };
+
+  const providerNames: { [key: string]: string } = {
+    'openai': 'OpenAI',
+    'anthropic': 'Anthropic',
+    'meta-llama': 'Meta',
+    'mistralai': 'Mistral',
+    'google': 'Google',
+    'cohere': 'Cohere',
+    'huggingfaceh4': 'Hugging Face',
   };
 
   return (
@@ -72,36 +91,113 @@ const LLMConfigurationForm = ({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+          {/* API Key Section */}
+          <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm font-medium">API Key de OpenRouter</Label>
+                <p className="text-xs text-muted-foreground">
+                  Necesaria para usar los modelos de IA
+                </p>
+              </div>
+              <a 
+                href="https://openrouter.ai/keys" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+              >
+                Obtener API Key <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+            
+            <div className="relative">
+              <Input
+                type={showApiKey ? 'text' : 'password'}
+                placeholder="sk-or-v1-..."
+                {...register('openrouter_api_key')}
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3"
+                onClick={() => setShowApiKey(!showApiKey)}
+              >
+                {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </div>
+            
+            <Alert>
+              <AlertDescription className="text-xs">
+                Tu API key se almacena de forma segura y nunca se comparte. 
+                Solo se usa para hacer peticiones a OpenRouter en tu nombre.
+              </AlertDescription>
+            </Alert>
+          </div>
+
           {/* Selección de Modelo */}
           <div className="space-y-2">
             <Label htmlFor="model_name">Modelo</Label>
-            <Select
-              value={watch('model_name')}
-              onValueChange={(value) => setValue('model_name', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un modelo" />
-              </SelectTrigger>
-              <SelectContent>
-                {OPENROUTER_MODELS.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    <div className="flex items-center justify-between w-full">
-                      <div>
-                        <span className="font-medium">{model.name}</span>
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          {model.provider}
-                        </Badge>
+            {modelsLoading ? (
+              <div className="flex items-center gap-2 p-3 border rounded-md">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Cargando modelos...</span>
+              </div>
+            ) : (
+              <Select
+                value={selectedModelId}
+                onValueChange={(value) => setValue('model_name', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un modelo" />
+                </SelectTrigger>
+                <SelectContent className="max-h-80">
+                  {Object.entries(groupedModels).map(([provider, providerModels]) => (
+                    <div key={provider}>
+                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                        {providerNames[provider] || provider}
                       </div>
+                      {providerModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex flex-col">
+                              <span className="font-medium">{model.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatPricing(model.pricing.prompt, model.pricing.completion)}
+                              </span>
+                            </div>
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              {model.context_length.toLocaleString()} ctx
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
                     </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedModel && (
-              <p className="text-sm text-muted-foreground">
-                {selectedModel.description}
-              </p>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
+            
+            {selectedModel && (
+              <div className="p-3 bg-gray-50 rounded-md">
+                <p className="text-sm text-muted-foreground mb-2">
+                  {selectedModel.description}
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Badge variant="secondary">
+                    {selectedModel.context_length.toLocaleString()} tokens de contexto
+                  </Badge>
+                  <Badge variant="secondary">
+                    {selectedModel.architecture.modality}
+                  </Badge>
+                  <Badge variant="outline">
+                    {formatPricing(selectedModel.pricing.prompt, selectedModel.pricing.completion)}
+                  </Badge>
+                </div>
+              </div>
+            )}
+            
             {errors.model_name && (
               <p className="text-sm text-destructive">{errors.model_name.message}</p>
             )}
