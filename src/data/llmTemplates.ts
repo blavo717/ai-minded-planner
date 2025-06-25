@@ -3,7 +3,6 @@ export interface LLMTemplate {
   id: string;
   name: string;
   description: string;
-  useCase: string;
   icon: string;
   configuration: {
     model_name: string;
@@ -15,18 +14,18 @@ export interface LLMTemplate {
   };
 }
 
+// Updated with verified OpenRouter model IDs
 export const LLM_TEMPLATES: LLMTemplate[] = [
   {
     id: 'productivity-analysis',
     name: 'Análisis de Productividad',
-    description: 'Optimizado para analizar patrones de trabajo y generar insights de productividad',
-    useCase: 'Análisis de datos de tareas y sesiones de trabajo',
+    description: 'Configuración optimizada para analizar patrones de trabajo y productividad',
     icon: '📊',
     configuration: {
-      model_name: 'openai/gpt-4o-mini',
+      model_name: 'openai/gpt-4o-mini', // Fast and cost-effective for analysis
       temperature: 0.3,
-      max_tokens: 1000,
-      top_p: 0.8,
+      max_tokens: 1500,
+      top_p: 0.9,
       frequency_penalty: 0.1,
       presence_penalty: 0.1,
     },
@@ -34,71 +33,57 @@ export const LLM_TEMPLATES: LLMTemplate[] = [
   {
     id: 'insight-generation',
     name: 'Generación de Insights',
-    description: 'Configurado para crear recomendaciones y sugerencias inteligentes',
-    useCase: 'Generación de consejos y recomendaciones personalizadas',
+    description: 'Para generar ideas y sugerencias creativas basadas en datos',
     icon: '💡',
     configuration: {
-      model_name: 'openai/gpt-4o-mini',
+      model_name: 'anthropic/claude-3.5-sonnet', // Excellent reasoning capabilities
       temperature: 0.7,
-      max_tokens: 800,
-      top_p: 0.9,
-      frequency_penalty: 0.2,
-      presence_penalty: 0.3,
+      max_tokens: 2000,
+      top_p: 0.95,
+      frequency_penalty: 0.0,
+      presence_penalty: 0.2,
     },
   },
   {
     id: 'chat-assistant',
     name: 'Asistente de Chat',
-    description: 'Equilibrado para conversaciones naturales y respuestas útiles',
-    useCase: 'Interacciones conversacionales con el usuario',
+    description: 'Configuración balanceada para conversaciones interactivas',
     icon: '💬',
     configuration: {
-      model_name: 'openai/gpt-4o-mini',
-      temperature: 0.8,
-      max_tokens: 1200,
-      top_p: 0.95,
+      model_name: 'openai/gpt-4o', // Great for conversations
+      temperature: 0.6,
+      max_tokens: 1000,
+      top_p: 1.0,
       frequency_penalty: 0.1,
-      presence_penalty: 0.2,
-    },
-  },
-  {
-    id: 'task-optimization',
-    name: 'Optimización de Tareas',
-    description: 'Especializado en sugerir mejoras y optimizaciones para tareas',
-    useCase: 'Análisis y optimización de flujos de trabajo',
-    icon: '⚡',
-    configuration: {
-      model_name: 'openai/gpt-4o',
-      temperature: 0.4,
-      max_tokens: 1500,
-      top_p: 0.85,
-      frequency_penalty: 0.15,
       presence_penalty: 0.1,
     },
   },
   {
-    id: 'creative-planning',
-    name: 'Planificación Creativa',
-    description: 'Configurado para generar ideas creativas y planificación innovadora',
-    useCase: 'Brainstorming y planificación de proyectos creativos',
-    icon: '🎨',
+    id: 'code-analysis',
+    name: 'Análisis de Código',
+    description: 'Especializado en revisión y análisis de código',
+    icon: '🔍',
     configuration: {
-      model_name: 'anthropic/claude-3.5-sonnet',
-      temperature: 0.9,
-      max_tokens: 1000,
-      top_p: 0.95,
-      frequency_penalty: 0.3,
-      presence_penalty: 0.4,
+      model_name: 'openai/gpt-4o', // Good for technical tasks
+      temperature: 0.2,
+      max_tokens: 2500,
+      top_p: 0.8,
+      frequency_penalty: 0.0,
+      presence_penalty: 0.0,
+    },
+  },
+  {
+    id: 'fast-responses',
+    name: 'Respuestas Rápidas',
+    description: 'Configuración optimizada para respuestas rápidas y económicas',
+    icon: '⚡',
+    configuration: {
+      model_name: 'google/gemini-flash-1.5', // Very fast and efficient
+      temperature: 0.5,
+      max_tokens: 800,
+      top_p: 0.9,
+      frequency_penalty: 0.1,
+      presence_penalty: 0.0,
     },
   },
 ];
-
-export const getTemplateById = (id: string): LLMTemplate | undefined => {
-  return LLM_TEMPLATES.find(template => template.id === id);
-};
-
-export const getTemplatesByUseCase = (useCase: string): LLMTemplate[] => {
-  return LLM_TEMPLATES.filter(template => 
-    template.useCase.toLowerCase().includes(useCase.toLowerCase())
-  );
-};

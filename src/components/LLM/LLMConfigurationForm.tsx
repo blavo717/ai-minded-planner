@@ -12,11 +12,14 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Palette, Zap, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Palette, Zap, AlertCircle, Star } from 'lucide-react';
 import { LLMConfiguration } from '@/hooks/useLLMConfigurations';
 import { useOpenRouterModels } from '@/hooks/useOpenRouterModels';
 import LLMTemplateSelector from './LLMTemplateSelector';
+import ModelValidationAlert from './ModelValidationAlert';
 import { LLMTemplate } from '@/data/llmTemplates';
+import { getPopularModels } from '@/services/openRouterService';
 
 const formSchema = z.object({
   model_name: z.string().min(1, 'Selecciona un modelo'),
@@ -41,7 +44,7 @@ const LLMConfigurationForm = ({ configuration, onSubmit, onCancel, isLoading }: 
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [testMessage, setTestMessage] = useState('');
   const [showTemplates, setShowTemplates] = useState(false);
-  const { groupedModels, isLoading: modelsLoading } = useOpenRouterModels();
+  const { models, groupedModels, isLoading: modelsLoading } = useOpenRouterModels();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -55,6 +58,9 @@ const LLMConfigurationForm = ({ configuration, onSubmit, onCancel, isLoading }: 
       is_active: configuration?.is_active ?? true,
     },
   });
+
+  const watchedModelName = form.watch('model_name');
+  const popularModels = getPopularModels(models);
 
   const handleTemplateSelect = (template: LLMTemplate) => {
     form.setValue('model_name', template.configuration.model_name);
@@ -169,12 +175,14 @@ const LLMConfigurationForm = ({ configuration, onSubmit, onCancel, isLoading }: 
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.entries(groupedModels).map(([provider, models]) => (
-                        <div key={provider}>
-                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">
-                            {provider}
+                      {/* Popular Models Section */}
+                      {popularModels.length > 0 && (
+                        <>
+                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                            <Star className="h-3 w-3" />
+                            Populares
                           </div>
-                          {models.slice(0, 5).map((model) => (
+                          {popularModels.map((model) => (
                             <SelectItem key={model.id} value={model.id}>
                               <div className="flex flex-col">
                                 <span>{model.name}</span>
@@ -186,6 +194,33 @@ const LLMConfigurationForm = ({ configuration, onSubmit, onCancel, isLoading }: 
                               </div>
                             </SelectItem>
                           ))}
+                          <div className="mx-2 my-1 h-px bg-border" />
+                        </>
+                      )}
+                      
+                      {/* All Models by Provider */}
+                      {Object.entries(groupedModels).map(([provider, providerModels]) => (
+                        <div key={provider}>
+                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">
+                            {provider}
+                          </div>
+                          {providerModels.slice(0, 8).map((model) => (
+                            <SelectItem key={model.id} value={model.id}>
+                              <div className="flex flex-col">
+                                <span>{model.name}</span>
+                                {model.description && (
+                                  <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                    {model.description}
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                          {providerModels.length > 8 && (
+                            <div className="px-2 py-1 text-xs text-muted-foreground">
+                              y {providerModels.length - 8} más...
+                            </div>
+                          )}
                         </div>
                       ))}
                     </SelectContent>
@@ -194,6 +229,11 @@ const LLMConfigurationForm = ({ configuration, onSubmit, onCancel, isLoading }: 
                 </FormItem>
               )}
             />
+
+            {/* Model Validation */}
+            {watchedModelName && (
+              <ModelValidationAlert modelId={watchedModelName} />
+            )}
 
             <Separator />
 
