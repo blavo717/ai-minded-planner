@@ -32,20 +32,17 @@ const MicrotaskList = ({
 
   return (
     <div className="space-y-3">
-      {/* Sección de microtareas con header distintivo */}
-      <div className="ml-6 pl-4 border-l-2 border-purple-200 space-y-3">
-        {/* Header de Microtareas */}
-        <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+      {/* Sección de microtareas con fondo blanco profesional */}
+      <div className="ml-6 pl-4 border-l-2 border-gray-200 space-y-3">
+        {/* Header de Microtareas - SOLO el letrero con color */}
+        <div className="bg-purple-100 rounded-lg px-3 py-2 border border-purple-200 inline-block">
           <h5 className="text-sm font-semibold text-purple-800 flex items-center gap-2">
             <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
             Microtareas
           </h5>
-          <p className="text-xs text-purple-600 mt-1">
-            Tareas pequeñas y específicas para completar esta subtarea
-          </p>
         </div>
 
-        {/* Lista de microtareas existentes */}
+        {/* Lista de microtareas existentes con fondo blanco */}
         {microtasks.length > 0 && (
           <div className="space-y-2">
             {microtasks.map((microtask) => (
@@ -59,8 +56,8 @@ const MicrotaskList = ({
           </div>
         )}
 
-        {/* Botón para añadir microtarea */}
-        <div className="bg-purple-50 rounded-lg p-2 border border-dashed border-purple-300">
+        {/* Botón para añadir microtarea con fondo blanco */}
+        <div className="bg-gray-50 rounded-lg p-2 border border-dashed border-gray-300">
           <TaskCreator
             placeholder="Añadir microtarea..."
             buttonText="+ Añadir Microtarea"

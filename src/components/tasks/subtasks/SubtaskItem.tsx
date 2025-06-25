@@ -110,13 +110,22 @@ const SubtaskItem = ({
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Botón de expandir/contraer - SIEMPRE visible */}
-          <Button variant="ghost" size="sm" onClick={onToggleExpanded}>
+          {/* Botón de expandir/contraer con indicación clara de microtareas */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onToggleExpanded}
+            className="flex items-center gap-2"
+            title={isExpanded ? "Ocultar microtareas" : "Ver microtareas"}
+          >
             {isExpanded ? (
               <ChevronDown className="h-4 w-4" />
             ) : (
               <ChevronRight className="h-4 w-4" />
             )}
+            <span className="text-xs text-gray-600">
+              Microtareas
+            </span>
           </Button>
           
           {subtask.status !== 'completed' && (
