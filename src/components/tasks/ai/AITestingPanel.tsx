@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Play, 
   Database, 
@@ -11,17 +12,30 @@ import {
   RefreshCw,
   BarChart3,
   Brain,
-  Activity
+  Activity,
+  Info,
+  Settings
 } from 'lucide-react';
 import { useAITaskMonitor } from '@/hooks/useAITaskMonitor';
 import { useTasks } from '@/hooks/useTasks';
+import { useLLMConfigurations } from '@/hooks/useLLMConfigurations';
 import { toast } from '@/hooks/use-toast';
 
 const AITestingPanel = () => {
   const { runAnalysis, isAnalyzing, monitoringData } = useAITaskMonitor();
   const { mainTasks } = useTasks();
+  const { activeConfiguration, isLoading: llmLoading } = useLLMConfigurations();
 
   const handleRunFullAnalysis = () => {
+    if (!activeConfiguration) {
+      toast({
+        title: "Configuración LLM requerida",
+        description: "Ve a Configuración > LLM para configurar OpenRouter API key.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (mainTasks.length === 0) {
       toast({
         title: "No hay tareas",
@@ -39,6 +53,15 @@ const AITestingPanel = () => {
   };
 
   const handleRunSpecificAnalysis = (analysisType: string) => {
+    if (!activeConfiguration) {
+      toast({
+        title: "Configuración LLM requerida",
+        description: "Ve a Configuración > LLM para configurar OpenRouter API key.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (mainTasks.length === 0) {
       toast({
         title: "No hay tareas",
@@ -67,6 +90,7 @@ const AITestingPanel = () => {
   };
 
   const stats = getAnalysisStats();
+  const systemReady = activeConfiguration && mainTasks.length > 0;
 
   return (
     <div className="space-y-6">
@@ -79,6 +103,24 @@ const AITestingPanel = () => {
         </CardHeader>
         
         <CardContent className="space-y-6">
+          {/* Alertas de estado del sistema */}
+          {!systemReady && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                <div className="font-medium mb-2">Sistema no está listo:</div>
+                <ul className="list-disc list-inside text-sm space-y-1">
+                  {!activeConfiguration && (
+                    <li>Configurar LLM (ir a Configuración > LLM)</li>
+                  )}
+                  {mainTasks.length === 0 && (
+                    <li>Crear al menos 1 tarea para poder analizarla</li>
+                  )}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Estado actual */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg border">
@@ -102,6 +144,37 @@ const AITestingPanel = () => {
             </div>
           </div>
 
+          {/* Estado de configuración LLM */}
+          <div className={`flex items-center gap-3 p-4 rounded-lg border ${
+            activeConfiguration ? 'bg-green-50' : 'bg-red-50'
+          }`}>
+            {activeConfiguration ? (
+              <>
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <div>
+                  <div className="font-medium text-sm">Configuración LLM activa</div>
+                  <div className="text-xs text-muted-foreground">
+                    Modelo: {activeConfiguration.model_name}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                <div className="flex-1">
+                  <div className="font-medium text-sm">Configuración LLM requerida</div>
+                  <div className="text-xs text-muted-foreground">
+                    Necesitas configurar OpenRouter API key para usar las funciones AI
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Configurar
+                </Button>
+              </>
+            )}
+          </div>
+
           {/* Acciones de testing */}
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -116,7 +189,7 @@ const AITestingPanel = () => {
               </div>
               <Button 
                 onClick={handleRunFullAnalysis}
-                disabled={isAnalyzing || mainTasks.length === 0}
+                disabled={isAnalyzing || !systemReady}
                 className="flex items-center gap-2"
               >
                 {isAnalyzing ? (
@@ -138,7 +211,7 @@ const AITestingPanel = () => {
                 variant="outline" 
                 size="sm"
                 onClick={() => handleRunSpecificAnalysis('health_check')}
-                disabled={isAnalyzing || mainTasks.length === 0}
+                disabled={isAnalyzing || !systemReady}
                 className="flex items-center gap-2 justify-start p-4 h-auto"
               >
                 <Activity className="h-4 w-4 text-green-500" />
@@ -154,7 +227,7 @@ const AITestingPanel = () => {
                 variant="outline" 
                 size="sm"
                 onClick={() => handleRunSpecificAnalysis('bottleneck_detection')}
-                disabled={isAnalyzing || mainTasks.length === 0}
+                disabled={isAnalyzing || !systemReady}
                 className="flex items-center gap-2 justify-start p-4 h-auto"
               >
                 <AlertTriangle className="h-4 w-4 text-orange-500" />
@@ -170,7 +243,7 @@ const AITestingPanel = () => {
                 variant="outline" 
                 size="sm"
                 onClick={() => handleRunSpecificAnalysis('priority_analysis')}
-                disabled={isAnalyzing || mainTasks.length === 0}
+                disabled={isAnalyzing || !systemReady}
                 className="flex items-center gap-2 justify-start p-4 h-auto"
               >
                 <BarChart3 className="h-4 w-4 text-blue-500" />
@@ -186,7 +259,7 @@ const AITestingPanel = () => {
                 variant="outline" 
                 size="sm"
                 onClick={() => handleRunSpecificAnalysis('completion_prediction')}
-                disabled={isAnalyzing || mainTasks.length === 0}
+                disabled={isAnalyzing || !systemReady}
                 className="flex items-center gap-2 justify-start p-4 h-auto"
               >
                 <CheckCircle className="h-4 w-4 text-purple-500" />
@@ -200,40 +273,16 @@ const AITestingPanel = () => {
             </div>
           </div>
 
-          {/* Estado del sistema */}
-          <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border">
-            {mainTasks.length > 0 ? (
-              <>
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <div>
-                  <div className="font-medium text-sm">Sistema listo para análisis</div>
-                  <div className="text-xs text-muted-foreground">
-                    {mainTasks.length} tareas disponibles para procesamiento
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <AlertTriangle className="h-5 w-5 text-orange-500" />
-                <div>
-                  <div className="font-medium text-sm">Crea tareas para comenzar</div>
-                  <div className="text-xs text-muted-foreground">
-                    Se necesitan tareas para poder ejecutar el análisis AI
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
           {/* Instrucciones para testing */}
           <div className="border-t pt-4">
             <h5 className="font-medium text-sm mb-2">Guía de Testing Completo:</h5>
             <div className="text-xs text-muted-foreground space-y-1">
-              <p>1. Crea varias tareas con diferentes prioridades y estados</p>
-              <p>2. Añade subtareas y microtareas para probar la jerarquía</p>
-              <p>3. Ejecuta el análisis completo para poblar datos AI</p>
-              <p>4. Revisa los paneles de insights y monitoreo</p>
-              <p>5. Verifica los indicadores de salud en las tarjetas</p>
+              <p>1. Configurar OpenRouter API key (Configuración > LLM)</p>
+              <p>2. Crear varias tareas con diferentes prioridades y estados</p>
+              <p>3. Añadir subtareas y microtareas para probar la jerarquía</p>
+              <p>4. Ejecutar el análisis completo para poblar datos AI</p>
+              <p>5. Revisar los paneles de insights y monitoreo</p>
+              <p>6. Verificar los indicadores de salud en las tarjetas</p>
             </div>
           </div>
         </CardContent>
