@@ -45,11 +45,9 @@ const TaskCard = ({
   const { deleteTask } = useTaskMutations();
 
   const handleDeleteTask = () => {
-    deleteTask(task.id);
-    toast({
-      title: "Tarea eliminada",
-      description: `La tarea "${task.title}" se ha eliminado exitosamente.`,
-    });
+    if (confirm(`¿Estás seguro de que deseas eliminar la tarea "${task.title}"? Esto también eliminará todas sus subtareas y microtareas.`)) {
+      deleteTask(task.id);
+    }
   };
 
   const getPriorityColor = (priority: string) => {

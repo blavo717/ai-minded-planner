@@ -95,12 +95,42 @@ export const useTaskMutations = () => {
 
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
-      const { error } = await supabase
+      // Primero eliminar todas las microtareas (task_level = 3) de las subtareas de esta tarea
+      const { data: subtasks, error: subtasksError } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('parent_task_id', taskId)
+        .eq('task_level', 2);
+
+      if (subtasksError) throw subtasksError;
+
+      // Eliminar microtareas de cada subtarea
+      for (const subtask of subtasks) {
+        const { error: microtasksError } = await supabase
+          .from('tasks')
+          .delete()
+          .eq('parent_task_id', subtask.id)
+          .eq('task_level', 3);
+
+        if (microtasksError) throw microtasksError;
+      }
+
+      // Luego eliminar todas las subtareas (task_level = 2)
+      const { error: subtasksDeleteError } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('parent_task_id', taskId)
+        .eq('task_level', 2);
+
+      if (subtasksDeleteError) throw subtasksDeleteError;
+
+      // Finalmente eliminar la tarea principal
+      const { error: taskError } = await supabase
         .from('tasks')
         .delete()
         .eq('id', taskId);
 
-      if (error) throw error;
+      if (taskError) throw taskError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] });

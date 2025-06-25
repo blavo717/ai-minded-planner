@@ -31,6 +31,7 @@ const MicrotaskList = ({
 
   return (
     <div className="space-y-3">
+      {/* Lista de microtareas existentes */}
       {microtasks.length > 0 && (
         <div className="ml-6 pl-4 border-l-2 border-gray-200 space-y-2">
           <h5 className="text-sm font-medium text-gray-700">Microtareas</h5>
@@ -45,7 +46,7 @@ const MicrotaskList = ({
         </div>
       )}
 
-      {/* Siempre mostrar el botón de añadir microtarea cuando la subtarea está expandida */}
+      {/* Botón para añadir microtarea - SIEMPRE visible cuando la subtarea está expandida */}
       <div className="ml-6 pl-4 border-l-2 border-gray-200">
         <TaskCreator
           placeholder="Título de la microtarea..."
@@ -55,6 +56,7 @@ const MicrotaskList = ({
         />
       </div>
 
+      {/* Modal para crear microtarea */}
       <TaskCreatorModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
