@@ -1,34 +1,55 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Settings2 } from 'lucide-react';
+import { Plus, Brain, BarChart3 } from 'lucide-react';
 
 interface TasksHeaderProps {
   showInsights: boolean;
   onToggleInsights: () => void;
   onCreateTask: () => void;
+  showAIMonitoring?: boolean;
+  onToggleAIMonitoring?: () => void;
 }
 
-const TasksHeader = ({ showInsights, onToggleInsights, onCreateTask }: TasksHeaderProps) => {
+const TasksHeader = ({ 
+  showInsights, 
+  onToggleInsights, 
+  onCreateTask,
+  showAIMonitoring = false,
+  onToggleAIMonitoring 
+}: TasksHeaderProps) => {
   return (
-    <div className="flex justify-between items-start">
+    <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Tareas</h1>
-        <p className="text-gray-600">
-          Gestiona todas tus tareas en un solo lugar
+        <h1 className="text-3xl font-bold">Tareas</h1>
+        <p className="text-muted-foreground">
+          Gestiona tus tareas con inteligencia artificial
         </p>
       </div>
+      
       <div className="flex items-center gap-2">
         <Button
-          variant="outline"
-          size="sm"
+          variant={showInsights ? "default" : "outline"}
           onClick={onToggleInsights}
+          className="flex items-center gap-2"
         >
-          <Settings2 className="h-4 w-4 mr-2" />
-          {showInsights ? 'Ocultar' : 'Mostrar'} Insights
+          <Brain className="h-4 w-4" />
+          IA Insights
         </Button>
-        <Button onClick={onCreateTask}>
-          <Plus className="h-4 w-4 mr-2" />
+        
+        {onToggleAIMonitoring && (
+          <Button
+            variant={showAIMonitoring ? "default" : "outline"}
+            onClick={onToggleAIMonitoring}
+            className="flex items-center gap-2"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Monitoreo IA
+          </Button>
+        )}
+        
+        <Button onClick={onCreateTask} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
           Nueva Tarea
         </Button>
       </div>
