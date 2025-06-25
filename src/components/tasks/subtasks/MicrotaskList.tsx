@@ -32,24 +32,35 @@ const MicrotaskList = ({
 
   return (
     <div className="space-y-3">
-      {/* Lista de microtareas existentes */}
-      {microtasks.length > 0 && (
-        <div className="ml-6 pl-4 border-l-2 border-gray-200 space-y-2">
-          <h5 className="text-sm font-medium text-gray-700">Microtareas</h5>
-          {microtasks.map((microtask) => (
-            <MicrotaskItem
-              key={microtask.id}
-              microtask={microtask}
-              onUpdate={onUpdateTask}
-              onDelete={onDeleteTask}
-            />
-          ))}
+      {/* Sección de microtareas con header distintivo */}
+      <div className="ml-6 pl-4 border-l-2 border-purple-200 space-y-3">
+        {/* Header de Microtareas */}
+        <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+          <h5 className="text-sm font-semibold text-purple-800 flex items-center gap-2">
+            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+            Microtareas
+          </h5>
+          <p className="text-xs text-purple-600 mt-1">
+            Tareas pequeñas y específicas para completar esta subtarea
+          </p>
         </div>
-      )}
 
-      {/* Botón para añadir microtarea - SIEMPRE visible cuando la subtarea está expandida */}
-      <div className="ml-6 pl-4 border-l-2 border-gray-200">
-        <div className="bg-gray-50 rounded-lg p-2 border border-dashed border-gray-300">
+        {/* Lista de microtareas existentes */}
+        {microtasks.length > 0 && (
+          <div className="space-y-2">
+            {microtasks.map((microtask) => (
+              <MicrotaskItem
+                key={microtask.id}
+                microtask={microtask}
+                onUpdate={onUpdateTask}
+                onDelete={onDeleteTask}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Botón para añadir microtarea */}
+        <div className="bg-purple-50 rounded-lg p-2 border border-dashed border-purple-300">
           <TaskCreator
             placeholder="Añadir microtarea..."
             buttonText="+ Añadir Microtarea"
