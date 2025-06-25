@@ -1,45 +1,62 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, Key, User, Bell, Palette, Shield } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  User, 
+  Bell, 
+  Shield, 
+  Palette, 
+  Brain, 
+  BarChart3,
+  Settings as SettingsIcon,
+  ChevronRight 
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 const Settings = () => {
-  const settingsCards = [
+  const settingsSections = [
     {
-      title: 'Configuración de IA',
-      description: 'Configura tus modelos de lenguaje y parámetros de IA',
-      icon: Brain,
-      href: '/settings/llm',
-      color: 'text-blue-600 bg-blue-100',
-    },
-    {
-      title: 'Perfil',
+      title: 'Perfil de Usuario',
       description: 'Gestiona tu información personal y preferencias',
       icon: User,
       href: '/settings/profile',
-      color: 'text-green-600 bg-green-100',
+      color: 'text-blue-600',
+    },
+    {
+      title: 'Inteligencia Artificial',
+      description: 'Configuraciones de IA, modelos LLM y análisis',
+      icon: Brain,
+      href: '/settings/ai',
+      color: 'text-purple-600',
+    },
+    {
+      title: 'Configuración LLM',
+      description: 'Modelos de lenguaje y parámetros de IA',
+      icon: SettingsIcon,
+      href: '/settings/llm',
+      color: 'text-green-600',
     },
     {
       title: 'Notificaciones',
       description: 'Configura alertas y recordatorios',
       icon: Bell,
       href: '/settings/notifications',
-      color: 'text-yellow-600 bg-yellow-100',
+      color: 'text-yellow-600',
+    },
+    {
+      title: 'Privacidad y Seguridad',
+      description: 'Controla tu información y seguridad',
+      icon: Shield,
+      href: '/settings/privacy',
+      color: 'text-red-600',
     },
     {
       title: 'Apariencia',
-      description: 'Personaliza temas y diseño',
+      description: 'Personaliza el tema y la interfaz',
       icon: Palette,
       href: '/settings/appearance',
-      color: 'text-purple-600 bg-purple-100',
-    },
-    {
-      title: 'Seguridad',
-      description: 'Controla la privacidad y seguridad de tu cuenta',
-      icon: Shield,
-      href: '/settings/security',
-      color: 'text-red-600 bg-red-100',
+      color: 'text-pink-600',
     },
   ];
 
@@ -50,28 +67,69 @@ const Settings = () => {
         <div>
           <h1 className="text-3xl font-bold">Configuración</h1>
           <p className="text-muted-foreground mt-1">
-            Gestiona tus preferencias y configuraciones de la aplicación
+            Personaliza tu experiencia y gestiona tu cuenta
           </p>
         </div>
 
-        {/* Settings Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {settingsCards.map((card) => (
-            <Link key={card.href} to={card.href}>
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+        {/* Settings Grid */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {settingsSections.map((section) => {
+            const IconComponent = section.icon;
+            return (
+              <Card key={section.href} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${card.color} mb-3`}>
-                    <card.icon className="h-6 w-6" />
-                  </div>
-                  <CardTitle className="text-lg">{card.title}</CardTitle>
+                  <CardTitle className="flex items-center gap-3">
+                    <IconComponent className={`h-5 w-5 ${section.color}`} />
+                    {section.title}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription>{card.description}</CardDescription>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    {section.description}
+                  </p>
+                  <Button variant="outline" size="sm" asChild className="w-full">
+                    <Link to={section.href} className="flex items-center justify-between">
+                      <span>Configurar</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
                 </CardContent>
               </Card>
-            </Link>
-          ))}
+            );
+          })}
         </div>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-blue-600" />
+              Acciones Rápidas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2 md:grid-cols-3">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/settings/ai">
+                  <Brain className="h-4 w-4 mr-2" />
+                  Dashboard de IA
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/settings/llm">
+                  <SettingsIcon className="h-4 w-4 mr-2" />
+                  Configurar LLM
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/settings/profile">
+                  <User className="h-4 w-4 mr-2" />
+                  Editar Perfil
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
