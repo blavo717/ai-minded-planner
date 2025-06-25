@@ -150,6 +150,23 @@ export const useTasks = () => {
     enabled: !!user,
   });
 
+  const { data: projects = [], isLoading: projectsLoading, error: projectsError } = useQuery({
+    queryKey: ['projects', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Project[];
+    },
+    enabled: !!user,
+  });
+
   // Nuevas queries para profiles, task assignments y external contacts
   const { data: profiles = [], isLoading: profilesLoading } = useQuery({
     queryKey: ['profiles'],

@@ -1,145 +1,114 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  CheckCircle2, 
-  Circle, 
-  Clock, 
-  AlertCircle, 
-  Users,
-  UserPlus
-} from 'lucide-react';
-import { useTasks } from '@/hooks/useTasks';
-import AssignTaskModal from '@/components/modals/AssignTaskModal';
+import { CheckCircle, Clock, AlertTriangle, Calendar, MoreHorizontal } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Task } from '@/hooks/useTasks';
 
-const priorityColors = {
-  low: 'bg-green-100 text-green-800',
-  medium: 'bg-yellow-100 text-yellow-800', 
-  high: 'bg-orange-100 text-orange-800',
-  urgent: 'bg-red-100 text-red-800',
-};
+interface TaskListProps {
+  tasks: Task[];
+  title: string;
+  maxItems?: number;
+}
 
-const statusIcons = {
-  pending: Circle,
-  in_progress: Clock,
-  completed: CheckCircle2,
-  cancelled: AlertCircle,
-};
+const TaskList = ({ tasks, title, maxItems = 5 }: TaskListProps) => {
+  const displayTasks = maxItems ? tasks.slice(0, maxItems) : tasks;
 
-const TaskList = () => {
-  const { tasks, profiles, taskAssignments, updateTask } = useTasks();
-  const [assignModalTask, setAssignModalTask] = useState<{ id: string; title: string } | null>(null);
-
-  // Obtener las primeras 5 tareas pendientes o en progreso
-  const activeTasks = tasks
-    .filter(task => task.status === 'pending' || task.status === 'in_progress')
-    .slice(0, 5);
-
-  const getTaskAssignments = (taskId: string) => {
-    return taskAssignments.filter(assignment => assignment.task_id === taskId);
+  const getStatusIcon = (status: Task['status']) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'in_progress':
+        return <Clock className="h-4 w-4 text-blue-500" />;
+      case 'pending':
+        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-500" />;
+    }
   };
 
-  const handleStatusChange = (taskId: string, newStatus: string) => {
-    updateTask({
-      id: taskId,
-      status: newStatus as any,
-      completed_at: newStatus === 'completed' ? new Date().toISOString() : undefined,
-    });
+  const getPriorityColor = (priority: Task['priority']) => {
+    switch (priority) {
+      case 'urgent':
+        return 'bg-red-500';
+      case 'high':
+        return 'bg-orange-500';
+      case 'medium':
+        return 'bg-yellow-500';
+      case 'low':
+        return 'bg-green-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
+  const getStatusText = (status: Task['status']) => {
+    switch (status) {
+      case 'pending':
+        return 'Pendiente';
+      case 'in_progress':
+        return 'En Progreso';
+      case 'completed':
+        return 'Completada';
+      case 'cancelled':
+        return 'Cancelada';
+      default:
+        return status;
+    }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Tareas Activas
+        <CardTitle className="flex items-center justify-between">
+          {title}
+          <span className="text-sm font-normal text-muted-foreground">
+            {displayTasks.length} de {tasks.length}
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {activeTasks.length === 0 ? (
-          <p className="text-muted-foreground text-center py-4">
-            ¡Excelente! No tienes tareas pendientes.
+        {displayTasks.length === 0 ? (
+          <p className="text-center text-muted-foreground py-4">
+            No hay tareas disponibles
           </p>
         ) : (
-          activeTasks.map((task) => {
-            const StatusIcon = statusIcons[task.status];
-            const assignments = getTaskAssignments(task.id);
-            
-            return (
-              <div
-                key={task.id}
-                className="flex items-start justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-start gap-3 flex-1">
-                  <button
-                    onClick={() => handleStatusChange(
-                      task.id, 
-                      task.status === 'completed' ? 'pending' : 'completed'
-                    )}
-                    className="mt-0.5 text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <StatusIcon className="h-4 w-4" />
-                  </button>
-                  
-                  <div className="flex-1 space-y-1">
-                    <h4 className="font-medium text-sm leading-tight">
-                      {task.title}
-                    </h4>
-                    {task.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-1">
-                        {task.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge 
-                        variant="secondary" 
-                        className={`text-xs ${priorityColors[task.priority]}`}
-                      >
-                        {task.priority}
-                      </Badge>
-                      
-                      {assignments.length > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Users className="h-3 w-3" />
-                          <span>{assignments.length} asignado{assignments.length > 1 ? 's' : ''}</span>
-                        </div>
-                      )}
-                      
-                      {task.due_date && (
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(task.due_date).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+          displayTasks.map((task) => (
+            <div key={task.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex-shrink-0 mt-1">
+                {getStatusIcon(task.status)}
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2 mb-1">
+                  <h4 className="text-sm font-medium truncate">{task.title}</h4>
+                  <div className={`w-2 h-2 rounded-full ${getPriorityColor(task.priority)}`} />
                 </div>
                 
-                <div className="flex items-center gap-1 ml-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAssignModalTask({ id: task.id, title: task.title })}
-                    className="h-8 w-8 p-0"
-                  >
-                    <UserPlus className="h-3 w-3" />
-                  </Button>
+                {task.description && (
+                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                    {task.description}
+                  </p>
+                )}
+                
+                <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                  <Badge variant="outline" className="text-xs">
+                    {getStatusText(task.status)}
+                  </Badge>
+                  
+                  {task.due_date && (
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="h-3 w-3" />
+                      <span>{format(new Date(task.due_date), 'dd MMM', { locale: es })}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-            );
-          })
-        )}
-        
-        {assignModalTask && (
-          <AssignTaskModal
-            isOpen={true}
-            onClose={() => setAssignModalTask(null)}
-            taskId={assignModalTask.id}
-            taskTitle={assignModalTask.title}
-            profiles={profiles}
-          />
+            </div>
+          ))
         )}
       </CardContent>
     </Card>
