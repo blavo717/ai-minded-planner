@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,9 @@ import {
   Brain,
   Activity,
   Info,
-  Settings
+  Settings,
+  MessageCircle,
+  Bot
 } from 'lucide-react';
 import { useAITaskMonitor } from '@/hooks/useAITaskMonitor';
 import { useTasks } from '@/hooks/useTasks';
@@ -25,6 +26,8 @@ const AITestingPanel = () => {
   const { runAnalysis, isAnalyzing, monitoringData } = useAITaskMonitor();
   const { mainTasks } = useTasks();
   const { activeConfiguration, isLoading: llmLoading } = useLLMConfigurations();
+  
+  const [activePhase, setActivePhase] = useState<'overview' | 'phase5-test'>('overview');
 
   const handleRunFullAnalysis = () => {
     if (!activeConfiguration) {
@@ -91,6 +94,27 @@ const AITestingPanel = () => {
 
   const stats = getAnalysisStats();
   const systemReady = activeConfiguration && mainTasks.length > 0;
+
+  if (activePhase === 'phase5-test') {
+    const Phase5TestingSuite = React.lazy(() => import('@/components/testing/Phase5TestingSuite'));
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => setActivePhase('overview')}
+            size="sm"
+          >
+            ← Volver al Panel Principal
+          </Button>
+        </div>
+        <React.Suspense fallback={<div className="animate-pulse">Cargando Phase 5 Testing...</div>}>
+          <Phase5TestingSuite />
+        </React.Suspense>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -173,6 +197,43 @@ const AITestingPanel = () => {
                 </Button>
               </>
             )}
+          </div>
+
+          {/* Phase 5 Testing Section */}
+          <div className="border-t pt-6">
+            <h4 className="font-medium text-lg mb-4 flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-purple-600" />
+              Phase 5: Componentes UI Avanzados
+            </h4>
+            
+            <div className="grid grid-cols-1 gap-4">
+              <Button 
+                onClick={() => setActivePhase('phase5-test')}
+                variant="outline"
+                className="flex items-center gap-2 justify-start p-6 h-auto"
+              >
+                <Bot className="h-5 w-5 text-purple-500" />
+                <div className="text-left">
+                  <div className="font-medium">Testing Suite Phase 5: UI Avanzados</div>
+                  <div className="text-sm text-muted-foreground">
+                    Tests completos: AI Assistant, Smart Messaging, Microtasks mejorados
+                  </div>
+                </div>
+              </Button>
+            </div>
+            
+            <div className="mt-4 p-3 bg-purple-50 rounded-lg">
+              <div className="text-sm text-purple-800">
+                <strong>Nuevas funcionalidades Phase 5:</strong>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>AIAssistantPanel: Chat flotante global con IA</li>
+                  <li>Sistema de notificaciones inteligentes</li>
+                  <li>Badge de notificaciones con prioridades</li>
+                  <li>MicrotaskList mejorado con filtros y sugerencias IA</li>
+                  <li>Integración contextual en toda la aplicación</li>
+                </ul>
+              </div>
+            </div>
           </div>
 
           {/* Acciones de testing */}
