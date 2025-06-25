@@ -1,11 +1,40 @@
 
 import { useAuth } from '@/hooks/useAuth';
+import { useTasks } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, LogOut, User } from 'lucide-react';
+import { Brain, LogOut, User, CheckCircle, Clock, AlertTriangle, FolderOpen } from 'lucide-react';
+import StatsCard from '@/components/Dashboard/StatsCard';
+import TaskList from '@/components/Dashboard/TaskList';
+import ProjectOverview from '@/components/Dashboard/ProjectOverview';
+import QuickActions from '@/components/Dashboard/QuickActions';
 
 const Index = () => {
   const { user, signOut } = useAuth();
+  const { tasks, projects, isLoading } = useTasks();
+
+  // Calculate statistics
+  const pendingTasks = tasks.filter(task => task.status === 'pending').length;
+  const completedTasks = tasks.filter(task => task.status === 'completed').length;
+  const inProgressTasks = tasks.filter(task => task.status === 'in_progress').length;
+  const totalProjects = projects.length;
+
+  // Get recent and upcoming tasks
+  const recentTasks = tasks.slice(0, 5);
+  const upcomingTasks = tasks
+    .filter(task => task.due_date && new Date(task.due_date) > new Date())
+    .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())
+    .slice(0, 5);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <Brain className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-pulse" />
+          <p className="text-gray-600">Cargando tu AI Planner...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
@@ -41,67 +70,77 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            ¡Bienvenido a tu AI Planner!
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            ¡Bienvenido de vuelta!
           </h2>
-          <p className="text-lg text-gray-600">
-            Tu asistente inteligente para la productividad está listo para ayudarte.
+          <p className="text-gray-600">
+            Aquí tienes un resumen de tu productividad y tareas pendientes.
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Brain className="h-5 w-5 text-blue-500" />
-                <span>IA Personalizada</span>
-              </CardTitle>
-              <CardDescription>
-                La IA aprenderá de tus patrones y hábitos para ofrecerte sugerencias cada vez más precisas.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <User className="h-5 w-5 text-green-500" />
-                <span>Perfil Configurado</span>
-              </CardTitle>
-              <CardDescription>
-                Tu perfil está listo. Pronto podrás personalizar tus preferencias y configuraciones.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <LogOut className="h-5 w-5 text-purple-500" />
-                <span>Próximas Funciones</span>
-              </CardTitle>
-              <CardDescription>
-                Gestión de tareas, proyectos, contactos y mucho más está en desarrollo.
-              </CardDescription>
-            </CardHeader>
-          </Card>
+        {/* Statistics Cards */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <StatsCard
+            title="Tareas Pendientes"
+            value={pendingTasks}
+            icon={Clock}
+            description="Tareas por completar"
+            className="border-l-4 border-l-orange-500"
+          />
+          <StatsCard
+            title="Tareas Completadas"
+            value={completedTasks}
+            icon={CheckCircle}
+            description="Tareas finalizadas"
+            className="border-l-4 border-l-green-500"
+          />
+          <StatsCard
+            title="En Progreso"
+            value={inProgressTasks}
+            icon={AlertTriangle}
+            description="Tareas en desarrollo"
+            className="border-l-4 border-l-blue-500"
+          />
+          <StatsCard
+            title="Proyectos Activos"
+            value={totalProjects}
+            icon={FolderOpen}
+            description="Proyectos en curso"
+            className="border-l-4 border-l-purple-500"
+          />
         </div>
 
-        <Card className="max-w-2xl mx-auto bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <Brain className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Tu Planner Inteligente está Listo
-              </h3>
-              <p className="text-gray-600">
-                Has iniciado sesión exitosamente. Las próximas funciones incluirán gestión de tareas, 
-                análisis de patrones, recordatorios inteligentes y mucho más.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Dashboard Grid */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-6">
+            <TaskList
+              tasks={recentTasks}
+              title="Tareas Recientes"
+              maxItems={8}
+            />
+            
+            {upcomingTasks.length > 0 && (
+              <TaskList
+                tasks={upcomingTasks}
+                title="Próximas Tareas"
+                maxItems={5}
+              />
+            )}
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            <QuickActions />
+            <ProjectOverview
+              projects={projects}
+              tasks={tasks}
+              maxItems={6}
+            />
+          </div>
+        </div>
       </main>
     </div>
   );
