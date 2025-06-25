@@ -26,7 +26,7 @@ import { toast } from '@/hooks/use-toast';
 const Phase2TestingSuite = () => {
   const [testResults, setTestResults] = useState<Record<string, 'pending' | 'success' | 'error'>>({});
   const [isRunningTests, setIsRunningTests] = useState(false);
-  const { runAnalysis, isAnalyzing, getCriticalTasks, getGeneralInsights } = useAITaskMonitor();
+  const { runAnalysis, isAnalyzing, getCriticalTasks, getGeneralInsights, monitoringData } = useAITaskMonitor();
   const { mainTasks, subtasks, microtasks } = useTasks();
   const { activeConfiguration, isLoading: llmLoading } = useLLMConfigurations();
 
@@ -46,12 +46,38 @@ const Phase2TestingSuite = () => {
           throw new Error('Se necesitan tareas para probar el monitoreo AI');
         }
         
-        await runAnalysis({});
+        console.log('Iniciando test de AI monitoring...');
+        
+        // Ejecutar análisis y esperar resultado
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Timeout en análisis AI (30s)'));
+          }, 30000);
+          
+          runAnalysis({});
+          
+          // Simular espera para análisis
+          setTimeout(() => {
+            clearTimeout(timeout);
+            
+            // Verificar que se generaron datos
+            if (monitoringData.length === 0) {
+              reject(new Error('No se generaron datos de monitoreo'));
+              return;
+            }
+            
+            const insights = getGeneralInsights();
+            if (!insights) {
+              reject(new Error('No se pudieron obtener insights de IA'));
+              return;
+            }
+            
+            resolve();
+          }, 3000);
+        });
+        
         const insights = getGeneralInsights();
-        if (!insights) {
-          throw new Error('No se pudieron obtener insights de IA');
-        }
-        return `Monitoreo AI funcionando - ${insights.total_tasks} tareas analizadas`;
+        return `Monitoreo AI funcionando - ${insights?.total_tasks || 0} tareas analizadas`;
       }
     },
     {
@@ -65,9 +91,21 @@ const Phase2TestingSuite = () => {
           throw new Error('Se necesitan tareas para probar indicadores de salud');
         }
         
-        await runAnalysis({ analysisType: 'health_check' });
+        console.log('Iniciando test de health indicators...');
+        
+        await new Promise<void>((resolve) => {
+          runAnalysis({ analysisType: 'health_check' });
+          setTimeout(resolve, 2000);
+        });
+        
+        // Verificar que hay análisis de salud
+        const healthAnalyses = monitoringData.filter(m => m.monitoring_type === 'health_check');
+        if (healthAnalyses.length === 0) {
+          throw new Error('No se generaron análisis de salud');
+        }
+        
         const criticalTasks = getCriticalTasks();
-        return `Indicadores de salud funcionando - ${criticalTasks.length} tareas críticas detectadas`;
+        return `Indicadores de salud funcionando - ${healthAnalyses.length} análisis, ${criticalTasks.length} tareas críticas detectadas`;
       }
     },
     {
@@ -81,12 +119,33 @@ const Phase2TestingSuite = () => {
           throw new Error('Se necesitan tareas para verificar prioridades');
         }
         
-        await runAnalysis({ analysisType: 'priority_analysis' });
-        const insights = getGeneralInsights();
-        if (!insights) {
-          throw new Error('No se pudieron obtener insights para verificar prioridades');
+        console.log('Iniciando test de priority scoring...');
+        
+        await new Promise<void>((resolve) => {
+          runAnalysis({ analysisType: 'priority_analysis' });
+          setTimeout(resolve, 2000);
+        });
+        
+        // Verificar análisis de prioridades
+        const priorityAnalyses = monitoringData.filter(m => 
+          m.monitoring_type === 'priority_analysis' && 
+          m.priority_score !== undefined && 
+          m.priority_score > 0
+        );
+        
+        if (priorityAnalyses.length === 0) {
+          throw new Error('No se generaron puntuaciones de prioridad válidas');
         }
-        return `Sistema de prioridades funcionando - Puntuación promedio: ${insights.average_priority_score}`;
+        
+        const avgScore = priorityAnalyses.reduce((sum, analysis) => 
+          sum + (analysis.priority_score || 0), 0
+        ) / priorityAnalyses.length;
+        
+        if (avgScore === 0) {
+          throw new Error('Las puntuaciones de prioridad están en 0 - revisar cálculo');
+        }
+        
+        return `Sistema de prioridades funcionando - ${priorityAnalyses.length} análisis, puntuación promedio: ${avgScore.toFixed(1)}`;
       }
     },
     {
@@ -100,12 +159,23 @@ const Phase2TestingSuite = () => {
           throw new Error('Se necesitan al menos 2 tareas para detectar cuellos de botella');
         }
         
-        await runAnalysis({ analysisType: 'bottleneck_detection' });
-        const insights = getGeneralInsights();
-        if (!insights) {
-          throw new Error('No se pudieron detectar cuellos de botella');
+        console.log('Iniciando test de bottleneck detection...');
+        
+        await new Promise<void>((resolve) => {
+          runAnalysis({ analysisType: 'bottleneck_detection' });
+          setTimeout(resolve, 2000);
+        });
+        
+        // Verificar análisis de cuellos de botella
+        const bottleneckAnalyses = monitoringData.filter(m => m.monitoring_type === 'bottleneck_detection');
+        
+        if (bottleneckAnalyses.length === 0) {
+          throw new Error('No se ejecutó análisis de cuellos de botella');
         }
-        return `Detección de cuellos de botella funcionando - ${insights.bottlenecked_tasks} tareas con cuellos detectados`;
+        
+        const detectedBottlenecks = bottleneckAnalyses.filter(m => m.bottleneck_detected).length;
+        
+        return `Detección de cuellos de botella funcionando - ${bottleneckAnalyses.length} análisis, ${detectedBottlenecks} cuellos detectados`;
       }
     },
     {
@@ -119,14 +189,30 @@ const Phase2TestingSuite = () => {
           throw new Error('Se necesitan tareas para predicción de finalización');
         }
         
-        await runAnalysis({ analysisType: 'completion_prediction' });
-        return 'Predicción de finalización funcionando correctamente';
+        console.log('Iniciando test de completion prediction...');
+        
+        await new Promise<void>((resolve) => {
+          runAnalysis({ analysisType: 'completion_prediction' });
+          setTimeout(resolve, 2000);
+        });
+        
+        // Verificar predicciones
+        const predictionAnalyses = monitoringData.filter(m => 
+          m.monitoring_type === 'completion_prediction' && 
+          m.predicted_completion_date
+        );
+        
+        if (predictionAnalyses.length === 0) {
+          throw new Error('No se generaron predicciones de finalización');
+        }
+        
+        return `Predicción de finalización funcionando - ${predictionAnalyses.length} predicciones generadas`;
       }
     },
     {
       id: 'hierarchical-analysis',
       name: 'Hierarchical Analysis',
-      description: 'Análisis de jerarquía de tareas (tareas -> subtareas -> microtareas)',
+      description: 'Análisis de jerarquía de tareas (tareas > subtareas > microtareas)',
       icon: BarChart3,
       requirements: ['Tareas principales, subtareas y microtareas'],
       test: async () => {
@@ -135,12 +221,41 @@ const Phase2TestingSuite = () => {
           throw new Error('Se necesitan tareas para probar análisis jerárquico');
         }
         
-        await runAnalysis({});
+        console.log('Iniciando test de hierarchical analysis...');
+        
+        await new Promise<void>((resolve) => {
+          runAnalysis({});
+          setTimeout(resolve, 3000);
+        });
+        
+        // Verificar análisis por niveles de jerarquía
+        const level1Analyses = monitoringData.filter(m => {
+          const task = mainTasks.find(t => t.id === m.task_id);
+          return task && task.task_level === 1;
+        });
+        
+        const level2Analyses = monitoringData.filter(m => {
+          const task = subtasks.find(t => t.id === m.task_id);
+          return task && task.task_level === 2;
+        });
+        
+        const level3Analyses = monitoringData.filter(m => {
+          const task = microtasks.find(t => t.id === m.task_id);
+          return task && task.task_level === 3;
+        });
+        
         const hierarchyData = {
           mainTasks: mainTasks.length,
           subtasks: subtasks.length,
-          microtasks: microtasks.length
+          microtasks: microtasks.length,
+          level1Analyses: level1Analyses.length,
+          level2Analyses: level2Analyses.length,
+          level3Analyses: level3Analyses.length
         };
+        
+        if (level1Analyses.length === 0 && mainTasks.length > 0) {
+          throw new Error('No se analizaron tareas principales');
+        }
         
         return `Análisis jerárquico funcionando - ${hierarchyData.mainTasks} tareas, ${hierarchyData.subtasks} subtareas, ${hierarchyData.microtasks} microtareas`;
       }
@@ -151,6 +266,7 @@ const Phase2TestingSuite = () => {
     const test = phase2Tests.find(t => t.id === testId);
     if (!test) return;
 
+    console.log(`Ejecutando test: ${test.name}`);
     setTestResults(prev => ({ ...prev, [testId]: 'pending' }));
     
     try {
@@ -160,37 +276,59 @@ const Phase2TestingSuite = () => {
         title: `✅ ${test.name}`,
         description: result,
       });
+      console.log(`Test exitoso: ${test.name} - ${result}`);
+      return true;
     } catch (error) {
       setTestResults(prev => ({ ...prev, [testId]: 'error' }));
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       toast({
         title: `❌ ${test.name}`,
-        description: error instanceof Error ? error.message : 'Error desconocido',
+        description: errorMessage,
         variant: "destructive",
       });
+      console.error(`Test fallido: ${test.name} - ${errorMessage}`);
+      return false;
     }
   };
 
   const runAllTests = async () => {
+    console.log('=== INICIANDO SUITE DE TESTS FASE 2 ===');
     setIsRunningTests(true);
+    
+    // Reset all tests
+    const resetResults = phase2Tests.reduce((acc, test) => {
+      acc[test.id] = 'pending';
+      return acc;
+    }, {} as Record<string, 'pending' | 'success' | 'error'>);
+    setTestResults(resetResults);
+    
     let successCount = 0;
     
-    for (const test of phase2Tests) {
-      await runSingleTest(test.id);
-      if (testResults[test.id] === 'success') {
+    for (let i = 0; i < phase2Tests.length; i++) {
+      const test = phase2Tests[i];
+      console.log(`--- Test ${i + 1}/${phase2Tests.length}: ${test.name} ---`);
+      
+      const success = await runSingleTest(test.id);
+      if (success) {
         successCount++;
       }
-      // Pequeña pausa entre tests
+      
+      // Pausa entre tests para evitar sobrecarga
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
     setIsRunningTests(false);
     
-    const totalTests = phase2Tests.length;
-    const finalSuccessCount = Object.values(testResults).filter(result => result === 'success').length;
+    console.log(`=== SUITE COMPLETADA: ${successCount}/${phase2Tests.length} EXITOSOS ===`);
+    
+    const message = successCount === phase2Tests.length 
+      ? "🎉 ¡Todos los tests de Fase 2 pasaron exitosamente!"
+      : `⚠️ ${successCount}/${phase2Tests.length} tests pasaron. Revisar fallos.`;
     
     toast({
       title: "Tests de Fase 2 completados",
-      description: `${finalSuccessCount}/${totalTests} tests pasaron exitosamente`,
+      description: message,
+      variant: successCount === phase2Tests.length ? "default" : "destructive"
     });
   };
 

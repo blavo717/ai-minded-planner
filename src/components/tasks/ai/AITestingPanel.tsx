@@ -111,7 +111,7 @@ const AITestingPanel = () => {
                 <div className="font-medium mb-2">Sistema no está listo:</div>
                 <ul className="list-disc list-inside text-sm space-y-1">
                   {!activeConfiguration && (
-                    <li>Configurar LLM (ir a Configuración > LLM)</li>
+                    <li>Configurar LLM (ir a Configuración {' > '} LLM)</li>
                   )}
                   {mainTasks.length === 0 && (
                     <li>Crear al menos 1 tarea para poder analizarla</li>
@@ -277,7 +277,7 @@ const AITestingPanel = () => {
           <div className="border-t pt-4">
             <h5 className="font-medium text-sm mb-2">Guía de Testing Completo:</h5>
             <div className="text-xs text-muted-foreground space-y-1">
-              <p>1. Configurar OpenRouter API key (Configuración > LLM)</p>
+              <p>1. Configurar OpenRouter API key (Configuración {' > '} LLM)</p>
               <p>2. Crear varias tareas con diferentes prioridades y estados</p>
               <p>3. Añadir subtareas y microtareas para probar la jerarquía</p>
               <p>4. Ejecutar el análisis completo para poblar datos AI</p>
