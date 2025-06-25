@@ -44,11 +44,11 @@ const EditTaskModal = ({ isOpen, onClose, task, projects }: EditTaskModalProps) 
   const { updateTask, isUpdatingTask } = useTaskMutations();
 
   useEffect(() => {
-    if (task) {
+    if (task && isOpen) {
       setFormData({
         title: task.title,
         description: task.description || '',
-        project_id: task.project_id || '',
+        project_id: task.project_id || 'none',
         priority: task.priority,
         status: task.status,
         due_date: task.due_date ? new Date(task.due_date) : null,
@@ -56,7 +56,7 @@ const EditTaskModal = ({ isOpen, onClose, task, projects }: EditTaskModalProps) 
         tags: task.tags || [],
       });
     }
-  }, [task]);
+  }, [task, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +65,7 @@ const EditTaskModal = ({ isOpen, onClose, task, projects }: EditTaskModalProps) 
       id: task.id,
       title: formData.title,
       description: formData.description || undefined,
-      project_id: formData.project_id || undefined,
+      project_id: formData.project_id === 'none' ? undefined : formData.project_id,
       priority: formData.priority,
       status: formData.status,
       due_date: formData.due_date?.toISOString() || undefined,
@@ -96,6 +96,13 @@ const EditTaskModal = ({ isOpen, onClose, task, projects }: EditTaskModalProps) 
       ...prev,
       tags: prev.tags.filter(tag => tag !== tagToRemove)
     }));
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
+    }
   };
 
   return (
@@ -180,7 +187,7 @@ const EditTaskModal = ({ isOpen, onClose, task, projects }: EditTaskModalProps) 
                 <SelectValue placeholder="Seleccionar proyecto (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Sin proyecto</SelectItem>
+                <SelectItem value="none">Sin proyecto</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     <div className="flex items-center gap-2">
@@ -204,6 +211,7 @@ const EditTaskModal = ({ isOpen, onClose, task, projects }: EditTaskModalProps) 
                   <Button
                     variant="outline"
                     className="w-full justify-start text-left font-normal"
+                    type="button"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {formData.due_date ? (
@@ -213,7 +221,7 @@ const EditTaskModal = ({ isOpen, onClose, task, projects }: EditTaskModalProps) 
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={formData.due_date || undefined}
@@ -255,12 +263,7 @@ const EditTaskModal = ({ isOpen, onClose, task, projects }: EditTaskModalProps) 
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
                 placeholder="Añadir etiqueta"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTag();
-                  }
-                }}
+                onKeyPress={handleKeyPress}
               />
               <Button type="button" variant="outline" onClick={addTag}>
                 Añadir

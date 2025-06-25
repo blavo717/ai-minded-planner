@@ -17,7 +17,8 @@ import {
   MoreHorizontal,
   Edit,
   Trash2,
-  Tag
+  Tag,
+  Timer
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -64,6 +65,7 @@ const Tasks = () => {
   });
 
   const handleEditTask = (task: Task) => {
+    console.log('Editing task:', task);
     setEditingTask(task);
     setIsEditModalOpen(true);
   };
@@ -85,6 +87,7 @@ const Tasks = () => {
     });
   };
 
+  // Utility functions
   const getStatusIcon = (status: Task['status']) => {
     switch (status) {
       case 'completed':
@@ -147,6 +150,12 @@ const Tasks = () => {
     if (!projectId) return null;
     const project = projects.find(p => p.id === projectId);
     return project?.name;
+  };
+
+  const getProjectColor = (projectId?: string) => {
+    if (!projectId) return null;
+    const project = projects.find(p => p.id === projectId);
+    return project?.color;
   };
 
   return (
@@ -221,6 +230,7 @@ const Tasks = () => {
         ) : (
           filteredTasks.map((task) => {
             const subtasks = getSubtasksForTask(task.id);
+            const completedSubtasks = subtasks.filter(s => s.status === 'completed').length;
             
             return (
               <div key={task.id} className="space-y-3">
@@ -228,6 +238,7 @@ const Tasks = () => {
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 space-y-3">
+                        {/* Task title and priority */}
                         <div className="flex items-center gap-3">
                           {getStatusIcon(task.status)}
                           <h3 className="text-lg font-semibold">{task.title}</h3>
@@ -236,15 +247,17 @@ const Tasks = () => {
                           />
                           {subtasks.length > 0 && (
                             <Badge variant="outline" className="text-xs">
-                              {subtasks.filter(s => s.status === 'completed').length}/{subtasks.length} subtareas
+                              {completedSubtasks}/{subtasks.length} subtareas
                             </Badge>
                           )}
                         </div>
                         
+                        {/* Task description */}
                         {task.description && (
                           <p className="text-gray-600">{task.description}</p>
                         )}
                         
+                        {/* Task metadata */}
                         <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
                           <Badge variant="outline">
                             {getStatusText(task.status)}
@@ -255,7 +268,11 @@ const Tasks = () => {
                           </Badge>
                           
                           {getProjectName(task.project_id) && (
-                            <Badge variant="outline">
+                            <Badge variant="outline" className="flex items-center gap-1">
+                              <div 
+                                className="w-2 h-2 rounded-full" 
+                                style={{ backgroundColor: getProjectColor(task.project_id) || '#3B82F6' }}
+                              />
                               {getProjectName(task.project_id)}
                             </Badge>
                           )}
@@ -268,7 +285,15 @@ const Tasks = () => {
                           )}
                           
                           {task.estimated_duration && (
-                            <span>{task.estimated_duration} min</span>
+                            <div className="flex items-center gap-1">
+                              <Timer className="h-3 w-3" />
+                              {task.estimated_duration} min
+                              {task.actual_duration && (
+                                <span className="text-xs">
+                                  (real: {task.actual_duration} min)
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
 
@@ -285,6 +310,7 @@ const Tasks = () => {
                         )}
                       </div>
                       
+                      {/* Actions dropdown */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
