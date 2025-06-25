@@ -379,7 +379,6 @@ const MicrotaskCreator = ({
           }
         }}
         className="text-xs"
-        size="sm"
         autoFocus
       />
       <Button onClick={handleCreate} size="sm" className="text-xs">
