@@ -96,6 +96,54 @@ export type Database = {
         }
         Relationships: []
       }
+      llm_configurations: {
+        Row: {
+          api_key_name: string
+          created_at: string
+          frequency_penalty: number | null
+          id: string
+          is_active: boolean | null
+          max_tokens: number | null
+          model_name: string
+          presence_penalty: number | null
+          provider: string
+          temperature: number | null
+          top_p: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key_name?: string
+          created_at?: string
+          frequency_penalty?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_tokens?: number | null
+          model_name?: string
+          presence_penalty?: number | null
+          provider?: string
+          temperature?: number | null
+          top_p?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key_name?: string
+          created_at?: string
+          frequency_penalty?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_tokens?: number | null
+          model_name?: string
+          presence_penalty?: number | null
+          provider?: string
+          temperature?: number | null
+          top_p?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           address: string | null

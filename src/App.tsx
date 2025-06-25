@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +15,7 @@ import Projects from "./pages/Projects";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Contacts from "@/pages/Contacts";
+import LLMSettings from "@/pages/LLMSettings";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +47,11 @@ function App() {
               <Route path="/contacts" element={
                 <ProtectedRoute>
                   <Contacts />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings/llm" element={
+                <ProtectedRoute>
+                  <LLMSettings />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
