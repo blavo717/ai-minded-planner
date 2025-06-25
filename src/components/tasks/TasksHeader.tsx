@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +9,8 @@ import {
   Settings,
   TestTube,
   Lightbulb,
-  Activity
+  Activity,
+  Zap
 } from 'lucide-react';
 
 interface TasksHeaderProps {
@@ -76,16 +78,14 @@ const TasksHeader = ({
           {showTesting ? "Ocultar Tests" : "Phase 1 Tests"}
         </Button>
 
-        {onTogglePhase2Testing && (
-          <Button 
-            variant={showPhase2Testing ? "default" : "outline"}
-            onClick={onTogglePhase2Testing}
-            className="flex items-center gap-2"
-          >
-            <Brain className="h-4 w-4" />
-            {showPhase2Testing ? "Ocultar Phase 2" : "Phase 2 Tests"}
-          </Button>
-        )}
+        <Button 
+          variant={showPhase2Testing ? "default" : "outline"}
+          onClick={onTogglePhase2Testing}
+          className="flex items-center gap-2"
+        >
+          <Zap className="h-4 w-4" />
+          {showPhase2Testing ? "Ocultar Phase 2" : "Phase 2 Tests"}
+        </Button>
       </div>
     </div>
   );
