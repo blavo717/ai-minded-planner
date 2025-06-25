@@ -21,6 +21,7 @@ import ModelValidationAlert from './ModelValidationAlert';
 import { LLMTemplate } from '@/data/llmTemplates';
 import { getPopularModels } from '@/services/openRouterService';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const formSchema = z.object({
   model_name: z.string().min(1, 'Selecciona un modelo'),
@@ -47,6 +48,7 @@ const LLMConfigurationForm = ({ configuration, onSubmit, onCancel, isLoading }: 
   const [showTemplates, setShowTemplates] = useState(false);
   const { models, groupedModels, isLoading: modelsLoading } = useOpenRouterModels();
   const { testConnection } = useLLMConfigurations();
+  const { user } = useAuth();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -74,6 +76,12 @@ const LLMConfigurationForm = ({ configuration, onSubmit, onCancel, isLoading }: 
   };
 
   const testConnectionManually = async (formData: FormData) => {
+    if (!user) {
+      setTestStatus('error');
+      setTestMessage('Usuario no autenticado');
+      return false;
+    }
+
     setTestStatus('testing');
     setTestMessage('Probando conexión con el modelo...');
 
@@ -88,6 +96,7 @@ const LLMConfigurationForm = ({ configuration, onSubmit, onCancel, isLoading }: 
         const { data: tempConfig, error: createError } = await supabase
           .from('llm_configurations')
           .insert({
+            user_id: user.id,
             model_name: formData.model_name,
             temperature: formData.temperature,
             max_tokens: formData.max_tokens,
