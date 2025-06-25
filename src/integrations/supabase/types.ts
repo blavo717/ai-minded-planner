@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_insights: {
+        Row: {
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          insight_data: Json
+          insight_type: string
+          is_dismissed: boolean | null
+          is_read: boolean | null
+          priority: number | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          insight_data: Json
+          insight_type: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          priority?: number | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          insight_data?: Json
+          insight_type?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          priority?: number | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       external_contacts: {
         Row: {
           company: string | null
@@ -51,6 +93,42 @@ export type Database = {
           role?: string | null
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      locations: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_favorite: boolean | null
+          latitude: number | null
+          location_type: string | null
+          longitude: number | null
+          name: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_favorite?: boolean | null
+          latitude?: number | null
+          location_type?: string | null
+          longitude?: number | null
+          name: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_favorite?: boolean | null
+          latitude?: number | null
+          location_type?: string | null
+          longitude?: number | null
+          name?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -126,6 +204,50 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_reminders: {
+        Row: {
+          created_at: string
+          id: string
+          is_sent: boolean | null
+          message: string | null
+          reminder_type: string
+          scheduled_for: string
+          task_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_sent?: boolean | null
+          message?: string | null
+          reminder_type: string
+          scheduled_for: string
+          task_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_sent?: boolean | null
+          message?: string | null
+          reminder_type?: string
+          scheduled_for?: string
+          task_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_reminders_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_assignments: {
         Row: {
           assigned_at: string | null
@@ -184,6 +306,60 @@ export type Database = {
           },
         ]
       }
+      task_sessions: {
+        Row: {
+          created_at: string
+          duration_minutes: number | null
+          ended_at: string | null
+          id: string
+          location_id: string | null
+          notes: string | null
+          productivity_score: number | null
+          started_at: string
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          productivity_score?: number | null
+          started_at?: string
+          task_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          productivity_score?: number | null
+          started_at?: string
+          task_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_sessions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_sessions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           completed_at: string | null
@@ -233,6 +409,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_patterns: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          id: string
+          pattern_data: Json
+          pattern_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          pattern_data: Json
+          pattern_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          pattern_data?: Json
+          pattern_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

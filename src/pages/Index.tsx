@@ -8,6 +8,8 @@ import StatsCard from '@/components/Dashboard/StatsCard';
 import TaskList from '@/components/Dashboard/TaskList';
 import ProjectOverview from '@/components/Dashboard/ProjectOverview';
 import QuickActions from '@/components/Dashboard/QuickActions';
+import AIInsightsPanel from '@/components/AI/AIInsightsPanel';
+import ProductivityTimer from '@/components/AI/ProductivityTimer';
 import MainLayout from '@/components/Layout/MainLayout';
 
 const Index = () => {
@@ -110,10 +112,16 @@ const Index = () => {
           {/* Right Column */}
           <div className="space-y-6">
             <QuickActions />
+            
+            {/* AI Components */}
+            <AIInsightsPanel maxItems={3} />
+            
+            <ProductivityTimer />
+            
             <ProjectOverview
               projects={projects}
               tasks={tasks}
-              maxItems={6}
+              maxItems={4}
             />
           </div>
         </div>
