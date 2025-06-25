@@ -10,14 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Plus, 
   Search, 
-  Filter, 
   CheckCircle, 
   Clock, 
   AlertTriangle,
   Calendar,
   MoreHorizontal,
   Edit,
-  Trash2
+  Trash2,
+  Tag
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -39,16 +39,22 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const Tasks = () => {
-  const { tasks } = useTasks();
+  const { mainTasks, getSubtasksForTask } = useTasks();
   const { projects } = useProjects();
-  const { updateTask, deleteTask, isUpdatingTask, isDeletingTask } = useTaskMutations();
+  const { updateTask, deleteTask, createTask } = useTaskMutations();
+  
+  // Modal states
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  
+  // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
   // Filter tasks based on search and filters
-  const filteredTasks = tasks.filter((task) => {
+  const filteredTasks = mainTasks.filter((task) => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          task.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
@@ -56,6 +62,28 @@ const Tasks = () => {
     
     return matchesSearch && matchesStatus && matchesPriority;
   });
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCreateSubtask = (parentTaskId: string, title: string) => {
+    createTask({
+      title,
+      parent_task_id: parentTaskId,
+      status: 'pending',
+      priority: 'medium'
+    });
+  };
+
+  const handleStatusChange = (taskId: string, status: Task['status']) => {
+    updateTask({ 
+      id: taskId, 
+      status,
+      completed_at: status === 'completed' ? new Date().toISOString() : undefined
+    });
+  };
 
   const getStatusIcon = (status: Task['status']) => {
     switch (status) {
@@ -119,14 +147,6 @@ const Tasks = () => {
     if (!projectId) return null;
     const project = projects.find(p => p.id === projectId);
     return project?.name;
-  };
-
-  const handleStatusChange = (taskId: string, status: Task['status']) => {
-    updateTask({ 
-      id: taskId, 
-      status,
-      completed_at: status === 'completed' ? new Date().toISOString() : undefined
-    });
   };
 
   return (
@@ -199,102 +219,149 @@ const Tasks = () => {
             </CardContent>
           </Card>
         ) : (
-          filteredTasks.map((task) => (
-            <Card key={task.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3">
-                      {getStatusIcon(task.status)}
-                      <h3 className="text-lg font-semibold">{task.title}</h3>
-                      <div
-                        className={`w-2 h-2 rounded-full ${getPriorityColor(task.priority)}`}
-                      />
-                    </div>
-                    
-                    {task.description && (
-                      <p className="text-gray-600">{task.description}</p>
-                    )}
-                    
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                      <Badge variant="outline">
-                        {getStatusText(task.status)}
-                      </Badge>
-                      
-                      <Badge variant="outline">
-                        {getPriorityText(task.priority)}
-                      </Badge>
-                      
-                      {getProjectName(task.project_id) && (
-                        <Badge variant="outline">
-                          {getProjectName(task.project_id)}
-                        </Badge>
-                      )}
-                      
-                      {task.due_date && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {format(new Date(task.due_date), 'dd MMM yyyy', { locale: es })}
+          filteredTasks.map((task) => {
+            const subtasks = getSubtasksForTask(task.id);
+            
+            return (
+              <div key={task.id} className="space-y-3">
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 space-y-3">
+                        <div className="flex items-center gap-3">
+                          {getStatusIcon(task.status)}
+                          <h3 className="text-lg font-semibold">{task.title}</h3>
+                          <div
+                            className={`w-2 h-2 rounded-full ${getPriorityColor(task.priority)}`}
+                          />
+                          {subtasks.length > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              {subtasks.filter(s => s.status === 'completed').length}/{subtasks.length} subtareas
+                            </Badge>
+                          )}
                         </div>
-                      )}
+                        
+                        {task.description && (
+                          <p className="text-gray-600">{task.description}</p>
+                        )}
+                        
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                          <Badge variant="outline">
+                            {getStatusText(task.status)}
+                          </Badge>
+                          
+                          <Badge variant="outline">
+                            {getPriorityText(task.priority)}
+                          </Badge>
+                          
+                          {getProjectName(task.project_id) && (
+                            <Badge variant="outline">
+                              {getProjectName(task.project_id)}
+                            </Badge>
+                          )}
+                          
+                          {task.due_date && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {format(new Date(task.due_date), 'dd MMM yyyy', { locale: es })}
+                            </div>
+                          )}
+                          
+                          {task.estimated_duration && (
+                            <span>{task.estimated_duration} min</span>
+                          )}
+                        </div>
+
+                        {/* Tags */}
+                        {task.tags && task.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {task.tags.map((tag) => (
+                              <Badge key={tag} variant="secondary" className="text-xs flex items-center gap-1">
+                                <Tag className="h-3 w-3" />
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       
-                      {task.estimated_duration && (
-                        <span>{task.estimated_duration} min</span>
-                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {task.status !== 'completed' && (
+                            <DropdownMenuItem 
+                              onClick={() => handleStatusChange(task.id, 'completed')}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Marcar completada
+                            </DropdownMenuItem>
+                          )}
+                          
+                          {task.status === 'pending' && (
+                            <DropdownMenuItem 
+                              onClick={() => handleStatusChange(task.id, 'in_progress')}
+                            >
+                              <Clock className="h-4 w-4 mr-2" />
+                              Iniciar progreso
+                            </DropdownMenuItem>
+                          )}
+                          
+                          <DropdownMenuItem onClick={() => handleEditTask(task)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          
+                          <DropdownMenuItem 
+                            onClick={() => deleteTask(task.id)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* Subtasks */}
+                {subtasks.length > 0 && (
+                  <div className="ml-6">
+                    <SubtaskList
+                      parentTask={task}
+                      subtasks={subtasks}
+                      onCreateSubtask={(title) => handleCreateSubtask(task.id, title)}
+                    />
                   </div>
-                  
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {task.status !== 'completed' && (
-                        <DropdownMenuItem 
-                          onClick={() => handleStatusChange(task.id, 'completed')}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Marcar completada
-                        </DropdownMenuItem>
-                      )}
-                      
-                      {task.status === 'pending' && (
-                        <DropdownMenuItem 
-                          onClick={() => handleStatusChange(task.id, 'in_progress')}
-                        >
-                          <Clock className="h-4 w-4 mr-2" />
-                          Iniciar progreso
-                        </DropdownMenuItem>
-                      )}
-                      
-                      <DropdownMenuItem onClick={() => console.log('Edit task', task.id)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      
-                      <DropdownMenuItem 
-                        onClick={() => deleteTask(task.id)}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 
+      {/* Modals */}
       <CreateTaskModal
         isOpen={isCreateTaskOpen}
         onClose={() => setIsCreateTaskOpen(false)}
         projects={projects}
       />
+
+      {editingTask && (
+        <EditTaskModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingTask(null);
+          }}
+          task={editingTask}
+          projects={projects}
+        />
+      )}
     </div>
   );
 };

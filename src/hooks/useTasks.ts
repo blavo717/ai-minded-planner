@@ -15,6 +15,7 @@ export interface Task {
   updated_at: string;
   project_id?: string;
   user_id: string;
+  parent_task_id?: string;
   estimated_duration?: number;
   actual_duration?: number;
   tags?: string[];
@@ -27,6 +28,7 @@ export interface CreateTaskData {
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   due_date?: string;
   project_id?: string;
+  parent_task_id?: string;
   estimated_duration?: number;
   tags?: string[];
 }
@@ -39,6 +41,7 @@ export interface UpdateTaskData {
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   due_date?: string;
   project_id?: string;
+  parent_task_id?: string;
   estimated_duration?: number;
   actual_duration?: number;
   tags?: string[];
@@ -65,8 +68,19 @@ export const useTasks = () => {
     enabled: !!user,
   });
 
+  // Separar tareas principales de subtareas
+  const mainTasks = tasks.filter(task => !task.parent_task_id);
+  const subtasks = tasks.filter(task => task.parent_task_id);
+
+  const getSubtasksForTask = (taskId: string) => {
+    return subtasks.filter(subtask => subtask.parent_task_id === taskId);
+  };
+
   return {
     tasks,
+    mainTasks,
+    subtasks,
+    getSubtasksForTask,
     isLoading: tasksLoading,
     error: tasksError,
   };
