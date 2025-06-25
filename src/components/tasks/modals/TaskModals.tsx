@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { useProjects } from '@/hooks/useProjects';
+import { useProfiles } from '@/hooks/useProfiles';
 import CreateTaskModal from '@/components/modals/CreateTaskModal';
 import EditTaskModal from '@/components/tasks/EditTaskModal';
 import ManageDependenciesModal from '@/components/tasks/ManageDependenciesModal';
@@ -7,6 +9,8 @@ import AssignTaskModal from '@/components/modals/AssignTaskModal';
 import { useTasksContext } from '../providers/TasksProvider';
 
 const TaskModals = () => {
+  const { projects } = useProjects();
+  const { profiles } = useProfiles();
   const {
     isCreateTaskOpen,
     setIsCreateTaskOpen,
@@ -33,34 +37,38 @@ const TaskModals = () => {
 
       {editingTask && (
         <EditTaskModal
-          task={editingTask}
-          open={isEditModalOpen}
-          onOpenChange={(open) => {
-            setIsEditModalOpen(open);
-            if (!open) setEditingTask(null);
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingTask(null);
           }}
+          task={editingTask}
+          projects={projects}
         />
       )}
 
       {dependenciesTask && (
         <ManageDependenciesModal
-          task={dependenciesTask}
-          open={isDependenciesModalOpen}
-          onOpenChange={(open) => {
-            setIsDependenciesModalOpen(open);
-            if (!open) setDependenciesTask(null);
+          isOpen={isDependenciesModalOpen}
+          onClose={() => {
+            setIsDependenciesModalOpen(false);
+            setDependenciesTask(null);
           }}
+          taskId={dependenciesTask.id}
+          taskTitle={dependenciesTask.title}
         />
       )}
 
       {assigningTask && (
         <AssignTaskModal
-          task={assigningTask}
-          open={isAssignModalOpen}
-          onOpenChange={(open) => {
-            setIsAssignModalOpen(open);
-            if (!open) setAssigningTask(null);
+          isOpen={isAssignModalOpen}
+          onClose={() => {
+            setIsAssignModalOpen(false);
+            setAssigningTask(null);
           }}
+          taskId={assigningTask.id}
+          taskTitle={assigningTask.title}
+          profiles={profiles}
         />
       )}
     </>
