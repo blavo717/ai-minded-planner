@@ -13,7 +13,7 @@ import TasksHeader from '@/components/tasks/TasksHeader';
 import TaskViewControls from '@/components/tasks/TaskViewControls';
 import TaskList from '@/components/tasks/TaskList';
 import AIInsightsPanel from '@/components/tasks/ai/AIInsightsPanel';
-import PostRefactorValidation from '@/components/tasks/testing/PostRefactorValidation';
+import DailyPlannerPreview from '@/components/AI/DailyPlannerPreview';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
 
@@ -30,15 +30,14 @@ const TasksContent = () => {
     setIsCreateTaskOpen,
   } = useTasksContext();
   
-  // Estados para AI monitoring y validación post-refactor
+  // Estados para AI monitoring
   const [showAIMonitoring, setShowAIMonitoring] = useState(false);
-  const [showPostRefactorValidation, setShowPostRefactorValidation] = useState(true);
   
   const { filters, setFilters, filteredTasks, availableTags } = useTaskFilters(mainTasks, getSubtasksForTask);
   const { handleEditTask, handleManageDependencies, handleAssignTask, handleCreateSubtask } = useTaskHandlers();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       <TasksHeader
         showInsights={showInsights}
         onToggleInsights={() => setShowInsights(!showInsights)}
@@ -47,28 +46,13 @@ const TasksContent = () => {
         onToggleAIMonitoring={() => setShowAIMonitoring(!showAIMonitoring)}
       />
 
-      {/* Validación Post-Refactor - Temporal */}
-      {showPostRefactorValidation && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">🔍 Validación Post-Refactor</h2>
-            <button
-              onClick={() => setShowPostRefactorValidation(false)}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Ocultar validación
-            </button>
-          </div>
-          <PostRefactorValidation />
-        </div>
-      )}
-
       {showInsights && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="grid grid-cols-1 gap-6">
               <ProductivityInsights />
               <AIInsightsPanel />
+              <DailyPlannerPreview />
             </div>
           </div>
           <div>
@@ -77,36 +61,40 @@ const TasksContent = () => {
         </div>
       )}
 
-      <AdvancedFilters
-        projects={projects}
-        profiles={profiles}
-        availableTags={availableTags}
-        filters={filters}
-        onFiltersChange={setFilters}
-      />
-
-      <TaskViewControls
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        taskCount={filteredTasks.length}
-      />
-
-      {viewMode === 'kanban' ? (
-        <KanbanBoard
-          tasks={filteredTasks}
-          getSubtasksForTask={getSubtasksForTask}
-          onEditTask={handleEditTask}
+      <div className="max-w-full overflow-x-hidden">
+        <AdvancedFilters
+          projects={projects}
+          profiles={profiles}
+          availableTags={availableTags}
+          filters={filters}
+          onFiltersChange={setFilters}
         />
-      ) : (
-        <TaskList
-          tasks={filteredTasks}
-          getSubtasksForTask={getSubtasksForTask}
-          onEditTask={handleEditTask}
-          onManageDependencies={handleManageDependencies}
-          onAssignTask={handleAssignTask}
-          onCreateSubtask={handleCreateSubtask}
+
+        <TaskViewControls
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          taskCount={filteredTasks.length}
         />
-      )}
+
+        {viewMode === 'kanban' ? (
+          <div className="overflow-x-auto">
+            <KanbanBoard
+              tasks={filteredTasks}
+              getSubtasksForTask={getSubtasksForTask}
+              onEditTask={handleEditTask}
+            />
+          </div>
+        ) : (
+          <TaskList
+            tasks={filteredTasks}
+            getSubtasksForTask={getSubtasksForTask}
+            onEditTask={handleEditTask}
+            onManageDependencies={handleManageDependencies}
+            onAssignTask={handleAssignTask}
+            onCreateSubtask={handleCreateSubtask}
+          />
+        )}
+      </div>
 
       <TaskModals />
     </div>
