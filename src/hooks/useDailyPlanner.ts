@@ -35,6 +35,17 @@ export interface DailyPlannerPreferences {
   prioritizeHighPriority?: boolean;
 }
 
+// Función helper para convertir datos de Supabase a nuestros tipos
+const transformSupabasePlan = (supabasePlan: any): DailyPlan => {
+  return {
+    ...supabasePlan,
+    planned_tasks: Array.isArray(supabasePlan.planned_tasks) 
+      ? supabasePlan.planned_tasks as PlanningBlock[]
+      : [],
+    user_feedback: supabasePlan.user_feedback || {},
+  };
+};
+
 export const useDailyPlanner = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -54,7 +65,7 @@ export const useDailyPlanner = () => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as DailyPlan | null;
+      return data ? transformSupabasePlan(data) : null;
     },
     enabled: !!user,
   });
@@ -78,7 +89,7 @@ export const useDailyPlanner = () => {
         .order('plan_date', { ascending: true });
 
       if (error) throw error;
-      return data as DailyPlan[];
+      return data ? data.map(transformSupabasePlan) : [];
     },
     enabled: !!user,
   });
