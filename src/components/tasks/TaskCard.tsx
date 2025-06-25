@@ -3,9 +3,12 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Task } from '@/hooks/useTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjects } from '@/hooks/useProjects';
+import { useTaskAssignments } from '@/hooks/useTaskAssignments';
+import { useProfiles } from '@/hooks/useProfiles';
 import { 
   CheckCircle, 
   Clock, 
@@ -15,7 +18,9 @@ import {
   Edit,
   Trash2,
   Tag,
-  Timer
+  Timer,
+  UserPlus,
+  Users
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -33,6 +38,7 @@ interface TaskCardProps {
   subtasks: Task[];
   onEditTask: (task: Task) => void;
   onManageDependencies: (task: Task) => void;
+  onAssignTask: (task: Task) => void;
   onCreateSubtask: (parentTaskId: string, title: string) => void;
 }
 
@@ -40,13 +46,19 @@ const TaskCard = ({
   task, 
   subtasks, 
   onEditTask, 
-  onManageDependencies, 
+  onManageDependencies,
+  onAssignTask,
   onCreateSubtask 
 }: TaskCardProps) => {
   const { updateTask, deleteTask } = useTaskMutations();
   const { projects } = useProjects();
+  const { taskAssignments } = useTaskAssignments();
+  const { profiles } = useProfiles();
 
   const completedSubtasks = subtasks.filter(s => s.status === 'completed').length;
+
+  // Get assignments for this task
+  const taskAssignmentsForTask = taskAssignments.filter(assignment => assignment.task_id === task.id);
 
   const getStatusIcon = (status: Task['status']) => {
     switch (status) {
@@ -118,6 +130,17 @@ const TaskCard = ({
     return project?.color;
   };
 
+  const getAssignedUserName = (userId: string) => {
+    const profile = profiles.find(p => p.id === userId);
+    return profile?.full_name || profile?.email || 'Usuario';
+  };
+
+  const getAssignedUserInitials = (userId: string) => {
+    const profile = profiles.find(p => p.id === userId);
+    const name = profile?.full_name || profile?.email || 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
   const handleStatusChange = (taskId: string, status: Task['status']) => {
     updateTask({ 
       id: taskId, 
@@ -142,6 +165,12 @@ const TaskCard = ({
                 {subtasks.length > 0 && (
                   <Badge variant="outline" className="text-xs">
                     {completedSubtasks}/{subtasks.length} subtareas
+                  </Badge>
+                )}
+                {taskAssignmentsForTask.length > 0 && (
+                  <Badge variant="outline" className="text-xs flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {taskAssignmentsForTask.length} asignada{taskAssignmentsForTask.length > 1 ? 's' : ''}
                   </Badge>
                 )}
               </div>
@@ -191,6 +220,40 @@ const TaskCard = ({
                 )}
               </div>
 
+              {/* Assigned users */}
+              {taskAssignmentsForTask.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Asignado a:</span>
+                  <div className="flex -space-x-2">
+                    {taskAssignmentsForTask.slice(0, 3).map((assignment) => (
+                      <Avatar key={assignment.id} className="h-6 w-6 border-2 border-white">
+                        <AvatarFallback className="text-xs">
+                          {getAssignedUserInitials(assignment.assigned_to)}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                    {taskAssignmentsForTask.length > 3 && (
+                      <div className="h-6 w-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
+                        <span className="text-xs text-gray-600">
+                          +{taskAssignmentsForTask.length - 3}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {taskAssignmentsForTask.slice(0, 2).map((assignment, index) => (
+                      <span key={assignment.id}>
+                        {getAssignedUserName(assignment.assigned_to)}
+                        {index < Math.min(taskAssignmentsForTask.length, 2) - 1 && ', '}
+                      </span>
+                    ))}
+                    {taskAssignmentsForTask.length > 2 && (
+                      <span> y {taskAssignmentsForTask.length - 2} más</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Tags */}
               {task.tags && task.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
@@ -234,6 +297,11 @@ const TaskCard = ({
                   <Edit className="h-4 w-4 mr-2" />
                   Editar
                 </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => onAssignTask(task)}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Asignar
+                </DropdownMenuItem>
                 
                 <DropdownMenuItem 
                   onClick={() => deleteTask(task.id)}
@@ -246,16 +314,14 @@ const TaskCard = ({
             </DropdownMenu>
           </div>
 
-          {/* Subtasks integrated into the card */}
-          {subtasks.length > 0 && (
-            <div className="mt-4">
-              <SubtaskList
-                parentTask={task}
-                subtasks={subtasks}
-                onCreateSubtask={(title) => onCreateSubtask(task.id, title)}
-              />
-            </div>
-          )}
+          {/* Subtasks - Now always showing the SubtaskList component */}
+          <div className="mt-4">
+            <SubtaskList
+              parentTask={task}
+              subtasks={subtasks}
+              onCreateSubtask={(title) => onCreateSubtask(task.id, title)}
+            />
+          </div>
         </CardContent>
 
         {/* Task Dependencies */}

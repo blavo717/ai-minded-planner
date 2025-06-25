@@ -3,9 +3,11 @@ import React, { useState } from 'react';
 import { useTasks, Task } from '@/hooks/useTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjects } from '@/hooks/useProjects';
+import { useProfiles } from '@/hooks/useProfiles';
 import CreateTaskModal from '@/components/modals/CreateTaskModal';
 import EditTaskModal from '@/components/tasks/EditTaskModal';
 import ManageDependenciesModal from '@/components/tasks/ManageDependenciesModal';
+import AssignTaskModal from '@/components/modals/AssignTaskModal';
 import KanbanBoard from '@/components/tasks/KanbanBoard';
 import AdvancedFilters from '@/components/tasks/AdvancedFilters';
 import ProductivityInsights from '@/components/AI/ProductivityInsights';
@@ -17,14 +19,17 @@ import TaskList from '@/components/tasks/TaskList';
 const Tasks = () => {
   const { mainTasks, getSubtasksForTask } = useTasks();
   const { projects } = useProjects();
+  const { profiles } = useProfiles();
   const { createTask } = useTaskMutations();
   
   // Modal states
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDependenciesModalOpen, setIsDependenciesModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [dependenciesTask, setDependenciesTask] = useState<Task | null>(null);
+  const [assigningTask, setAssigningTask] = useState<Task | null>(null);
   
   // View states
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
@@ -37,6 +42,7 @@ const Tasks = () => {
     priority: [] as string[],
     projects: [] as string[],
     tags: [] as string[],
+    assignedTo: [] as string[],
     dueDateFrom: undefined as Date | undefined,
     dueDateTo: undefined as Date | undefined,
     hasSubtasks: undefined as boolean | undefined,
@@ -120,6 +126,11 @@ const Tasks = () => {
     setIsDependenciesModalOpen(true);
   };
 
+  const handleAssignTask = (task: Task) => {
+    setAssigningTask(task);
+    setIsAssignModalOpen(true);
+  };
+
   const handleCreateSubtask = (parentTaskId: string, title: string) => {
     createTask({
       title,
@@ -153,6 +164,7 @@ const Tasks = () => {
       {/* Advanced Filters */}
       <AdvancedFilters
         projects={projects}
+        profiles={profiles}
         availableTags={availableTags}
         filters={filters}
         onFiltersChange={setFilters}
@@ -178,6 +190,7 @@ const Tasks = () => {
           getSubtasksForTask={getSubtasksForTask}
           onEditTask={handleEditTask}
           onManageDependencies={handleManageDependencies}
+          onAssignTask={handleAssignTask}
           onCreateSubtask={handleCreateSubtask}
         />
       )}
@@ -210,6 +223,19 @@ const Tasks = () => {
           }}
           taskId={dependenciesTask.id}
           taskTitle={dependenciesTask.title}
+        />
+      )}
+
+      {assigningTask && (
+        <AssignTaskModal
+          isOpen={isAssignModalOpen}
+          onClose={() => {
+            setIsAssignModalOpen(false);
+            setAssigningTask(null);
+          }}
+          taskId={assigningTask.id}
+          taskTitle={assigningTask.title}
+          profiles={profiles}
         />
       )}
     </div>

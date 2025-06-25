@@ -32,8 +32,15 @@ interface Project {
   color?: string;
 }
 
+interface Profile {
+  id: string;
+  full_name?: string;
+  email?: string;
+}
+
 interface AdvancedFiltersProps {
   projects: Project[];
+  profiles: Profile[];
   availableTags: string[];
   filters: {
     search: string;
@@ -41,6 +48,7 @@ interface AdvancedFiltersProps {
     priority: string[];
     projects: string[];
     tags: string[];
+    assignedTo: string[];
     dueDateFrom?: Date;
     dueDateTo?: Date;
     hasSubtasks?: boolean;
@@ -54,6 +62,7 @@ interface AdvancedFiltersProps {
 
 const AdvancedFilters = ({ 
   projects, 
+  profiles,
   availableTags, 
   filters, 
   onFiltersChange,
@@ -112,6 +121,7 @@ const AdvancedFilters = ({
       priority: [],
       projects: [],
       tags: [],
+      assignedTo: [],
       dueDateFrom: undefined,
       dueDateTo: undefined,
       hasSubtasks: undefined,
@@ -126,6 +136,7 @@ const AdvancedFilters = ({
     if (filters.priority.length > 0) count++;
     if (filters.projects.length > 0) count++;
     if (filters.tags.length > 0) count++;
+    if (filters.assignedTo.length > 0) count++;
     if (filters.dueDateFrom || filters.dueDateTo) count++;
     if (filters.hasSubtasks !== undefined) count++;
     if (filters.hasDependencies !== undefined) count++;
@@ -272,6 +283,29 @@ const AdvancedFilters = ({
                           style={{ backgroundColor: project.color || '#3B82F6' }}
                         />
                         {project.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Personas asignadas */}
+            {profiles.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Personas Asignadas</Label>
+                <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
+                  {profiles.map((profile) => (
+                    <div key={profile.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`assignedTo-${profile.id}`}
+                        checked={filters.assignedTo.includes(profile.id)}
+                        onCheckedChange={(checked) => 
+                          handleArrayFilterChange('assignedTo', profile.id, checked as boolean)
+                        }
+                      />
+                      <Label htmlFor={`assignedTo-${profile.id}`} className="text-sm font-normal">
+                        {profile.full_name || profile.email}
                       </Label>
                     </div>
                   ))}
