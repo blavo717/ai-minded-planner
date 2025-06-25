@@ -1,15 +1,16 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Task } from '@/hooks/useTasks';
 import MicrotaskItem from './MicrotaskItem';
 import TaskCreator from './TaskCreator';
+import TaskCreatorModal from './TaskCreatorModal';
 
 interface MicrotaskListProps {
   microtasks: Task[];
   isExpanded: boolean;
   onUpdateTask: (data: any) => void;
   onDeleteTask: (id: string) => void;
-  onCreateMicrotask: (title: string) => void;
+  onCreateMicrotask: (data: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; estimated_duration?: number }) => void;
 }
 
 const MicrotaskList = ({ 
@@ -19,7 +20,14 @@ const MicrotaskList = ({
   onDeleteTask, 
   onCreateMicrotask 
 }: MicrotaskListProps) => {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
   if (!isExpanded) return null;
+
+  const handleCreateMicrotask = (data: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; estimated_duration?: number }) => {
+    onCreateMicrotask(data);
+    setIsCreateModalOpen(false);
+  };
 
   return (
     <div className="space-y-3">
@@ -41,10 +49,18 @@ const MicrotaskList = ({
         <TaskCreator
           placeholder="Título de la microtarea..."
           buttonText="Añadir Microtarea"
-          onCreateTask={onCreateMicrotask}
+          onCreateTask={() => setIsCreateModalOpen(true)}
           size="sm"
         />
       </div>
+
+      <TaskCreatorModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreateTask={handleCreateMicrotask}
+        isCreating={false}
+        taskLevel="microtarea"
+      />
     </div>
   );
 };

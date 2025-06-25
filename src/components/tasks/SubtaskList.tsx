@@ -96,7 +96,7 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
                   isExpanded={isExpanded}
                   onUpdateTask={updateTask}
                   onDeleteTask={handleDeleteMicrotask}
-                  onCreateMicrotask={(title) => handleCreateMicrotask(subtask.id, { title })}
+                  onCreateMicrotask={(data) => handleCreateMicrotask(subtask.id, data)}
                 />
               </SubtaskItem>
             );
