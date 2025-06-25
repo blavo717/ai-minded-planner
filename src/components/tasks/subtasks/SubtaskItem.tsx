@@ -32,7 +32,6 @@ const SubtaskItem = ({
   onToggleExpanded,
   onUpdateTask,
   onDeleteTask,
-  onCreateMicrotask,
   children 
 }: SubtaskItemProps) => {
   const getStatusIcon = (status: Task['status']) => {
