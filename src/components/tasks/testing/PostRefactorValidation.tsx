@@ -41,7 +41,7 @@ const PostRefactorValidation = () => {
   const { mainTasks, getSubtasksForTask } = useTasks();
   const { filters, setFilters, filteredTasks } = useTaskFilters(mainTasks, getSubtasksForTask);
   const { handleEditTask, handleManageDependencies, handleAssignTask, handleCreateSubtask } = useTaskHandlers();
-  const { getPriorityColor, getStatusColor } = useTaskCardHelpers();
+  const { getPriorityColor, getStatusColor: getTaskStatusColor } = useTaskCardHelpers();
 
   const postRefactorTests = [
     {
@@ -82,7 +82,7 @@ const PostRefactorValidation = () => {
         
         // Test useTaskCardHelpers
         const priorityColor = getPriorityColor('high');
-        const statusColor = getStatusColor('pending');
+        const statusColor = getTaskStatusColor('pending');
         
         if (!priorityColor.includes('bg-') || !statusColor.includes('bg-')) {
           throw new Error('Los helpers de colores no están funcionando');
@@ -112,7 +112,7 @@ const PostRefactorValidation = () => {
         
         // Verificar que los helpers funcionan
         const priorityColor = getPriorityColor(testTask.priority);
-        const statusColor = getStatusColor(testTask.status);
+        const statusColor = getTaskStatusColor(testTask.status);
         
         if (!priorityColor || !statusColor) {
           throw new Error('Los helpers de color no funcionan en TaskCard');
@@ -327,7 +327,7 @@ const PostRefactorValidation = () => {
     } finally {
       setCurrentTest('');
     }
-  }, [postRefactorTests, setFilters, filteredTasks, mainTasks, handleEditTask, getPriorityColor, getStatusColor, getSubtasksForTask]);
+  }, [postRefactorTests, setFilters, filteredTasks, mainTasks, handleEditTask, getPriorityColor, getTaskStatusColor, getSubtasksForTask]);
 
   const runAllTests = useCallback(async () => {
     console.log('=== INICIANDO VALIDACIÓN POST-REFACTOR ===');
@@ -379,7 +379,7 @@ const PostRefactorValidation = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getResultStatusColor = (status: string) => {
     switch (status) {
       case 'success':
         return 'bg-green-100 text-green-800';
@@ -473,7 +473,7 @@ const PostRefactorValidation = () => {
               </div>
               
               <div className="flex items-center gap-3">
-                <Badge className={getStatusColor(status)}>
+                <Badge className={getResultStatusColor(status)}>
                   {getStatusIcon(status)}
                   <span className="ml-1 capitalize">{status}</span>
                 </Badge>

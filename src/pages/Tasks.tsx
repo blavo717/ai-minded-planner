@@ -30,7 +30,8 @@ const TasksContent = () => {
     setIsCreateTaskOpen,
   } = useTasksContext();
   
-  // Estado temporal para mostrar validación post-refactor
+  // Estados para AI monitoring y validación post-refactor
+  const [showAIMonitoring, setShowAIMonitoring] = useState(false);
   const [showPostRefactorValidation, setShowPostRefactorValidation] = useState(true);
   
   const { filters, setFilters, filteredTasks, availableTags } = useTaskFilters(mainTasks, getSubtasksForTask);
@@ -42,6 +43,8 @@ const TasksContent = () => {
         showInsights={showInsights}
         onToggleInsights={() => setShowInsights(!showInsights)}
         onCreateTask={() => setIsCreateTaskOpen(true)}
+        showAIMonitoring={showAIMonitoring}
+        onToggleAIMonitoring={() => setShowAIMonitoring(!showAIMonitoring)}
       />
 
       {/* Validación Post-Refactor - Temporal */}
