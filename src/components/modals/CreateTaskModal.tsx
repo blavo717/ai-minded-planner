@@ -59,15 +59,25 @@ const CreateTaskModal = ({ isOpen, onClose, projects }: CreateTaskModalProps) =>
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
+      title: '',
+      description: '',
       priority: 'medium',
       status: 'pending',
+      project_id: '',
+      estimated_duration: undefined,
+      tags: '',
     },
   });
 
   const onSubmit = (data: TaskFormData) => {
     const taskData: CreateTaskData = {
-      ...data,
+      title: data.title,
+      description: data.description,
+      priority: data.priority,
+      status: data.status,
+      project_id: data.project_id || undefined,
       due_date: data.due_date?.toISOString(),
+      estimated_duration: data.estimated_duration,
       tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : undefined,
     };
 

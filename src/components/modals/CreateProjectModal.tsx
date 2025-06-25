@@ -54,13 +54,17 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
+      name: '',
+      description: '',
       color: '#3B82F6',
     },
   });
 
   const onSubmit = (data: ProjectFormData) => {
     const projectData: CreateProjectData = {
-      ...data,
+      name: data.name,
+      description: data.description,
+      color: data.color,
     };
 
     createProject(projectData);

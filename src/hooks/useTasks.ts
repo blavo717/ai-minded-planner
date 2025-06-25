@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,8 +42,18 @@ export interface CreateTaskData {
   tags?: string[];
 }
 
-export interface UpdateTaskData extends Partial<CreateTaskData> {
+export interface UpdateTaskData {
   id: string;
+  title?: string;
+  description?: string;
+  status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  due_date?: string;
+  project_id?: string;
+  estimated_duration?: number;
+  actual_duration?: number;
+  tags?: string[];
+  completed_at?: string;
 }
 
 export interface CreateProjectData {
@@ -53,8 +62,11 @@ export interface CreateProjectData {
   color?: string;
 }
 
-export interface UpdateProjectData extends Partial<CreateProjectData> {
+export interface UpdateProjectData {
   id: string;
+  name?: string;
+  description?: string;
+  color?: string;
 }
 
 export const useTasks = () => {
