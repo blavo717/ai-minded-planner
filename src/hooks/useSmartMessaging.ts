@@ -42,24 +42,26 @@ export const useSmartMessaging = () => {
     const healthChecks = monitoringData.filter(m => m.monitoring_type === 'health_check');
     const recentHealthCheck = healthChecks[0];
     
-    if (recentHealthCheck && recentHealthCheck.insights) {
+    if (recentHealthCheck && recentHealthCheck.analysis_data) {
       try {
-        const insights = JSON.parse(recentHealthCheck.insights);
-        
-        // Buscar insights de alta prioridad
-        const highPriorityInsights = insights.filter((insight: any) => 
-          insight.priority >= 2 && insight.insight_type !== 'general'
-        );
-        
-        highPriorityInsights.forEach((insight: any) => {
-          addSuggestion(
-            `📊 ${insight.title}: ${insight.description}`,
-            insight.priority >= 3 ? 'high' : 'medium',
-            { type: 'productivity_insight', insight }
+        // Verificar si analysis_data tiene insights
+        const analysisData = recentHealthCheck.analysis_data as any;
+        if (analysisData.insights && Array.isArray(analysisData.insights)) {
+          // Buscar insights de alta prioridad
+          const highPriorityInsights = analysisData.insights.filter((insight: any) => 
+            insight.priority >= 2 && insight.insight_type !== 'general'
           );
-        });
+          
+          highPriorityInsights.forEach((insight: any) => {
+            addSuggestion(
+              `📊 ${insight.title}: ${insight.description}`,
+              insight.priority >= 3 ? 'high' : 'medium',
+              { type: 'productivity_insight', insight }
+            );
+          });
+        }
       } catch (error) {
-        console.error('Error parsing health check insights:', error);
+        console.error('Error parsing analysis data:', error);
       }
     }
   }, [monitoringData, addSuggestion]);
