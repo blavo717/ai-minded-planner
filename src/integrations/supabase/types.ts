@@ -354,6 +354,45 @@ export type Database = {
           },
         ]
       }
+      task_dependencies: {
+        Row: {
+          created_at: string
+          dependency_type: string
+          depends_on_task_id: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          dependency_type?: string
+          depends_on_task_id: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          dependency_type?: string
+          depends_on_task_id?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_dependencies_depends_on_task_id_fkey"
+            columns: ["depends_on_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_dependencies_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_sessions: {
         Row: {
           created_at: string
@@ -410,45 +449,64 @@ export type Database = {
       }
       tasks: {
         Row: {
+          actual_duration: number | null
           completed_at: string | null
           created_at: string
           description: string | null
           due_date: string | null
+          estimated_duration: number | null
           id: string
+          parent_task_id: string | null
           priority: string
           project_id: string | null
           status: string
+          tags: string[] | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          actual_duration?: number | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
+          estimated_duration?: number | null
           id?: string
+          parent_task_id?: string | null
           priority?: string
           project_id?: string | null
           status?: string
+          tags?: string[] | null
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          actual_duration?: number | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
+          estimated_duration?: number | null
           id?: string
+          parent_task_id?: string | null
           priority?: string
           project_id?: string | null
           status?: string
+          tags?: string[] | null
           title?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_project_id_fkey"
             columns: ["project_id"]

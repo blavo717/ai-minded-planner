@@ -33,6 +33,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import CreateTaskModal from '@/components/modals/CreateTaskModal';
+import EditTaskModal from '@/components/tasks/EditTaskModal';
+import SubtaskList from '@/components/tasks/SubtaskList';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
