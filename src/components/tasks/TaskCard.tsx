@@ -19,7 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Task } from '@/hooks/useTasks';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import SubtaskList from './subtasks/SubtaskList';
+import SubtaskList from './SubtaskList';
 import TaskHealthIndicator from './ai/TaskHealthIndicator';
 
 interface TaskCardProps {
