@@ -11,7 +11,8 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Settings, Trash2, Zap, CheckCircle } from 'lucide-react';
-import { LLMConfiguration, OPENROUTER_MODELS } from '@/hooks/useLLMConfigurations';
+import { LLMConfiguration } from '@/hooks/useLLMConfigurations';
+import { useOpenRouterModels } from '@/hooks/useOpenRouterModels';
 
 interface LLMConfigurationListProps {
   configurations: LLMConfiguration[];
@@ -32,8 +33,10 @@ const LLMConfigurationList = ({
   isDeleting,
   isTesting
 }: LLMConfigurationListProps) => {
+  const { models } = useOpenRouterModels();
+
   const getModelInfo = (modelName: string) => {
-    return OPENROUTER_MODELS.find(model => model.id === modelName);
+    return models.find(model => model.id === modelName);
   };
 
   if (configurations.length === 0) {
@@ -58,6 +61,8 @@ const LLMConfigurationList = ({
     <div className="space-y-4">
       {configurations.map((config) => {
         const modelInfo = getModelInfo(config.model_name);
+        const provider = modelInfo?.id?.split('/')[0] || 'OpenRouter';
+        
         return (
           <Card key={config.id} className={config.is_active ? 'ring-2 ring-blue-500' : ''}>
             <CardHeader className="pb-3">
@@ -73,7 +78,7 @@ const LLMConfigurationList = ({
                     </Badge>
                   )}
                   <Badge variant="outline">
-                    {modelInfo?.provider || 'OpenRouter'}
+                    {provider}
                   </Badge>
                 </div>
                 
