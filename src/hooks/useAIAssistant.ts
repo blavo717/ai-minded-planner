@@ -1,7 +1,8 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLLMService } from '@/hooks/useLLMService';
+import { useAIMessagesPersistence } from '@/hooks/useAIMessagesPersistence';
 
 export interface ChatMessage {
   id: string;
@@ -23,46 +24,38 @@ export interface NotificationBadge {
 export const useAIAssistant = () => {
   const { user } = useAuth();
   const { makeLLMRequest, isLoading: isLLMLoading } = useLLMService();
+  const { loadMessages, saveMessage, updateMessage, markAllAsRead: markAllAsReadInDB, clearChat: clearChatInDB } = useAIMessagesPersistence();
   
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'idle'>('idle');
+  const [isInitialized, setIsInitialized] = useState(false);
+  const forceUpdateRef = useRef(0);
 
-  // Cargar mensajes del localStorage al inicio
+  // Forzar re-render para badge
+  const forceUpdate = useCallback(() => {
+    forceUpdateRef.current += 1;
+    console.log('🔄 Forcing component re-render:', forceUpdateRef.current);
+  }, []);
+
+  // Cargar mensajes al inicio
   useEffect(() => {
-    if (user) {
-      const savedMessages = localStorage.getItem(`ai-chat-${user.id}`);
-      if (savedMessages) {
-        try {
-          const parsed = JSON.parse(savedMessages);
-          setMessages(parsed.map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          })));
-          console.log(`✅ Loaded ${parsed.length} messages from localStorage for user ${user.id}`);
-        } catch (error) {
-          console.error('❌ Error loading chat messages:', error);
-          // Limpiar localStorage corrompido
-          localStorage.removeItem(`ai-chat-${user.id}`);
-        }
-      }
+    if (user && !isInitialized) {
+      console.log('🚀 Initializing AI Assistant for user:', user.id);
+      
+      loadMessages().then(loadedMessages => {
+        console.log(`✅ Loaded ${loadedMessages.length} messages from Supabase`);
+        setMessages(loadedMessages);
+        setIsInitialized(true);
+      }).catch(error => {
+        console.error('❌ Failed to load messages:', error);
+        setIsInitialized(true); // Inicializar de todos modos
+      });
     }
-  }, [user]);
+  }, [user, loadMessages, isInitialized]);
 
-  // Guardar mensajes en localStorage cuando cambien
-  useEffect(() => {
-    if (user && messages.length > 0) {
-      try {
-        localStorage.setItem(`ai-chat-${user.id}`, JSON.stringify(messages));
-        console.log(`💾 Saved ${messages.length} messages to localStorage for user ${user.id}`);
-      } catch (error) {
-        console.error('❌ Error saving messages to localStorage:', error);
-      }
-    }
-  }, [messages, user]);
-
-  const addMessage = useCallback((message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
+  const addMessage = useCallback(async (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMessage: ChatMessage = {
       ...message,
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -70,32 +63,68 @@ export const useAIAssistant = () => {
     };
     
     console.log(`➕ Adding message: ${newMessage.type} - ${newMessage.content.substring(0, 50)}...`);
-    setMessages(prev => [...prev, newMessage]);
+    
+    // Actualizar estado local inmediatamente
+    setMessages(prev => {
+      const updated = [...prev, newMessage];
+      forceUpdate(); // Forzar re-render para badge
+      return updated;
+    });
+
+    // Guardar en Supabase en background
+    try {
+      await saveMessage(newMessage);
+    } catch (error) {
+      console.error('❌ Failed to save message to Supabase:', error);
+    }
+
     return newMessage.id;
-  }, []);
+  }, [saveMessage, forceUpdate]);
 
-  const markAsRead = useCallback((messageId: string) => {
+  const markAsRead = useCallback(async (messageId: string) => {
     console.log(`👁️ Marking message as read: ${messageId}`);
-    setMessages(prev => 
-      prev.map(msg => 
+    
+    // Actualizar estado local inmediatamente
+    setMessages(prev => {
+      const updated = prev.map(msg => 
         msg.id === messageId ? { ...msg, isRead: true } : msg
-      )
-    );
-  }, []);
+      );
+      forceUpdate(); // Forzar re-render para badge
+      return updated;
+    });
 
-  const markAllAsRead = useCallback(() => {
+    // Actualizar en Supabase en background
+    try {
+      await updateMessage(messageId, { isRead: true });
+    } catch (error) {
+      console.error('❌ Failed to mark message as read in Supabase:', error);
+    }
+  }, [updateMessage, forceUpdate]);
+
+  const markAllAsRead = useCallback(async () => {
     const unreadCount = messages.filter(msg => !msg.isRead && msg.type !== 'user').length;
     console.log(`👁️ Marking all ${unreadCount} messages as read`);
-    setMessages(prev => 
-      prev.map(msg => ({ ...msg, isRead: true }))
-    );
-  }, [messages]);
+    
+    // Actualizar estado local inmediatamente
+    setMessages(prev => {
+      const updated = prev.map(msg => ({ ...msg, isRead: true }));
+      forceUpdate(); // Forzar re-render para badge
+      return updated;
+    });
+
+    // Actualizar en Supabase en background
+    try {
+      await markAllAsReadInDB();
+    } catch (error) {
+      console.error('❌ Failed to mark all as read in Supabase:', error);
+    }
+  }, [messages, markAllAsReadInDB, forceUpdate]);
 
   const sendMessage = useCallback(async (content: string, contextData?: any) => {
     console.log(`🚀 Sending message: ${content.substring(0, 100)}...`);
     
     // Añadir mensaje del usuario
-    const userMessageId = addMessage({
+    await addMessage({
       type: 'user',
       content,
       isRead: true,
@@ -129,7 +158,7 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       setConnectionStatus('connected');
 
       // Añadir respuesta de la IA
-      addMessage({
+      await addMessage({
         type: 'assistant',
         content: response.content,
         isRead: false
@@ -144,14 +173,14 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       if (error instanceof Error) {
         if (error.message.includes('Failed to fetch')) {
           errorMessage = '🔌 No se pudo conectar con el servicio de IA. Verifica tu configuración LLM en Configuración > LLM.';
-        } else if (error.message.includes('No active LLM configuration')) {
+        } else if (error.message.includes('No hay configuración LLM activa')) {
           errorMessage = '⚙️ No hay configuración LLM activa. Ve a Configuración > LLM para configurar tu API key.';
         } else if (error.message.includes('API key')) {
           errorMessage = '🔑 Problema con la API key. Verifica tu configuración en OpenRouter.';
         }
       }
       
-      addMessage({
+      await addMessage({
         type: 'assistant',
         content: errorMessage,
         isRead: false,
@@ -164,9 +193,9 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     }
   }, [addMessage, makeLLMRequest, messages]);
 
-  const addNotification = useCallback((content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium', contextData?: any) => {
+  const addNotification = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium', contextData?: any) => {
     console.log(`🔔 Adding notification: ${priority} - ${content.substring(0, 50)}...`);
-    return addMessage({
+    return await addMessage({
       type: 'notification',
       content,
       isRead: false,
@@ -175,9 +204,9 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     });
   }, [addMessage]);
 
-  const addSuggestion = useCallback((content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'low', contextData?: any) => {
+  const addSuggestion = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'low', contextData?: any) => {
     console.log(`💡 Adding suggestion: ${priority} - ${content.substring(0, 50)}...`);
-    return addMessage({
+    return await addMessage({
       type: 'suggestion',
       content,
       isRead: false,
@@ -197,15 +226,22 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     
     console.log(`🏷️ Badge info: ${badge.count} unread, urgent: ${badge.hasUrgent}, high: ${badge.hasHigh}`);
     return badge;
-  }, [messages]);
+  }, [messages, forceUpdateRef.current]); // Incluir forceUpdateRef para triggear recalculos
 
-  const clearChat = useCallback(() => {
+  const clearChat = useCallback(async () => {
     console.log('🗑️ Clearing chat history');
+    
+    // Limpiar estado local
     setMessages([]);
-    if (user) {
-      localStorage.removeItem(`ai-chat-${user.id}`);
+    forceUpdate();
+
+    // Limpiar en Supabase
+    try {
+      await clearChatInDB();
+    } catch (error) {
+      console.error('❌ Failed to clear chat in Supabase:', error);
     }
-  }, [user]);
+  }, [clearChatInDB, forceUpdate]);
 
   return {
     // Estado
@@ -214,6 +250,7 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     isTyping,
     isLoading: isLLMLoading,
     connectionStatus,
+    isInitialized,
     
     // Acciones
     setIsOpen,

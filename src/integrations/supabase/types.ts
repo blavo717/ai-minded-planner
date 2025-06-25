@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_chat_messages: {
+        Row: {
+          content: string
+          context_data: Json | null
+          created_at: string
+          has_error: boolean
+          id: string
+          is_read: boolean
+          priority: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          context_data?: Json | null
+          created_at?: string
+          has_error?: boolean
+          id?: string
+          is_read?: boolean
+          priority?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          context_data?: Json | null
+          created_at?: string
+          has_error?: boolean
+          id?: string
+          is_read?: boolean
+          priority?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_daily_plans: {
         Row: {
           ai_confidence: number | null
@@ -336,6 +375,45 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      smart_notifications_state: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          last_deadline_check: string | null
+          last_followup_check: string | null
+          last_inactive_check: string | null
+          last_productivity_check: string | null
+          notification_frequency: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          last_deadline_check?: string | null
+          last_followup_check?: string | null
+          last_inactive_check?: string | null
+          last_productivity_check?: string | null
+          notification_frequency?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          last_deadline_check?: string | null
+          last_followup_check?: string | null
+          last_inactive_check?: string | null
+          last_productivity_check?: string | null
+          notification_frequency?: number
           updated_at?: string
           user_id?: string
         }

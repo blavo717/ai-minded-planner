@@ -9,10 +9,29 @@ export const useSmartMessaging = () => {
   const { mainTasks, getTasksNeedingFollowup, getTasksWithoutRecentActivity } = useTasks();
   const { monitoringData } = useAITaskMonitor();
 
-  // Detectar tareas que necesitan seguimiento
+  // Detectar tareas que necesitan seguimiento (más permisivo para testing)
   const checkFollowupTasks = useCallback(() => {
     console.log('🔍 Checking followup tasks...');
+    
+    // Lógica más permisiva para generar notificaciones durante testing
+    const pendingTasks = mainTasks.filter(task => 
+      task.status === 'pending' || task.status === 'in_progress'
+    );
+    
     const followupTasks = getTasksNeedingFollowup();
+    
+    // Si hay tareas pendientes pero no hay followup específicos, crear una notificación general
+    if (pendingTasks.length > 0 && followupTasks.length === 0) {
+      console.log(`📋 Creating general followup for ${pendingTasks.length} pending tasks`);
+      
+      addNotification(
+        `🔔 Tienes ${pendingTasks.length} tareas activas que podrían necesitar atención: ${pendingTasks.slice(0, 2).map(t => t.title).join(', ')}`,
+        'medium',
+        { type: 'general_followup', tasks: pendingTasks }
+      );
+      
+      return true;
+    }
     
     if (followupTasks.length > 0) {
       const taskTitles = followupTasks.slice(0, 3).map(t => t.title).join(', ');
@@ -29,19 +48,21 @@ export const useSmartMessaging = () => {
     
     console.log('✅ No followup tasks found');
     return false;
-  }, [getTasksNeedingFollowup, addNotification]);
+  }, [getTasksNeedingFollowup, addNotification, mainTasks]);
 
-  // Detectar tareas sin actividad reciente
+  // Detectar tareas sin actividad reciente (más permisivo)
   const checkInactiveTasks = useCallback(() => {
     console.log('🔍 Checking inactive tasks...');
-    const inactiveTasks = getTasksWithoutRecentActivity(7);
+    
+    // Lógica más permisiva: buscar tareas de más de 3 días en lugar de 7
+    const inactiveTasks = getTasksWithoutRecentActivity(3);
     
     if (inactiveTasks.length > 0) {
       const taskTitles = inactiveTasks.slice(0, 2).map(t => t.title).join(', ');
       console.log(`📋 Found ${inactiveTasks.length} inactive tasks:`, inactiveTasks.map(t => t.title));
       
       addSuggestion(
-        `💡 Algunas tareas llevan una semana sin actividad: ${taskTitles}. ¿Necesitas ayuda para priorizarlas?`,
+        `💡 Algunas tareas llevan tiempo sin actividad: ${taskTitles}. ¿Necesitas ayuda para priorizarlas?`,
         'medium',
         { type: 'inactive', tasks: inactiveTasks }
       );
@@ -49,11 +70,24 @@ export const useSmartMessaging = () => {
       return true;
     }
     
+    // Si no hay tareas inactivas específicas, crear sugerencia general si hay tareas
+    if (mainTasks.length > 0) {
+      console.log('💡 Creating general productivity suggestion');
+      
+      addSuggestion(
+        `💡 Tienes ${mainTasks.length} tareas en tu lista. ¿Te ayudo a priorizarlas o planificar tu día?`,
+        'low',
+        { type: 'general_productivity', taskCount: mainTasks.length }
+      );
+      
+      return true;
+    }
+    
     console.log('✅ No inactive tasks found');
     return false;
-  }, [getTasksWithoutRecentActivity, addSuggestion]);
+  }, [getTasksWithoutRecentActivity, addSuggestion, mainTasks]);
 
-  // Detectar patrones de productividad
+  // Detectar patrones de productividad (más robusto)
   const checkProductivityPatterns = useCallback(() => {
     console.log('🔍 Checking productivity patterns...');
     console.log(`📊 Available monitoring data: ${monitoringData.length} entries`);
@@ -66,8 +100,8 @@ export const useSmartMessaging = () => {
     if (recentHealthCheck && recentHealthCheck.analysis_data) {
       try {
         console.log('📈 Processing health check analysis data...');
-        // Verificar si analysis_data tiene insights
         const analysisData = recentHealthCheck.analysis_data as any;
+        
         if (analysisData.insights && Array.isArray(analysisData.insights)) {
           console.log(`💡 Found ${analysisData.insights.length} insights`);
           
@@ -94,14 +128,26 @@ export const useSmartMessaging = () => {
       } catch (error) {
         console.error('❌ Error parsing analysis data:', error);
       }
-    } else {
-      console.log('📊 No recent health check with analysis data found');
     }
     
+    // Si hay datos de monitoreo pero no insights, crear sugerencia general
+    if (monitoringData.length > 0) {
+      console.log('📊 Creating general analysis suggestion');
+      
+      addSuggestion(
+        `📊 He detectado actividad en tus tareas. ¿Quieres que analice tus patrones de productividad?`,
+        'low',
+        { type: 'general_analysis', dataCount: monitoringData.length }
+      );
+      
+      return true;
+    }
+    
+    console.log('📊 No productivity patterns found');
     return false;
   }, [monitoringData, addSuggestion]);
 
-  // Detectar deadlines próximos con mejor lógica
+  // Detectar deadlines próximos (más agresivo para testing)
   const checkUpcomingDeadlines = useCallback(() => {
     console.log('🔍 Checking upcoming deadlines...');
     console.log(`📅 Total tasks to check: ${mainTasks.length}`);
@@ -122,8 +168,14 @@ export const useSmartMessaging = () => {
       return dueDate > tomorrow && dueDate <= nextWeek;
     });
     
+    // Tareas sin deadline pero importantes
+    const highPriorityTasks = mainTasks.filter(task => 
+      task.priority === 'high' && task.status !== 'completed' && !task.due_date
+    );
+    
     console.log(`⚠️ Urgent tasks (due within 24h): ${urgentTasks.length}`);
     console.log(`📅 Soon tasks (due within week): ${soonTasks.length}`);
+    console.log(`🔥 High priority tasks without deadline: ${highPriorityTasks.length}`);
     
     let notificationsAdded = false;
     
@@ -147,6 +199,16 @@ export const useSmartMessaging = () => {
       notificationsAdded = true;
     }
     
+    if (highPriorityTasks.length > 0 && !notificationsAdded) {
+      console.log('🔥 Adding high priority tasks suggestion');
+      addSuggestion(
+        `🔥 Tienes ${highPriorityTasks.length} tareas de alta prioridad sin fecha límite. ¿Las revisamos?`,
+        'high',
+        { type: 'high_priority_no_deadline', tasks: highPriorityTasks }
+      );
+      notificationsAdded = true;
+    }
+    
     if (!notificationsAdded) {
       console.log('✅ No urgent or upcoming deadlines found');
     }
@@ -154,21 +216,22 @@ export const useSmartMessaging = () => {
     return notificationsAdded;
   }, [mainTasks, addNotification, addSuggestion]);
 
-  // Ejecutar chequeos periódicos con mejor lógica
+  // Ejecutar chequeos con lógica mejorada
   useEffect(() => {
     console.log('🔄 Setting up smart messaging intervals...');
     
-    // Chequeo inicial después de 3 segundos (dar tiempo para cargar datos)
+    // Chequeo inicial después de 2 segundos
     const initialTimeout = setTimeout(() => {
       console.log('🚀 Running initial smart messaging checks...');
       const results = {
         followup: checkFollowupTasks(),
-        deadlines: checkUpcomingDeadlines()
+        deadlines: checkUpcomingDeadlines(),
+        productivity: checkProductivityPatterns()
       };
       console.log('📊 Initial check results:', results);
-    }, 3000);
+    }, 2000);
 
-    // Chequeos periódicos cada 5 minutos (más frecuente para testing)
+    // Chequeos periódicos cada 3 minutos para testing más frecuente
     const interval = setInterval(() => {
       console.log('🔄 Running periodic smart messaging checks...');
       const results = {
@@ -178,7 +241,7 @@ export const useSmartMessaging = () => {
         productivity: checkProductivityPatterns()
       };
       console.log('📊 Periodic check results:', results);
-    }, 5 * 60 * 1000);
+    }, 3 * 60 * 1000);
 
     return () => {
       console.log('🛑 Cleaning up smart messaging intervals');
@@ -187,7 +250,7 @@ export const useSmartMessaging = () => {
     };
   }, [checkFollowupTasks, checkInactiveTasks, checkUpcomingDeadlines, checkProductivityPatterns]);
 
-  // Funciones para trigger manual de notificaciones
+  // Funciones para trigger manual
   const triggerTaskAnalysis = useCallback(() => {
     console.log('🎯 Manual task analysis triggered');
     const results = {
@@ -197,7 +260,7 @@ export const useSmartMessaging = () => {
     };
     console.log('📊 Manual analysis results:', results);
     
-    // Si no hay notificaciones automáticas, generar una notificación de estado
+    // Siempre generar una respuesta para testing
     if (!results.followup && !results.inactive && !results.deadlines) {
       addSuggestion(
         '✅ Análisis completado: Tus tareas están al día. ¡Buen trabajo manteniéndote organizado!',

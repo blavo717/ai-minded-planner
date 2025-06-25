@@ -50,53 +50,81 @@ export const useLLMService = () => {
         max_tokens: request.maxTokensOverride || activeConfiguration.max_tokens
       });
 
-      const { data, error } = await supabase.functions.invoke('openrouter-chat', {
-        body: {
-          messages: [
-            { role: 'system', content: request.systemPrompt },
-            { role: 'user', content: request.userPrompt }
-          ],
-          model: activeConfiguration.model_name,
-          temperature: activeConfiguration.temperature,
-          max_tokens: request.maxTokensOverride || activeConfiguration.max_tokens,
-          top_p: activeConfiguration.top_p,
-          frequency_penalty: activeConfiguration.frequency_penalty,
-          presence_penalty: activeConfiguration.presence_penalty,
-          function_name: request.functionName
-        }
-      });
+      // Implementar retry logic para mayor robustez
+      let lastError: any;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const { data, error } = await supabase.functions.invoke('openrouter-chat', {
+            body: {
+              messages: [
+                { role: 'system', content: request.systemPrompt },
+                { role: 'user', content: request.userPrompt }
+              ],
+              model: activeConfiguration.model_name,
+              temperature: activeConfiguration.temperature,
+              max_tokens: request.maxTokensOverride || activeConfiguration.max_tokens,
+              top_p: activeConfiguration.top_p,
+              frequency_penalty: activeConfiguration.frequency_penalty,
+              presence_penalty: activeConfiguration.presence_penalty,
+              function_name: request.functionName
+            }
+          });
 
-      if (error) {
-        console.error('❌ Supabase function error:', error);
-        
-        // Proporcionar mensajes de error más específicos
-        if (error.message?.includes('Failed to fetch')) {
-          throw new Error('No se pudo conectar con el servicio. Verifica tu conexión a internet.');
-        } else if (error.message?.includes('API key')) {
-          throw new Error('Problema con la API key de OpenRouter. Verifica tu configuración.');
-        } else if (error.message?.includes('not found')) {
-          throw new Error('El modelo configurado no está disponible en OpenRouter.');
-        } else {
-          throw new Error(error.message || 'Error al conectar con el servicio de IA');
+          if (error) {
+            console.error(`❌ Supabase function error (attempt ${attempt}):`, error);
+            lastError = error;
+            
+            if (attempt < 3) {
+              console.log(`🔄 Retrying in ${attempt * 1000}ms...`);
+              await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+              continue;
+            }
+            
+            // Proporcionar mensajes de error más específicos
+            if (error.message?.includes('Failed to fetch')) {
+              throw new Error('No se pudo conectar con el servicio. Verifica tu conexión a internet.');
+            } else if (error.message?.includes('API key')) {
+              throw new Error('Problema con la API key de OpenRouter. Verifica tu configuración.');
+            } else if (error.message?.includes('not found')) {
+              throw new Error('El modelo configurado no está disponible en OpenRouter.');
+            } else {
+              throw new Error(error.message || 'Error al conectar con el servicio de IA');
+            }
+          }
+
+          if (!data?.response) {
+            console.error(`❌ No response in data (attempt ${attempt}):`, data);
+            if (attempt < 3) {
+              await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+              continue;
+            }
+            throw new Error('Respuesta vacía del servicio de IA');
+          }
+
+          console.log('✅ LLM request successful:', {
+            model: data.model,
+            responseLength: data.response.length,
+            usage: data.usage,
+            attempt
+          });
+          
+          return {
+            content: data.response,
+            usage: data.usage,
+            model_used: data.model || activeConfiguration.model_name
+          };
+        } catch (error) {
+          lastError = error;
+          if (attempt < 3) {
+            console.log(`🔄 Retrying due to error (attempt ${attempt}):`, error);
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+            continue;
+          }
+          throw error;
         }
       }
-
-      if (!data?.response) {
-        console.error('❌ No response in data:', data);
-        throw new Error('Respuesta vacía del servicio de IA');
-      }
-
-      console.log('✅ LLM request successful:', {
-        model: data.model,
-        responseLength: data.response.length,
-        usage: data.usage
-      });
       
-      return {
-        content: data.response,
-        usage: data.usage,
-        model_used: data.model || activeConfiguration.model_name
-      };
+      throw lastError;
     },
     onError: (error) => {
       console.error('❌ Error en llamada LLM:', error);

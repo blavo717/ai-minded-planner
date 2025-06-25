@@ -13,12 +13,12 @@ import {
   Minimize2, 
   Maximize2,
   Trash2,
-  Settings,
   Bot,
   Wifi,
   WifiOff,
   AlertTriangle,
-  Loader2
+  Loader2,
+  Clock
 } from 'lucide-react';
 import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useSmartMessaging } from '@/hooks/useSmartMessaging';
@@ -34,6 +34,7 @@ const AIAssistantPanel = () => {
     isTyping,
     isLoading,
     connectionStatus,
+    isInitialized,
     sendMessage,
     markAsRead,
     markAllAsRead,
@@ -48,6 +49,14 @@ const AIAssistantPanel = () => {
   const [isMinimized, setIsMinimized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Forzar re-render del badge con un estado local
+  const [badgeUpdateKey, setBadgeUpdateKey] = useState(0);
+
+  // Actualizar badge cuando cambien los mensajes
+  useEffect(() => {
+    setBadgeUpdateKey(prev => prev + 1);
+  }, [messages]);
 
   const badgeInfo = getBadgeInfo();
 
@@ -112,6 +121,8 @@ const AIAssistantPanel = () => {
   };
 
   const getConnectionStatus = () => {
+    if (!isInitialized) return 'Inicializando...';
+    
     switch (connectionStatus) {
       case 'connecting':
         return 'Conectando...';
@@ -132,9 +143,11 @@ const AIAssistantPanel = () => {
           onClick={handleOpenChat}
           className="relative h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 animate-fade-in"
           size="sm"
+          data-testid="ai-assistant-button"
         >
           <MessageCircle className="h-6 w-6 text-white" />
           <NotificationBadge 
+            key={badgeUpdateKey} // Forzar re-render
             count={badgeInfo.count}
             hasUrgent={badgeInfo.hasUrgent}
             hasHigh={badgeInfo.hasHigh}
@@ -156,6 +169,12 @@ const AIAssistantPanel = () => {
                 <span className="font-semibold">{getConnectionStatus()}</span>
                 {!activeConfiguration && (
                   <span className="text-xs text-blue-100">⚙️ Config LLM requerida</span>
+                )}
+                {!isInitialized && (
+                  <span className="text-xs text-blue-100 flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Cargando mensajes...
+                  </span>
                 )}
               </div>
               {badgeInfo.count > 0 && (
@@ -202,7 +221,12 @@ const AIAssistantPanel = () => {
             
             {/* Messages Area */}
             <ScrollArea className="flex-1 p-4">
-              {messages.length === 0 ? (
+              {!isInitialized ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Loader2 className="h-8 w-8 mx-auto mb-4 text-gray-300 animate-spin" />
+                  <p className="text-sm">Cargando mensajes...</p>
+                </div>
+              ) : messages.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Bot className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                   <p className="text-sm">¡Hola! Soy tu asistente de productividad.</p>
@@ -215,6 +239,7 @@ const AIAssistantPanel = () => {
                       onClick={triggerTaskAnalysis}
                       className="text-xs"
                       disabled={!activeConfiguration}
+                      data-testid="analyze-tasks-button"
                     >
                       Analizar mis tareas
                     </Button>
@@ -237,7 +262,7 @@ const AIAssistantPanel = () => {
                   ))}
                   
                   {isTyping && (
-                    <div className="flex items-center gap-2 text-gray-500 mb-4">
+                    <div className="flex items-center gap-2 text-gray-500 mb-4" data-testid="typing-indicator">
                       <Bot className="h-4 w-4" />
                       <div className="flex gap-1">
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
@@ -262,6 +287,7 @@ const AIAssistantPanel = () => {
                     onClick={markAllAsRead}
                     className="text-xs h-6"
                     disabled={badgeInfo.count === 0}
+                    data-testid="mark-all-read-button"
                   >
                     Marcar todo como leído
                   </Button>
@@ -271,6 +297,7 @@ const AIAssistantPanel = () => {
                     size="sm"
                     onClick={clearChat}
                     className="text-xs h-6 text-red-600 hover:text-red-700"
+                    data-testid="clear-chat-button"
                   >
                     <Trash2 className="h-3 w-3 mr-1" />
                     Limpiar chat
@@ -285,22 +312,24 @@ const AIAssistantPanel = () => {
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder={activeConfiguration ? "Escribe tu mensaje..." : "Configura LLM primero..."}
-                  disabled={isLoading || !activeConfiguration}
+                  disabled={isLoading || !activeConfiguration || !isInitialized}
                   className="flex-1"
+                  data-testid="message-input"
                 />
                 
                 <Button
                   onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isLoading || !activeConfiguration}
+                  disabled={!inputMessage.trim() || isLoading || !activeConfiguration || !isInitialized}
                   size="sm"
                   className="px-3"
+                  data-testid="send-button"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
               
               {connectionStatus === 'error' && (
-                <p className="text-xs text-red-600 mt-2">
+                <p className="text-xs text-red-600 mt-2" data-testid="connection-error">
                   ❌ Error de conexión. Verifica tu configuración LLM.
                 </p>
               )}
