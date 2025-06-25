@@ -17,6 +17,8 @@ import Phase1TestingSuite from '@/components/tasks/testing/Phase1TestingSuite';
 import Phase1Demo from '@/components/tasks/testing/Phase1Demo';
 import Phase2TestingSuite from '@/components/tasks/testing/Phase2TestingSuite';
 import Phase2Demo from '@/components/tasks/testing/Phase2Demo';
+import Phase3IntegralSuite from '@/components/tasks/testing/Phase3IntegralSuite';
+import Phase3Demo from '@/components/tasks/testing/Phase3Demo';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
 
@@ -43,6 +45,7 @@ const TasksContent = () => {
   const [showAIMonitoring, setShowAIMonitoring] = useState(false);
   const [showTesting, setShowTesting] = useState(false);
   const [showPhase2Testing, setShowPhase2Testing] = useState(false);
+  const [showPhase3Testing, setShowPhase3Testing] = useState(false);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -152,6 +155,8 @@ const TasksContent = () => {
         onToggleTesting={() => setShowTesting(!showTesting)}
         showPhase2Testing={showPhase2Testing}
         onTogglePhase2Testing={() => setShowPhase2Testing(!showPhase2Testing)}
+        showPhase3Testing={showPhase3Testing}
+        onTogglePhase3Testing={() => setShowPhase3Testing(!showPhase3Testing)}
       />
 
       {showTesting && (
@@ -165,6 +170,13 @@ const TasksContent = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Phase2TestingSuite />
           <Phase2Demo />
+        </div>
+      )}
+
+      {showPhase3Testing && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Phase3IntegralSuite />
+          <Phase3Demo />
         </div>
       )}
 
@@ -193,7 +205,7 @@ const TasksContent = () => {
         </div>
       )}
 
-      {!showTesting && !showPhase2Testing && (
+      {!showTesting && !showPhase2Testing && !showPhase3Testing && (
         <>
           <AdvancedFilters
             projects={projects}
