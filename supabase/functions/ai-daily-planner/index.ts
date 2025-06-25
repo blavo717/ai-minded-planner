@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -49,16 +48,29 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { userId, planDate, preferences = {} }: DailyPlannerRequest = await req.json();
+    const requestBody = await req.json();
+    console.log('Request body received:', JSON.stringify(requestBody));
+
+    // Validar parámetros de entrada
+    if (!requestBody.userId || !requestBody.planDate) {
+      console.error('Missing required parameters:', { userId: requestBody.userId, planDate: requestBody.planDate });
+      return new Response(
+        JSON.stringify({ error: 'userId and planDate are required' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const { userId, planDate, preferences = {} }: DailyPlannerRequest = requestBody;
 
     console.log('Generando plan diario para usuario:', userId, 'fecha:', planDate);
 
     // Validar UUID de usuario o usar modo testing
     const isTestMode = userId === 'test-user-id';
-    let actualUserId = userId;
     
     if (isTestMode) {
-      // Para testing, usar un UUID válido o generar tareas de ejemplo
       console.log('Modo testing activado - generando plan de ejemplo');
       
       const examplePlan = generateExamplePlan(planDate, preferences);
@@ -85,53 +97,130 @@ serve(async (req) => {
       );
     }
 
-    // 1. Obtener tareas pendientes y en progreso
-    const { data: tasks, error: tasksError } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('user_id', actualUserId)
-      .in('status', ['pending', 'in_progress'])
-      .order('ai_priority_score', { ascending: false });
+    // Validar formato UUID para usuario real
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+      console.error('Invalid UUID format:', userId);
+      return new Response(
+        JSON.stringify({ error: 'Invalid user ID format' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
-    if (tasksError) throw tasksError;
+    // 1. Obtener tareas pendientes y en progreso con retry
+    let tasks = [];
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('user_id', userId)
+          .in('status', ['pending', 'in_progress'])
+          .order('ai_priority_score', { ascending: false });
+
+        if (error) throw error;
+        tasks = data || [];
+        break;
+      } catch (error) {
+        retryCount++;
+        console.warn(`Intento ${retryCount} fallido para obtener tareas:`, error.message);
+        if (retryCount >= maxRetries) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      }
+    }
+
+    console.log(`Tareas obtenidas: ${tasks.length}`);
 
     // 2. Obtener patrones de productividad del usuario
     const { data: patterns, error: patternsError } = await supabase
       .from('user_patterns')
       .select('*')
-      .eq('user_id', actualUserId)
+      .eq('user_id', userId)
       .order('updated_at', { ascending: false })
       .limit(10);
 
-    if (patternsError) throw patternsError;
+    if (patternsError) {
+      console.warn('Error obteniendo patrones:', patternsError.message);
+    }
 
     // 3. Generar plan optimizado
-    const optimizedPlan = generateOptimizedPlan(tasks, patterns, preferences);
+    const optimizedPlan = generateOptimizedPlan(tasks, patterns || [], preferences);
+    console.log(`Plan generado con ${optimizedPlan.length} bloques`);
 
     // 4. Calcular métricas del plan
     const planMetrics = calculatePlanMetrics(optimizedPlan, tasks);
 
-    // 5. Guardar o actualizar el plan
-    const { data: savedPlan, error: saveError } = await supabase
-      .from('ai_daily_plans')
-      .upsert({
-        user_id: actualUserId,
-        plan_date: planDate,
-        planned_tasks: optimizedPlan,
-        optimization_strategy: getOptimizationStrategy(preferences),
-        estimated_duration: planMetrics.totalDuration,
-        ai_confidence: planMetrics.confidence,
-      })
-      .select()
-      .single();
+    // 5. Guardar o actualizar el plan usando UPSERT para evitar duplicados
+    let savedPlan;
+    retryCount = 0;
 
-    if (saveError) throw saveError;
+    while (retryCount < maxRetries) {
+      try {
+        const planData = {
+          user_id: userId,
+          plan_date: planDate,
+          planned_tasks: optimizedPlan,
+          optimization_strategy: getOptimizationStrategy(preferences),
+          estimated_duration: planMetrics.totalDuration,
+          ai_confidence: planMetrics.confidence,
+          updated_at: new Date().toISOString(),
+        };
+
+        console.log('Guardando plan con datos:', {
+          user_id: userId,
+          plan_date: planDate,
+          blocks_count: optimizedPlan.length,
+          strategy: planData.optimization_strategy
+        });
+
+        const { data, error } = await supabase
+          .from('ai_daily_plans')
+          .upsert(planData, { 
+            onConflict: 'user_id,plan_date',
+            ignoreDuplicates: false 
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        savedPlan = data;
+        break;
+      } catch (error) {
+        retryCount++;
+        console.warn(`Intento ${retryCount} fallido para guardar plan:`, error.message);
+        if (retryCount >= maxRetries) {
+          // Si falla el guardado, devolver plan sin persistir
+          console.error('No se pudo guardar el plan, devolviendo sin persistir');
+          savedPlan = {
+            id: 'temp-' + Date.now(),
+            user_id: userId,
+            plan_date: planDate,
+            planned_tasks: optimizedPlan,
+            optimization_strategy: getOptimizationStrategy(preferences),
+            estimated_duration: planMetrics.totalDuration,
+            ai_confidence: planMetrics.confidence,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      }
+    }
+
+    console.log('Plan procesado exitosamente:', savedPlan.id);
 
     return new Response(
       JSON.stringify({
         plan: savedPlan,
         metrics: planMetrics,
-        recommendations: generateRecommendations(optimizedPlan, patterns),
+        recommendations: generateRecommendations(optimizedPlan, patterns || []),
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -139,9 +228,18 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in ai-daily-planner:', error);
+    console.error('Error crítico en ai-daily-planner:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: 'Error interno del servidor',
+        details: error.message,
+        timestamp: new Date().toISOString()
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -153,16 +251,18 @@ serve(async (req) => {
 function generateExamplePlan(planDate: string, preferences: any): any {
   const workingHours = preferences.workingHours || { start: '09:00', end: '18:00' };
   
+  console.log('Generando plan de ejemplo con horario:', workingHours);
+  
   return {
-    id: 'test-plan-id',
+    id: 'test-plan-' + Date.now(),
     user_id: 'test-user-id',
     plan_date: planDate,
     planned_tasks: [
       {
         taskId: 'example-task-1',
         title: 'Tarea de Alta Prioridad',
-        startTime: '09:00',
-        endTime: '10:30',
+        startTime: workingHours.start,
+        endTime: addMinutes(workingHours.start, 90),
         duration: 90,
         priority: 'high',
         type: 'task'
@@ -170,8 +270,8 @@ function generateExamplePlan(planDate: string, preferences: any): any {
       {
         taskId: 'break-1',
         title: 'Descanso',
-        startTime: '10:30',
-        endTime: '10:45',
+        startTime: addMinutes(workingHours.start, 90),
+        endTime: addMinutes(workingHours.start, 105),
         duration: 15,
         priority: 'low',
         type: 'break'
@@ -179,8 +279,8 @@ function generateExamplePlan(planDate: string, preferences: any): any {
       {
         taskId: 'example-task-2',
         title: 'Tarea de Prioridad Media',
-        startTime: '10:45',
-        endTime: '12:15',
+        startTime: addMinutes(workingHours.start, 105),
+        endTime: addMinutes(workingHours.start, 195),
         duration: 90,
         priority: 'medium',
         type: 'task'
@@ -188,8 +288,8 @@ function generateExamplePlan(planDate: string, preferences: any): any {
       {
         taskId: 'break-2',
         title: 'Almuerzo',
-        startTime: '12:15',
-        endTime: '13:15',
+        startTime: addMinutes(workingHours.start, 195),
+        endTime: addMinutes(workingHours.start, 255),
         duration: 60,
         priority: 'low',
         type: 'break'
@@ -197,19 +297,10 @@ function generateExamplePlan(planDate: string, preferences: any): any {
       {
         taskId: 'example-task-3',
         title: 'Tarea Urgente',
-        startTime: '13:15',
-        endTime: '14:45',
+        startTime: addMinutes(workingHours.start, 255),
+        endTime: addMinutes(workingHours.start, 345),
         duration: 90,
         priority: 'urgent',
-        type: 'task'
-      },
-      {
-        taskId: 'example-task-4',
-        title: 'Tarea de Baja Prioridad',
-        startTime: '14:45',
-        endTime: '16:15',
-        duration: 90,
-        priority: 'low',
         type: 'task'
       }
     ],
@@ -229,6 +320,8 @@ function generateOptimizedPlan(
   const workingHours = preferences.workingHours || { start: '09:00', end: '18:00' };
   const maxTasksPerBlock = preferences.maxTasksPerBlock || 3;
   const includeBreaks = preferences.includeBreaks !== false;
+  
+  console.log('Generando plan con', tasks.length, 'tareas disponibles');
   
   // Ordenar tareas por prioridad y urgencia
   const sortedTasks = tasks
@@ -281,6 +374,7 @@ function generateOptimizedPlan(
     }
   }
 
+  console.log('Plan generado con', blocks.length, 'bloques');
   return blocks;
 }
 
