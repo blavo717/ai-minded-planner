@@ -45,6 +45,7 @@ const MicrotaskList = ({
         </div>
       )}
 
+      {/* Siempre mostrar el botón de añadir microtarea cuando la subtarea está expandida */}
       <div className="ml-6 pl-4 border-l-2 border-gray-200">
         <TaskCreator
           placeholder="Título de la microtarea..."

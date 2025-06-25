@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,14 +12,17 @@ import {
   MoreHorizontal,
   Settings,
   Users,
-  GitBranch
+  GitBranch,
+  Trash2
 } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Task } from '@/hooks/useTasks';
+import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import SubtaskList from './SubtaskList';
 import TaskHealthIndicator from './ai/TaskHealthIndicator';
+import { toast } from '@/hooks/use-toast';
 
 interface TaskCardProps {
   task: Task;
@@ -40,6 +42,15 @@ const TaskCard = ({
   onCreateSubtask 
 }: TaskCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { deleteTask } = useTaskMutations();
+
+  const handleDeleteTask = () => {
+    deleteTask(task.id);
+    toast({
+      title: "Tarea eliminada",
+      description: `La tarea "${task.title}" se ha eliminado exitosamente.`,
+    });
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -94,6 +105,14 @@ const TaskCard = ({
                 <Users className="h-4 w-4 mr-2" />
                 Asignar
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={handleDeleteTask}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar tarea
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -107,7 +126,6 @@ const TaskCard = ({
             {task.status}
           </Badge>
 
-          {/* Indicador de salud AI */}
           <TaskHealthIndicator taskId={task.id} compact />
 
           {task.due_date && (

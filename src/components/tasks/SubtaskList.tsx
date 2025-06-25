@@ -28,6 +28,7 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
   const handleCreateSubtask = (data: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; estimated_duration?: number }) => {
     if (data.title && data.title.trim()) {
       onCreateSubtask(data.title.trim());
+      setIsCreateModalOpen(false); // Cerrar el modal después de crear
       toast({
         title: "Subtarea creada",
         description: `Se ha creado la subtarea "${data.title}" exitosamente.`,
@@ -106,7 +107,7 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
             <TaskCreator
               placeholder="Título de la subtarea..."
               buttonText="Añadir Subtarea"
-              onCreateTask={(title) => setIsCreateModalOpen(true)}
+              onCreateTask={() => setIsCreateModalOpen(true)}
             />
           </div>
 
