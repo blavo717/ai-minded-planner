@@ -102,6 +102,24 @@ export const getFallbackModels = (): OpenRouterModel[] => [
     context_length: 200000,
     architecture: { modality: 'text+vision', tokenizer: 'claude' },
     top_provider: { context_length: 200000, max_completion_tokens: 8192, is_moderated: false }
+  },
+  {
+    id: 'google/gemini-flash-1.5',
+    name: 'Gemini 1.5 Flash',
+    description: 'Rápido y eficiente de Google',
+    pricing: { prompt: '0.00000075', completion: '0.000003' },
+    context_length: 1000000,
+    architecture: { modality: 'text+vision', tokenizer: 'gemini' },
+    top_provider: { context_length: 1000000, max_completion_tokens: 8192, is_moderated: false }
+  },
+  {
+    id: 'google/gemini-pro-1.5',
+    name: 'Gemini 1.5 Pro',
+    description: 'Modelo avanzado de Google',
+    pricing: { prompt: '0.0000035', completion: '0.0000105' },
+    context_length: 2000000,
+    architecture: { modality: 'text+vision', tokenizer: 'gemini' },
+    top_provider: { context_length: 2000000, max_completion_tokens: 8192, is_moderated: false }
   }
 ];
 
