@@ -35,6 +35,34 @@ interface TaskCardProps {
   onCreateSubtask: (parentTaskId: string, title: string) => void;
 }
 
+interface TaskMetadataProps {
+  task: Task; 
+  completedSubtasks: number;
+  totalSubtasks: number;
+  getPriorityColor: (priority: string) => string;
+  getStatusColor: (status: string) => string;
+}
+
+interface TaskTagsProps {
+  tags: string[];
+}
+
+interface TaskSubtasksSectionProps {
+  task: Task;
+  subtasks: Task[];
+  totalSubtasks: number;
+  isOpen: boolean;
+  onToggle: (isOpen: boolean) => void;
+  onCreateSubtask: (title: string) => void;
+}
+
+interface DeleteConfirmDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  taskTitle: string;
+  onConfirm: () => void;
+}
+
 const TaskCard = memo(({ 
   task, 
   subtasks, 
@@ -148,7 +176,7 @@ const TaskCard = memo(({
   );
 });
 
-const TaskMetadata = memo(({ task, completedSubtasks, totalSubtasks, getPriorityColor, getStatusColor }) => (
+const TaskMetadata = memo(({ task, completedSubtasks, totalSubtasks, getPriorityColor, getStatusColor }: TaskMetadataProps) => (
   <div className="flex flex-wrap gap-2 mt-3">
     <Badge className={getPriorityColor(task.priority)}>
       {task.priority}
@@ -185,7 +213,7 @@ const TaskMetadata = memo(({ task, completedSubtasks, totalSubtasks, getPriority
   </div>
 ));
 
-const TaskTags = memo(({ tags }: { tags: string[] }) => (
+const TaskTags = memo(({ tags }: TaskTagsProps) => (
   <div className="flex flex-wrap gap-1 mt-2">
     {tags.map((tag, index) => (
       <Badge key={index} variant="secondary" className="text-xs">
@@ -202,7 +230,7 @@ const TaskSubtasksSection = memo(({
   isOpen, 
   onToggle, 
   onCreateSubtask 
-}) => {
+}: TaskSubtasksSectionProps) => {
   if (totalSubtasks > 0) {
     return (
       <CardContent className="pt-0">
@@ -247,7 +275,7 @@ const TaskSubtasksSection = memo(({
   );
 });
 
-const DeleteConfirmDialog = memo(({ open, onOpenChange, taskTitle, onConfirm }) => (
+const DeleteConfirmDialog = memo(({ open, onOpenChange, taskTitle, onConfirm }: DeleteConfirmDialogProps) => (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
     <AlertDialogContent>
       <AlertDialogHeader>
