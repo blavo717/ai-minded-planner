@@ -45,7 +45,7 @@ serve(async (req) => {
       return await performBasicAnalysis(supabaseClient, user.id)
     }
 
-    // Usar OpenRouter con la configuración del usuario
+    // Usar configuración LLM personalizada del usuario
     return await performAIAnalysis(supabaseClient, user.id, llmConfig)
 
   } catch (error) {
@@ -248,7 +248,9 @@ Genera 3-5 insights útiles y específicos basados en estos datos.`
         .insert(insightsToInsert)
     }
 
-    // Log de uso
+    // Log de uso de API
+    await logAPIUsage(supabaseClient, userId, llmConfig.model_name, data.usage, 'ai-analysis')
+
     console.log('AI Analysis completed:', {
       user_id: userId,
       model: llmConfig.model_name,
@@ -273,5 +275,33 @@ Genera 3-5 insights útiles y específicos basados en estos datos.`
   } catch (error) {
     console.error('AI analysis error:', error)
     return await performBasicAnalysis(supabaseClient, userId)
+  }
+}
+
+async function logAPIUsage(supabaseClient: any, userId: string, model: string, usage: any, functionName: string) {
+  try {
+    const usageData = {
+      user_id: userId,
+      model_name: model,
+      function_name: functionName,
+      prompt_tokens: usage?.prompt_tokens || 0,
+      completion_tokens: usage?.completion_tokens || 0,
+      total_tokens: usage?.total_tokens || 0,
+      timestamp: new Date().toISOString()
+    }
+
+    // Por ahora guardamos en ai_insights con tipo especial para logging
+    await supabaseClient
+      .from('ai_insights')
+      .insert({
+        user_id: userId,
+        insight_type: 'api_usage_log',
+        title: `API Usage - ${functionName}`,
+        description: `Used ${model} for ${functionName}`,
+        insight_data: usageData,
+        priority: 1
+      })
+  } catch (error) {
+    console.error('Error logging API usage:', error)
   }
 }

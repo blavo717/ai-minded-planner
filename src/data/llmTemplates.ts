@@ -14,7 +14,7 @@ export interface LLMTemplate {
   };
 }
 
-// Updated with verified OpenRouter model IDs
+// Plantillas actualizadas con modelos verificados de OpenRouter
 export const LLM_TEMPLATES: LLMTemplate[] = [
   {
     id: 'productivity-analysis',
@@ -22,7 +22,7 @@ export const LLM_TEMPLATES: LLMTemplate[] = [
     description: 'Configuración optimizada para analizar patrones de trabajo y productividad',
     icon: '📊',
     configuration: {
-      model_name: 'openai/gpt-4o-mini', // Fast and cost-effective for analysis
+      model_name: 'openai/gpt-4o-mini', // Rápido y económico para análisis
       temperature: 0.3,
       max_tokens: 1500,
       top_p: 0.9,
@@ -32,11 +32,11 @@ export const LLM_TEMPLATES: LLMTemplate[] = [
   },
   {
     id: 'insight-generation',
-    name: 'Generación de Insights',
+    name: 'Generación de Ideas',
     description: 'Para generar ideas y sugerencias creativas basadas en datos',
     icon: '💡',
     configuration: {
-      model_name: 'anthropic/claude-3.5-sonnet', // Excellent reasoning capabilities
+      model_name: 'anthropic/claude-3.5-sonnet', // Excelente para razonamiento
       temperature: 0.7,
       max_tokens: 2000,
       top_p: 0.95,
@@ -50,7 +50,7 @@ export const LLM_TEMPLATES: LLMTemplate[] = [
     description: 'Configuración balanceada para conversaciones interactivas',
     icon: '💬',
     configuration: {
-      model_name: 'openai/gpt-4o', // Great for conversations
+      model_name: 'openai/gpt-4o', // Excelente para conversaciones
       temperature: 0.6,
       max_tokens: 1000,
       top_p: 1.0,
@@ -59,14 +59,14 @@ export const LLM_TEMPLATES: LLMTemplate[] = [
     },
   },
   {
-    id: 'code-analysis',
-    name: 'Análisis de Código',
-    description: 'Especializado en revisión y análisis de código',
+    id: 'pattern-analysis',
+    name: 'Análisis de Patrones',
+    description: 'Especializado en detectar patrones de comportamiento y tendencias',
     icon: '🔍',
     configuration: {
-      model_name: 'openai/gpt-4o', // Good for technical tasks
+      model_name: 'anthropic/claude-3.5-sonnet', // Excelente para análisis
       temperature: 0.2,
-      max_tokens: 2500,
+      max_tokens: 1200,
       top_p: 0.8,
       frequency_penalty: 0.0,
       presence_penalty: 0.0,
@@ -78,12 +78,26 @@ export const LLM_TEMPLATES: LLMTemplate[] = [
     description: 'Configuración optimizada para respuestas rápidas y económicas',
     icon: '⚡',
     configuration: {
-      model_name: 'google/gemini-flash-1.5', // Very fast and efficient
+      model_name: 'google/gemini-flash-1.5', // Muy rápido y eficiente
       temperature: 0.5,
       max_tokens: 800,
       top_p: 0.9,
       frequency_penalty: 0.1,
       presence_penalty: 0.0,
+    },
+  },
+  {
+    id: 'detailed-analysis',
+    name: 'Análisis Detallado',
+    description: 'Para análisis profundos con respuestas extensas y detalladas',
+    icon: '📝',
+    configuration: {
+      model_name: 'google/gemini-pro-1.5', // Gran contexto para análisis detallado
+      temperature: 0.4,
+      max_tokens: 3000,
+      top_p: 0.9,
+      frequency_penalty: 0.1,
+      presence_penalty: 0.1,
     },
   },
 ];

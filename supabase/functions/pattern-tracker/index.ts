@@ -254,7 +254,9 @@ Genera insights específicos y accionables basados en este análisis.`
       return await generateBasicInsights(supabaseClient, userId, patternType, patternData)
     }
 
-    // Log de uso
+    // Log de uso de API
+    await logAPIUsage(supabaseClient, userId, llmConfig.model_name, data.usage, 'pattern-tracker')
+
     console.log('AI Pattern Analysis completed:', {
       user_id: userId,
       pattern_type: patternType,
@@ -268,5 +270,33 @@ Genera insights específicos y accionables basados en este análisis.`
   } catch (error) {
     console.error('AI pattern analysis error:', error)
     return await generateBasicInsights(supabaseClient, userId, patternType, patternData)
+  }
+}
+
+async function logAPIUsage(supabaseClient: any, userId: string, model: string, usage: any, functionName: string) {
+  try {
+    const usageData = {
+      user_id: userId,
+      model_name: model,
+      function_name: functionName,
+      prompt_tokens: usage?.prompt_tokens || 0,
+      completion_tokens: usage?.completion_tokens || 0,
+      total_tokens: usage?.total_tokens || 0,
+      timestamp: new Date().toISOString()
+    }
+
+    // Por ahora guardamos en ai_insights con tipo especial para logging
+    await supabaseClient
+      .from('ai_insights')
+      .insert({
+        user_id: userId,
+        insight_type: 'api_usage_log',
+        title: `API Usage - ${functionName}`,
+        description: `Used ${model} for ${functionName}`,
+        insight_data: usageData,
+        priority: 1
+      })
+  } catch (error) {
+    console.error('Error logging API usage:', error)
   }
 }
