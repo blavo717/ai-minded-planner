@@ -1,19 +1,10 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { 
   Plus, 
-  BarChart3, 
-  Brain, 
-  Settings,
-  TestTube,
-  Lightbulb,
-  Activity,
-  Zap,
   TrendingUp,
-  Workflow,
-  Palette
+  Brain
 } from 'lucide-react';
 
 interface TasksHeaderProps {
@@ -22,14 +13,6 @@ interface TasksHeaderProps {
   onCreateTask: () => void;
   showAIMonitoring: boolean;
   onToggleAIMonitoring: () => void;
-  showTesting: boolean;
-  onToggleTesting: () => void;
-  showPhase2Testing: boolean;
-  onTogglePhase2Testing: () => void;
-  showPhase3Testing: boolean;
-  onTogglePhase3Testing: () => void;
-  showPhase4UX: boolean;
-  onTogglePhase4UX: () => void;
 }
 
 const TasksHeader = ({ 
@@ -37,15 +20,7 @@ const TasksHeader = ({
   onToggleInsights, 
   onCreateTask,
   showAIMonitoring,
-  onToggleAIMonitoring,
-  showTesting,
-  onToggleTesting,
-  showPhase2Testing,
-  onTogglePhase2Testing,
-  showPhase3Testing,
-  onTogglePhase3Testing,
-  showPhase4UX,
-  onTogglePhase4UX
+  onToggleAIMonitoring
 }: TasksHeaderProps) => {
   return (
     <div className="flex items-center justify-between">
@@ -73,42 +48,6 @@ const TasksHeader = ({
         >
           <Brain className="h-4 w-4" />
           {showAIMonitoring ? "Ocultar AI" : "Monitoreo AI"}
-        </Button>
-        
-        <Button
-          variant={showTesting ? "default" : "outline"}
-          onClick={onToggleTesting}
-          className="flex items-center gap-2"
-        >
-          <TestTube className="h-4 w-4" />
-          {showTesting ? "Ocultar Fase 1" : "Testing Fase 1"}
-        </Button>
-        
-        <Button
-          variant={showPhase2Testing ? "default" : "outline"}
-          onClick={onTogglePhase2Testing}
-          className="flex items-center gap-2"
-        >
-          <Activity className="h-4 w-4" />
-          {showPhase2Testing ? "Ocultar Fase 2" : "Testing Fase 2"}
-        </Button>
-        
-        <Button
-          variant={showPhase3Testing ? "default" : "outline"}
-          onClick={onTogglePhase3Testing}
-          className="flex items-center gap-2"
-        >
-          <Workflow className="h-4 w-4" />
-          {showPhase3Testing ? "Ocultar Fase 3" : "Testing Integral"}
-        </Button>
-        
-        <Button
-          variant={showPhase4UX ? "default" : "outline"}
-          onClick={onTogglePhase4UX}
-          className="flex items-center gap-2"
-        >
-          <Palette className="h-4 w-4" />
-          {showPhase4UX ? "Ocultar Fase 4" : "Refinamiento UX"}
         </Button>
         
         <Button onClick={onCreateTask} className="flex items-center gap-2">
