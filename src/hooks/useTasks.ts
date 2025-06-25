@@ -31,6 +31,47 @@ export interface Project {
   user_id: string;
 }
 
+export interface Profile {
+  id: string;
+  email?: string;
+  full_name?: string;
+  avatar_url?: string;
+  timezone?: string;
+  role?: 'project_manager' | 'engineer' | 'coordinator' | 'specialist' | 'admin';
+  skills?: string[];
+  phone?: string;
+  department?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskAssignment {
+  id: string;
+  task_id: string;
+  assigned_to: string;
+  assigned_by: string;
+  role_in_task: 'responsible' | 'reviewer' | 'contributor' | 'observer';
+  assigned_at: string;
+  due_date?: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface ExternalContact {
+  id: string;
+  user_id: string;
+  name: string;
+  company?: string;
+  role?: string;
+  email?: string;
+  phone?: string;
+  country?: string;
+  contact_type: 'contractor' | 'supplier' | 'authority' | 'consultant' | 'other';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CreateTaskData {
   title: string;
   description?: string;
@@ -69,6 +110,25 @@ export interface UpdateProjectData {
   color?: string;
 }
 
+export interface CreateTaskAssignmentData {
+  task_id: string;
+  assigned_to: string;
+  role_in_task: 'responsible' | 'reviewer' | 'contributor' | 'observer';
+  due_date?: string;
+  notes?: string;
+}
+
+export interface CreateExternalContactData {
+  name: string;
+  company?: string;
+  role?: string;
+  email?: string;
+  phone?: string;
+  country?: string;
+  contact_type: 'contractor' | 'supplier' | 'authority' | 'consultant' | 'other';
+  notes?: string;
+}
+
 export const useTasks = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -90,19 +150,54 @@ export const useTasks = () => {
     enabled: !!user,
   });
 
-  const { data: projects = [], isLoading: projectsLoading, error: projectsError } = useQuery({
-    queryKey: ['projects', user?.id],
+  // Nuevas queries para profiles, task assignments y external contacts
+  const { data: profiles = [], isLoading: profilesLoading } = useQuery({
+    queryKey: ['profiles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('full_name', { ascending: true });
+
+      if (error) throw error;
+      return data as Profile[];
+    },
+  });
+
+  const { data: taskAssignments = [], isLoading: assignmentsLoading } = useQuery({
+    queryKey: ['task_assignments', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
       const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('user_id', user.id)
+        .from('task_assignments')
+        .select(`
+          *,
+          assigned_to_profile:assigned_to(id, full_name, email, role),
+          assigned_by_profile:assigned_by(id, full_name, email, role),
+          task:task_id(id, title, status, priority)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Project[];
+      return data as TaskAssignment[];
+    },
+    enabled: !!user,
+  });
+
+  const { data: externalContacts = [], isLoading: contactsLoading } = useQuery({
+    queryKey: ['external_contacts', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('external_contacts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      return data as ExternalContact[];
     },
     enabled: !!user,
   });
@@ -290,10 +385,160 @@ export const useTasks = () => {
     },
   });
 
+  // Nuevas mutaciones para task assignments
+  const createTaskAssignmentMutation = useMutation({
+    mutationFn: async (assignmentData: CreateTaskAssignmentData) => {
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data, error } = await supabase
+        .from('task_assignments')
+        .insert({
+          ...assignmentData,
+          assigned_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task_assignments', user?.id] });
+      toast({
+        title: "Asignación creada",
+        description: "La tarea se ha asignado exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al asignar tarea",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTaskAssignmentMutation = useMutation({
+    mutationFn: async (assignmentId: string) => {
+      const { error } = await supabase
+        .from('task_assignments')
+        .delete()
+        .eq('id', assignmentId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task_assignments', user?.id] });
+      toast({
+        title: "Asignación eliminada",
+        description: "La asignación se ha eliminado exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al eliminar asignación",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Nuevas mutaciones para external contacts
+  const createExternalContactMutation = useMutation({
+    mutationFn: async (contactData: CreateExternalContactData) => {
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data, error } = await supabase
+        .from('external_contacts')
+        .insert({
+          ...contactData,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['external_contacts', user?.id] });
+      toast({
+        title: "Contacto creado",
+        description: "El contacto externo se ha creado exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al crear contacto",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateExternalContactMutation = useMutation({
+    mutationFn: async ({ id, ...updateData }: { id: string } & Partial<CreateExternalContactData>) => {
+      const { data, error } = await supabase
+        .from('external_contacts')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['external_contacts', user?.id] });
+      toast({
+        title: "Contacto actualizado",
+        description: "El contacto se ha actualizado exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al actualizar contacto",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteExternalContactMutation = useMutation({
+    mutationFn: async (contactId: string) => {
+      const { error } = await supabase
+        .from('external_contacts')
+        .delete()
+        .eq('id', contactId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['external_contacts', user?.id] });
+      toast({
+        title: "Contacto eliminado",
+        description: "El contacto se ha eliminado exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al eliminar contacto",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     tasks,
     projects,
-    isLoading: tasksLoading || projectsLoading,
+    profiles,
+    taskAssignments,
+    externalContacts,
+    isLoading: tasksLoading || projectsLoading || profilesLoading || assignmentsLoading || contactsLoading,
     error: tasksError || projectsError,
     
     // Task operations
@@ -311,5 +556,19 @@ export const useTasks = () => {
     isCreatingProject: createProjectMutation.isPending,
     isUpdatingProject: updateProjectMutation.isPending,
     isDeletingProject: deleteProjectMutation.isPending,
+
+    // Task assignment operations
+    createTaskAssignment: createTaskAssignmentMutation.mutate,
+    deleteTaskAssignment: deleteTaskAssignmentMutation.mutate,
+    isCreatingTaskAssignment: createTaskAssignmentMutation.isPending,
+    isDeletingTaskAssignment: deleteTaskAssignmentMutation.isPending,
+
+    // External contact operations
+    createExternalContact: createExternalContactMutation.mutate,
+    updateExternalContact: updateExternalContactMutation.mutate,
+    deleteExternalContact: deleteExternalContactMutation.mutate,
+    isCreatingExternalContact: createExternalContactMutation.isPending,
+    isUpdatingExternalContact: updateExternalContactMutation.isPending,
+    isDeletingExternalContact: deleteExternalContactMutation.isPending,
   };
 };
