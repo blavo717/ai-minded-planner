@@ -12,10 +12,12 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, ExternalLink, Loader2 } from 'lucide-react';
+import { CheckCircle, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
 import { LLMConfiguration } from '@/hooks/useLLMConfigurations';
 import { useOpenRouterModels } from '@/hooks/useOpenRouterModels';
 import { formatPricing } from '@/services/openRouterService';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const configSchema = z.object({
   model_name: z.string().min(1, 'Selecciona un modelo'),
@@ -25,7 +27,6 @@ const configSchema = z.object({
   frequency_penalty: z.number().min(-2).max(2),
   presence_penalty: z.number().min(-2).max(2),
   is_active: z.boolean(),
-  openrouter_api_key: z.string().optional(),
 });
 
 type ConfigFormData = z.infer<typeof configSchema>;
@@ -43,8 +44,11 @@ const LLMConfigurationForm = ({
   onCancel, 
   isLoading 
 }: LLMConfigurationFormProps) => {
-  const [showApiKey, setShowApiKey] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [connectionError, setConnectionError] = useState<string>('');
+  const [tempConfigId, setTempConfigId] = useState<string>('');
   const { models, groupedModels, isLoading: modelsLoading } = useOpenRouterModels();
+  const { toast } = useToast();
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<ConfigFormData>({
     resolver: zodResolver(configSchema),
@@ -56,7 +60,6 @@ const LLMConfigurationForm = ({
       frequency_penalty: configuration?.frequency_penalty || 0.0,
       presence_penalty: configuration?.presence_penalty || 0.0,
       is_active: configuration?.is_active ?? true,
-      openrouter_api_key: '',
     },
   });
 
@@ -68,8 +71,89 @@ const LLMConfigurationForm = ({
   const frequencyPenalty = watch('frequency_penalty');
   const presencePenalty = watch('presence_penalty');
 
-  const handleFormSubmit = (data: ConfigFormData) => {
-    onSubmit(data);
+  const testConnection = async (formData: ConfigFormData) => {
+    setConnectionStatus('testing');
+    setConnectionError('');
+
+    try {
+      // Crear configuración temporal para prueba
+      const { data: tempConfig, error: createError } = await supabase
+        .from('llm_configurations')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          ...formData,
+          provider: 'openrouter',
+          api_key_name: 'OPENROUTER_API_KEY',
+        })
+        .select()
+        .single();
+
+      if (createError || !tempConfig) {
+        throw new Error('Error creando configuración temporal');
+      }
+
+      setTempConfigId(tempConfig.id);
+
+      // Probar la conexión
+      const { data, error } = await supabase.functions.invoke('test-llm-connection', {
+        body: { configId: tempConfig.id }
+      });
+
+      if (error || !data?.success) {
+        throw new Error(data?.error || error?.message || 'Error en la prueba de conexión');
+      }
+
+      setConnectionStatus('success');
+      toast({
+        title: "Conexión exitosa",
+        description: `El modelo ${formData.model_name} está funcionando correctamente.`,
+      });
+
+    } catch (error: any) {
+      setConnectionStatus('error');
+      setConnectionError(error.message);
+      toast({
+        title: "Error de conexión",
+        description: error.message,
+        variant: "destructive",
+      });
+
+      // Limpiar configuración temporal si falló
+      if (tempConfigId) {
+        await supabase
+          .from('llm_configurations')
+          .delete()
+          .eq('id', tempConfigId);
+      }
+    }
+  };
+
+  const handleFormSubmit = async (data: ConfigFormData) => {
+    // Si no hemos probado la conexión, probarla primero
+    if (connectionStatus !== 'success') {
+      await testConnection(data);
+      return;
+    }
+
+    // Si la conexión fue exitosa, guardar la configuración
+    if (tempConfigId && !configuration) {
+      // Actualizar la configuración temporal para que sea permanente
+      const { error } = await supabase
+        .from('llm_configurations')
+        .update({ is_active: data.is_active })
+        .eq('id', tempConfigId);
+
+      if (!error) {
+        toast({
+          title: "Configuración guardada",
+          description: "La configuración del LLM ha sido guardada exitosamente.",
+        });
+        onSubmit({ ...data, id: tempConfigId });
+      }
+    } else {
+      // Editar configuración existente
+      onSubmit(data);
+    }
   };
 
   const providerNames: { [key: string]: string } = {
@@ -91,50 +175,39 @@ const LLMConfigurationForm = ({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-          {/* API Key Section */}
-          <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-sm font-medium">API Key de OpenRouter</Label>
-                <p className="text-xs text-muted-foreground">
-                  Necesaria para usar los modelos de IA
-                </p>
-              </div>
+          {/* Estado de la API Key */}
+          <Alert>
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription>
+              API Key de OpenRouter configurada correctamente en Supabase.
               <a 
                 href="https://openrouter.ai/keys" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                className="ml-2 text-blue-600 hover:underline inline-flex items-center gap-1"
               >
-                Obtener API Key <ExternalLink className="h-3 w-3" />
+                Gestionar API Keys <ExternalLink className="h-3 w-3" />
               </a>
-            </div>
-            
-            <div className="relative">
-              <Input
-                type={showApiKey ? 'text' : 'password'}
-                placeholder="sk-or-v1-..."
-                {...register('openrouter_api_key')}
-                className="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3"
-                onClick={() => setShowApiKey(!showApiKey)}
-              >
-                {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            </div>
-            
-            <Alert>
-              <AlertDescription className="text-xs">
-                Tu API key se almacena de forma segura y nunca se comparte. 
-                Solo se usa para hacer peticiones a OpenRouter en tu nombre.
+            </AlertDescription>
+          </Alert>
+
+          {/* Estado de Conexión */}
+          {connectionStatus !== 'idle' && (
+            <Alert className={
+              connectionStatus === 'success' ? 'border-green-200 bg-green-50' :
+              connectionStatus === 'error' ? 'border-red-200 bg-red-50' :
+              'border-blue-200 bg-blue-50'
+            }>
+              {connectionStatus === 'testing' && <Loader2 className="h-4 w-4 animate-spin" />}
+              {connectionStatus === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
+              {connectionStatus === 'error' && <AlertCircle className="h-4 w-4 text-red-600" />}
+              <AlertDescription>
+                {connectionStatus === 'testing' && 'Probando conexión con el modelo...'}
+                {connectionStatus === 'success' && 'Conexión exitosa. Ahora puedes guardar la configuración.'}
+                {connectionStatus === 'error' && `Error: ${connectionError}`}
               </AlertDescription>
             </Alert>
-          </div>
+          )}
 
           {/* Selección de Modelo */}
           <div className="space-y-2">
@@ -147,7 +220,10 @@ const LLMConfigurationForm = ({
             ) : (
               <Select
                 value={selectedModelId}
-                onValueChange={(value) => setValue('model_name', value)}
+                onValueChange={(value) => {
+                  setValue('model_name', value);
+                  setConnectionStatus('idle'); // Reset connection status when model changes
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un modelo" />
@@ -203,6 +279,7 @@ const LLMConfigurationForm = ({
             )}
           </div>
 
+          {/* Parámetros del Modelo */}
           {/* Temperatura */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -211,7 +288,10 @@ const LLMConfigurationForm = ({
             </div>
             <Slider
               value={[temperature]}
-              onValueChange={(value) => setValue('temperature', value[0])}
+              onValueChange={(value) => {
+                setValue('temperature', value[0]);
+                setConnectionStatus('idle');
+              }}
               max={1}
               min={0}
               step={0.1}
@@ -230,7 +310,10 @@ const LLMConfigurationForm = ({
               type="number"
               min={1}
               max={8000}
-              {...register('max_tokens', { valueAsNumber: true })}
+              {...register('max_tokens', { 
+                valueAsNumber: true,
+                onChange: () => setConnectionStatus('idle')
+              })}
             />
             <p className="text-xs text-muted-foreground">
               Límite de tokens para la respuesta (1-8000)
@@ -249,7 +332,10 @@ const LLMConfigurationForm = ({
               </div>
               <Slider
                 value={[topP]}
-                onValueChange={(value) => setValue('top_p', value[0])}
+                onValueChange={(value) => {
+                  setValue('top_p', value[0]);
+                  setConnectionStatus('idle');
+                }}
                 max={1}
                 min={0}
                 step={0.05}
@@ -265,7 +351,10 @@ const LLMConfigurationForm = ({
               </div>
               <Slider
                 value={[frequencyPenalty]}
-                onValueChange={(value) => setValue('frequency_penalty', value[0])}
+                onValueChange={(value) => {
+                  setValue('frequency_penalty', value[0]);
+                  setConnectionStatus('idle');
+                }}
                 max={2}
                 min={-2}
                 step={0.1}
@@ -281,7 +370,10 @@ const LLMConfigurationForm = ({
               </div>
               <Slider
                 value={[presencePenalty]}
-                onValueChange={(value) => setValue('presence_penalty', value[0])}
+                onValueChange={(value) => {
+                  setValue('presence_penalty', value[0]);
+                  setConnectionStatus('idle');
+                }}
                 max={2}
                 min={-2}
                 step={0.1}
@@ -302,8 +394,21 @@ const LLMConfigurationForm = ({
 
           {/* Botones */}
           <div className="flex gap-2 pt-4">
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Guardando...' : 'Guardar Configuración'}
+            <Button 
+              type="submit" 
+              disabled={isLoading || connectionStatus === 'testing'}
+              className={connectionStatus === 'success' ? 'bg-green-600 hover:bg-green-700' : ''}
+            >
+              {connectionStatus === 'testing' ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Probando Conexión...
+                </>
+              ) : connectionStatus === 'success' ? (
+                'Guardar Configuración'
+              ) : (
+                'Probar y Guardar'
+              )}
             </Button>
             {onCancel && (
               <Button type="button" variant="outline" onClick={onCancel}>

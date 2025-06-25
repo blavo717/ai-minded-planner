@@ -50,6 +50,7 @@ serve(async (req) => {
       .single()
 
     if (configError || !config) {
+      console.error('Configuration error:', configError)
       return new Response(
         JSON.stringify({ error: 'Configuration not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -60,11 +61,17 @@ serve(async (req) => {
     const apiKey = Deno.env.get('OPENROUTER_API_KEY')
     
     if (!apiKey) {
+      console.error('OPENROUTER_API_KEY not found in environment variables')
       return new Response(
-        JSON.stringify({ error: 'OpenRouter API key not configured' }),
+        JSON.stringify({ 
+          error: 'OpenRouter API key not configured',
+          details: 'Please configure OPENROUTER_API_KEY in Supabase Edge Functions secrets'
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log(`Testing connection for model: ${config.model_name}`)
 
     // Probar la conexión con OpenRouter
     const testResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -90,25 +97,47 @@ serve(async (req) => {
 
     if (!testResponse.ok) {
       const errorData = await testResponse.text()
-      console.error('OpenRouter API error:', errorData)
+      console.error('OpenRouter API error:', {
+        status: testResponse.status,
+        statusText: testResponse.statusText,
+        error: errorData
+      })
+      
+      let errorMessage = 'Failed to connect to OpenRouter'
+      if (testResponse.status === 401) {
+        errorMessage = 'Invalid API key'
+      } else if (testResponse.status === 404) {
+        errorMessage = `Model '${config.model_name}' not found`
+      } else if (testResponse.status === 429) {
+        errorMessage = 'Rate limit exceeded'
+      }
       
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to connect to OpenRouter',
-          details: errorData 
+          error: errorMessage,
+          details: errorData,
+          status: testResponse.status
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     const data = await testResponse.json()
+    const responseContent = data.choices?.[0]?.message?.content || 'No response content'
+
+    console.log('Connection test successful:', {
+      model: config.model_name,
+      response_length: responseContent.length,
+      usage: data.usage
+    })
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Connection test successful',
         model: config.model_name,
-        response: data.choices?.[0]?.message?.content || 'No response content'
+        response: responseContent,
+        usage: data.usage
       }),
       { 
         status: 200, 
@@ -119,7 +148,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in test-llm-connection:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: 'Internal server error',
+        details: error.message 
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

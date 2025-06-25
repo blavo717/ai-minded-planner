@@ -18,7 +18,6 @@ export interface LLMConfiguration {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  openrouter_api_key?: string; // Campo temporal para el formulario
 }
 
 export const useLLMConfigurations = () => {
@@ -47,29 +46,13 @@ export const useLLMConfigurations = () => {
     mutationFn: async (config: Partial<LLMConfiguration>) => {
       if (!user) throw new Error('User not authenticated');
 
-      // Si hay una API key, la guardamos en Supabase Secrets primero
-      if (config.openrouter_api_key) {
-        const { error: secretError } = await supabase.functions.invoke('store-api-key', {
-          body: { 
-            apiKey: config.openrouter_api_key,
-            userId: user.id 
-          }
-        });
-        
-        if (secretError) {
-          console.error('Error storing API key:', secretError);
-          throw new Error('Error al guardar la API key');
-        }
-      }
-
-      // Remover la API key del objeto antes de guardar en la base de datos
-      const { openrouter_api_key, ...configData } = config;
-
       const { error } = await supabase
         .from('llm_configurations')
         .insert({
           user_id: user.id,
-          ...configData,
+          provider: 'openrouter',
+          api_key_name: 'OPENROUTER_API_KEY',
+          ...config,
         });
 
       if (error) throw error;
@@ -92,27 +75,9 @@ export const useLLMConfigurations = () => {
 
   const updateConfigurationMutation = useMutation({
     mutationFn: async ({ id, ...config }: Partial<LLMConfiguration> & { id: string }) => {
-      // Si hay una API key, la actualizamos en Supabase Secrets
-      if (config.openrouter_api_key) {
-        const { error: secretError } = await supabase.functions.invoke('store-api-key', {
-          body: { 
-            apiKey: config.openrouter_api_key,
-            userId: user?.id 
-          }
-        });
-        
-        if (secretError) {
-          console.error('Error updating API key:', secretError);
-          throw new Error('Error al actualizar la API key');
-        }
-      }
-
-      // Remover la API key del objeto antes de actualizar en la base de datos
-      const { openrouter_api_key, ...configData } = config;
-
       const { error } = await supabase
         .from('llm_configurations')
-        .update(configData)
+        .update(config)
         .eq('id', id);
 
       if (error) throw error;
@@ -158,18 +123,33 @@ export const useLLMConfigurations = () => {
       });
 
       if (error) throw error;
+      
+      if (!data?.success) {
+        throw new Error(data?.error || 'Connection test failed');
+      }
+      
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Conexión exitosa",
-        description: "La configuración del LLM funciona correctamente.",
+        description: `El modelo ${data.model} está funcionando correctamente.`,
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      let errorMessage = "No se pudo conectar con el modelo configurado.";
+      
+      if (error.message.includes('Invalid API key')) {
+        errorMessage = "La API key no es válida. Verifica tu configuración en OpenRouter.";
+      } else if (error.message.includes('not found')) {
+        errorMessage = "El modelo seleccionado no está disponible.";
+      } else if (error.message.includes('Rate limit')) {
+        errorMessage = "Has excedido el límite de solicitudes. Intenta más tarde.";
+      }
+      
       toast({
         title: "Error de conexión",
-        description: "No se pudo conectar con el modelo configurado.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
