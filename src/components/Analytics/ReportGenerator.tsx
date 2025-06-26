@@ -1,12 +1,10 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Download, FileText, BarChart3, Clock, Target, ExternalLink } from 'lucide-react';
+import { Calendar, BarChart3 } from 'lucide-react';
 import { useGeneratedReports } from '@/hooks/useGeneratedReports';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import ReportTypeCard from './ReportGenerator/ReportTypeCard';
+import ReportHistoryList from './ReportGenerator/ReportHistoryList';
 
 const ReportGenerator = () => {
   const [generatingReport, setGeneratingReport] = useState<string | null>(null);
@@ -25,20 +23,6 @@ const ReportGenerator = () => {
     } finally {
       setGeneratingReport(null);
     }
-  };
-
-  const exportReportAsJSON = (report: any) => {
-    const dataStr = JSON.stringify(report, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `reporte-${report.report_type}-${report.period_start}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const reportTypes = [
@@ -65,56 +49,18 @@ const ReportGenerator = () => {
       {/* Generadores de reportes */}
       <div className="grid gap-6 md:grid-cols-2">
         {reportTypes.map((reportType) => (
-          <Card key={reportType.type}>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${reportType.bgColor}`}>
-                  <reportType.icon className={`h-5 w-5 ${reportType.color}`} />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">{reportType.title}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {reportType.description}
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target className="h-4 w-4" />
-                    <span>Incluye:</span>
-                  </div>
-                  <ul className="list-disc list-inside space-y-1 ml-6">
-                    <li>Métricas de productividad</li>
-                    <li>Análisis de tiempo trabajado</li>
-                    <li>Tareas completadas</li>
-                    <li>Eficiencia promedio</li>
-                    <li>Insights personalizados</li>
-                  </ul>
-                </div>
-                
-                <Button 
-                  onClick={() => handleGenerateReport(reportType.type)}
-                  disabled={isGenerating || generatingReport === reportType.type}
-                  className="w-full"
-                >
-                  {generatingReport === reportType.type ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                      Generando...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4 mr-2" />
-                      Generar Reporte
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <ReportTypeCard
+            key={reportType.type}
+            type={reportType.type}
+            title={reportType.title}
+            description={reportType.description}
+            icon={reportType.icon}
+            color={reportType.color}
+            bgColor={reportType.bgColor}
+            onGenerate={handleGenerateReport}
+            isGenerating={isGenerating}
+            generatingReport={generatingReport}
+          />
         ))}
       </div>
 
@@ -127,79 +73,10 @@ const ReportGenerator = () => {
           </p>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 bg-muted rounded animate-pulse" />
-              ))}
-            </div>
-          ) : !reportHistory || reportHistory.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                No hay reportes generados aún
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Genera tu primer reporte usando los botones de arriba
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {reportHistory.map((report) => (
-                <div
-                  key={report.id}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      {report.report_type === 'weekly' ? (
-                        <Calendar className="h-4 w-4 text-primary" />
-                      ) : (
-                        <BarChart3 className="h-4 w-4 text-primary" />
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="font-medium">
-                        Reporte {report.report_type === 'weekly' ? 'Semanal' : 'Mensual'}
-                      </h4>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>
-                          {format(new Date(report.period_start), 'dd MMM', { locale: es })} - {' '}
-                          {format(new Date(report.period_end), 'dd MMM yyyy', { locale: es })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">
-                          {report.metrics.tasksCompleted} tareas
-                        </Badge>
-                        <Badge variant="outline">
-                          {report.metrics.productivity.toFixed(1)}/5
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {Math.round(report.metrics.timeWorked / 60)}h trabajadas
-                      </p>
-                    </div>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => exportReportAsJSON(report)}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Exportar
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <ReportHistoryList 
+            reportHistory={reportHistory}
+            isLoading={isLoading}
+          />
         </CardContent>
       </Card>
     </div>
