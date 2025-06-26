@@ -2,151 +2,111 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Database, Trash2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { AlertCircle, Database, Play, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { generateTestData, cleanTestData } from '@/utils/generateTestData';
+import { useToast } from '@/hooks/use-toast';
+import { checkAndGenerateTestData } from '@/utils/generateTestSessions';
 
 const TestDataGenerator = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isCleaning, setIsCleaning] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [dataGenerated, setDataGenerated] = useState<boolean | null>(null);
 
-  const handleGenerateData = async () => {
+  const handleGenerateTestData = async () => {
     if (!user) return;
 
     setIsGenerating(true);
-    setMessage(null);
-
     try {
-      const result = await generateTestData(user.id);
-      setMessage({
-        type: 'success',
-        text: `Datos generados exitosamente: ${result.sessions} sesiones de trabajo`
-      });
+      const wasGenerated = await checkAndGenerateTestData(user.id);
+      setDataGenerated(wasGenerated);
       
-      // Recargar la página después de 2 segundos para mostrar los nuevos datos
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      if (wasGenerated) {
+        toast({
+          title: "Datos de prueba generados",
+          description: "Se han creado sesiones de trabajo para tus tareas completadas. Actualiza la página para ver los nuevos análisis.",
+        });
+      } else {
+        toast({
+          title: "Datos ya existentes",
+          description: "Ya tienes sesiones registradas o no hay tareas completadas para generar datos.",
+          variant: "default",
+        });
+      }
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: 'Error generando datos de prueba. Revisa la consola para más detalles.'
+      console.error('Error generating test data:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron generar los datos de prueba",
+        variant: "destructive",
       });
-      console.error(error);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleCleanData = async () => {
-    if (!user) return;
-
-    setIsCleaning(true);
-    setMessage(null);
-
-    try {
-      await cleanTestData(user.id);
-      setMessage({
-        type: 'success',
-        text: 'Datos de prueba eliminados exitosamente'
-      });
-      
-      // Recargar la página después de 2 segundos
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    } catch (error) {
-      setMessage({
-        type: 'error',
-        text: 'Error eliminando datos de prueba. Revisa la consola para más detalles.'
-      });
-      console.error(error);
-    } finally {
-      setIsCleaning(false);
-    }
-  };
-
   return (
-    <Card>
+    <Card className="border-dashed">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Database className="h-5 w-5" />
-          Generador de Datos de Prueba
-        </CardTitle>
+        <div className="flex items-center gap-2">
+          <Database className="h-5 w-5 text-muted-foreground" />
+          <CardTitle className="text-lg">Generador de Datos de Prueba</CardTitle>
+          <Badge variant="secondary">Desarrollo</Badge>
+        </div>
         <p className="text-sm text-muted-foreground">
-          Genera datos de ejemplo para probar las funcionalidades de Analytics
+          Genera sesiones de trabajo de ejemplo para ver análisis completos
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {message && (
-          <Alert variant={message.type === 'error' ? 'destructive' : 'default'}>
-            {message.type === 'success' ? (
-              <CheckCircle className="h-4 w-4" />
-            ) : (
-              <AlertCircle className="h-4 w-4" />
-            )}
-            <AlertDescription>{message.text}</AlertDescription>
-          </Alert>
+        <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+          <AlertCircle className="h-4 w-4 text-blue-500 mt-0.5" />
+          <div className="text-sm">
+            <p className="text-blue-700 dark:text-blue-300 mb-1">
+              <strong>¿Por qué necesitas esto?</strong>
+            </p>
+            <p className="text-blue-600 dark:text-blue-400">
+              Para ver métricas avanzadas como productividad, patrones de trabajo y análisis de tiempo, 
+              necesitas datos de sesiones. Este generador crea sesiones realistas basadas en tus tareas completadas.
+            </p>
+          </div>
+        </div>
+
+        {dataGenerated === true && (
+          <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <span className="text-sm text-green-700 dark:text-green-300">
+              ¡Datos generados exitosamente! Actualiza la página para ver los análisis.
+            </span>
+          </div>
         )}
 
-        <div className="space-y-3">
-          <div className="p-4 border border-border rounded-lg">
-            <h4 className="font-medium mb-2">Generar Datos de Prueba</h4>
-            <p className="text-sm text-muted-foreground mb-3">
-              Creará 30 días de sesiones de trabajo ficticias para poblar los gráficos y métricas.
-            </p>
-            <Button 
-              onClick={handleGenerateData}
-              disabled={isGenerating}
-              className="w-full"
-            >
-              {isGenerating ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Generando...
-                </>
-              ) : (
-                <>
-                  <Database className="h-4 w-4 mr-2" />
-                  Generar Datos
-                </>
-              )}
-            </Button>
+        {dataGenerated === false && (
+          <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg">
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+            <span className="text-sm text-amber-700 dark:text-amber-300">
+              Ya tienes datos o no hay tareas completadas para generar sesiones.
+            </span>
           </div>
+        )}
 
-          <div className="p-4 border border-border rounded-lg">
-            <h4 className="font-medium mb-2">Limpiar Datos de Prueba</h4>
-            <p className="text-sm text-muted-foreground mb-3">
-              Eliminará todas las sesiones de trabajo generadas para pruebas.
-            </p>
-            <Button 
-              onClick={handleCleanData}
-              disabled={isCleaning}
-              variant="destructive"
-              className="w-full"
-            >
-              {isCleaning ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Limpiando...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Limpiar Datos
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-
-        <div className="text-xs text-muted-foreground">
-          <strong>Nota:</strong> Los datos generados son solo para propósitos de prueba y demostración. 
-          Puedes eliminarlos en cualquier momento.
-        </div>
+        <Button 
+          onClick={handleGenerateTestData}
+          disabled={isGenerating || dataGenerated === true}
+          className="w-full"
+        >
+          {isGenerating ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              Generando datos...
+            </>
+          ) : (
+            <>
+              <Play className="h-4 w-4 mr-2" />
+              Generar Datos de Prueba
+            </>
+          )}
+        </Button>
       </CardContent>
     </Card>
   );

@@ -224,6 +224,45 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_reports: {
+        Row: {
+          created_at: string
+          file_url: string | null
+          id: string
+          metrics: Json
+          period_end: string
+          period_start: string
+          report_data: Json
+          report_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          metrics?: Json
+          period_end: string
+          period_start: string
+          report_data?: Json
+          report_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          metrics?: Json
+          period_end?: string
+          period_start?: string
+          report_data?: Json
+          report_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       llm_configurations: {
         Row: {
           api_key_name: string

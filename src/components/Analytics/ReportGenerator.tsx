@@ -3,33 +3,42 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Download, FileText, BarChart3, Clock, Target } from 'lucide-react';
-import { useReports } from '@/hooks/useReports';
+import { Calendar, Download, FileText, BarChart3, Clock, Target, ExternalLink } from 'lucide-react';
+import { useGeneratedReports } from '@/hooks/useGeneratedReports';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const ReportGenerator = () => {
   const [generatingReport, setGeneratingReport] = useState<string | null>(null);
   const { 
-    generateWeeklyReport, 
-    generateMonthlyReport, 
     getReportHistory,
+    generateReport,
     isGenerating 
-  } = useReports();
+  } = useGeneratedReports();
 
   const { data: reportHistory, isLoading } = getReportHistory();
 
   const handleGenerateReport = async (type: 'weekly' | 'monthly') => {
     setGeneratingReport(type);
     try {
-      if (type === 'weekly') {
-        await generateWeeklyReport();
-      } else {
-        await generateMonthlyReport();
-      }
+      generateReport({ type });
     } finally {
       setGeneratingReport(null);
     }
+  };
+
+  const exportReportAsJSON = (report: any) => {
+    const dataStr = JSON.stringify(report, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `reporte-${report.report_type}-${report.period_start}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const reportTypes = [
@@ -79,10 +88,10 @@ const ReportGenerator = () => {
                   </div>
                   <ul className="list-disc list-inside space-y-1 ml-6">
                     <li>Métricas de productividad</li>
-                    <li>Análisis de tiempo</li>
-                    <li>Rendimiento por proyecto</li>
-                    <li>Patrones de trabajo</li>
-                    <li>Recomendaciones personalizadas</li>
+                    <li>Análisis de tiempo trabajado</li>
+                    <li>Tareas completadas</li>
+                    <li>Eficiencia promedio</li>
+                    <li>Insights personalizados</li>
                   </ul>
                 </div>
                 
@@ -143,7 +152,7 @@ const ReportGenerator = () => {
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg">
-                      {report.type === 'weekly' ? (
+                      {report.report_type === 'weekly' ? (
                         <Calendar className="h-4 w-4 text-primary" />
                       ) : (
                         <BarChart3 className="h-4 w-4 text-primary" />
@@ -151,13 +160,13 @@ const ReportGenerator = () => {
                     </div>
                     <div>
                       <h4 className="font-medium">
-                        Reporte {report.type === 'weekly' ? 'Semanal' : 'Mensual'}
+                        Reporte {report.report_type === 'weekly' ? 'Semanal' : 'Mensual'}
                       </h4>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         <span>
-                          {format(new Date(report.period.start), 'dd MMM', { locale: es })} - {' '}
-                          {format(new Date(report.period.end), 'dd MMM yyyy', { locale: es })}
+                          {format(new Date(report.period_start), 'dd MMM', { locale: es })} - {' '}
+                          {format(new Date(report.period_end), 'dd MMM yyyy', { locale: es })}
                         </span>
                       </div>
                     </div>
@@ -178,48 +187,19 @@ const ReportGenerator = () => {
                       </p>
                     </div>
                     
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => exportReportAsJSON(report)}
+                    >
                       <Download className="h-4 w-4 mr-2" />
-                      Descargar
+                      Exportar
                     </Button>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Configuración de reportes automáticos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Reportes Automáticos</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Configura la generación automática de reportes
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="p-4 border border-border rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium">Reporte Semanal Automático</h4>
-                <Badge variant="secondary">Próximamente</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Recibe un reporte semanal cada lunes por email con tu resumen de productividad
-              </p>
-            </div>
-            
-            <div className="p-4 border border-border rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium">Reporte Mensual Automático</h4>
-                <Badge variant="secondary">Próximamente</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Recibe un análisis mensual detallado el primer día de cada mes
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
