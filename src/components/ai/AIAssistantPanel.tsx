@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,8 +39,7 @@ const AIAssistantPanel = () => {
     markAllAsRead,
     clearChat,
     getBadgeInfo, // CORRECCIÓN 1: Ya no es función, es objeto directo
-    currentStrategy,
-    badgeUpdateTrigger
+    currentStrategy
   } = useAIAssistant();
 
   const { triggerTaskAnalysis } = useSmartMessaging();
@@ -63,8 +61,7 @@ const AIAssistantPanel = () => {
     connectionStatus,
     isMinimized,
     strategy: currentStrategy,
-    badgeInfo,
-    badgeUpdateTrigger
+    badgeInfo
   });
 
   // useEffect hooks for auto-scroll and focus

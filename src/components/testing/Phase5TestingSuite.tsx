@@ -236,8 +236,8 @@ const Phase5TestingSuite = () => {
         case 'notification-badge-real':
           // FASE 1: Corregir acceso a getBadgeInfo (sin paréntesis)
           // FASE 4: Usar getBadgeInfo como valor directo, no función
-          const initialBadgeInfo = getBadgeInfo;
-          console.log(`🏷️ Initial badge info:`, initialBadgeInfo);
+          const initialBadgeState = getBadgeInfo;
+          console.log(`🏷️ Initial badge info:`, initialBadgeState);
           
           const testNotificationId = await addNotification('Test notification for badge verification', 'high');
           console.log(`📬 Created notification: ${testNotificationId}`);
@@ -245,20 +245,20 @@ const Phase5TestingSuite = () => {
           // FASE 2: Aumentar timeout y usar polling
           const badgeUpdated = await waitForCondition(
             () => {
-              const currentBadgeInfo = getBadgeInfo;
-              console.log(`🔍 Current badge info:`, currentBadgeInfo);
-              return currentBadgeInfo.count > initialBadgeInfo.count && currentBadgeInfo.hasHigh;
+              const currentBadgeState = getBadgeInfo;
+              console.log(`🔍 Current badge info:`, currentBadgeState);
+              return currentBadgeState.count > initialBadgeState.count && currentBadgeState.hasHigh;
             },
             5000, // 5 segundos timeout
             250,  // 250ms polling
             'badge update'
           );
           
-          const finalBadgeInfo = getBadgeInfo;
+          const notificationBadgeInfo = getBadgeInfo;
           
           return { 
             success: badgeUpdated, 
-            details: `Badge: ${initialBadgeInfo.count} → ${finalBadgeInfo.count}, High: ${finalBadgeInfo.hasHigh}`,
+            details: `Badge: ${initialBadgeState.count} → ${notificationBadgeInfo.count}, High: ${notificationBadgeInfo.hasHigh}`,
             validationDetails: `Notificación creada con ID: ${testNotificationId}`
           };
 
@@ -396,20 +396,20 @@ const Phase5TestingSuite = () => {
           // FASE 2: Usar polling para verificar prioridades
           const prioritiesUpdated = await waitForCondition(
             () => {
-              const currentBadgeInfo = getBadgeInfo;
-              console.log(`🏷️ Badge priorities check:`, currentBadgeInfo);
-              return currentBadgeInfo.hasUrgent && currentBadgeInfo.hasHigh;
+              const currentBadgePriorities = getBadgeInfo;
+              console.log(`🏷️ Badge priorities check:`, currentBadgePriorities);
+              return currentBadgePriorities.hasUrgent && currentBadgePriorities.hasHigh;
             },
             5000, // 5 segundos timeout
             250,  // 250ms polling
             'badge priorities update'
           );
           
-          const finalBadgeInfo = getBadgeInfo;
+          const prioritiesBadgeInfo = getBadgeInfo;
           
           return { 
             success: prioritiesUpdated, 
-            details: `Urgent: ${finalBadgeInfo.hasUrgent}, High: ${finalBadgeInfo.hasHigh}, Count: ${finalBadgeInfo.count}`,
+            details: `Urgent: ${prioritiesBadgeInfo.hasUrgent}, High: ${prioritiesBadgeInfo.hasHigh}, Count: ${prioritiesBadgeInfo.count}`,
             validationDetails: 'Sistema de prioridades funcionando correctamente'
           };
 

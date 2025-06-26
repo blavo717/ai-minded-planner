@@ -33,7 +33,6 @@ export const useAIAssistant = () => {
     updateMessage,
     markAllAsRead: markAllAsReadUnified,
     clearChat: clearChatUnified,
-    forceUpdateRef,
     currentStrategy
   } = useAIMessagesUnified();
   
