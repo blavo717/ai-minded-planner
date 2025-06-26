@@ -5,9 +5,14 @@ import { useAuth } from '@/hooks/useAuth';
 
 export interface Profile {
   id: string;
-  name?: string;
+  full_name?: string;
   email?: string;
-  is_active: boolean;
+  phone?: string;
+  role?: string;
+  department?: string;
+  skills?: string[];
+  timezone?: string;
+  avatar_url?: string;
   created_at: string;
   updated_at: string;
 }

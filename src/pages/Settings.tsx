@@ -27,35 +27,43 @@ import AIConfigurationPanel from '@/components/ai/AIConfigurationPanel';
 import SimpleChatTest from '@/components/testing/SimpleChatTest';
 
 const formSchema = z.object({
-  name: z.string().min(2, {
+  full_name: z.string().min(2, {
     message: "El nombre debe tener al menos 2 caracteres.",
   }),
   email: z.string().email({
     message: "Por favor, introduce un email válido.",
   }),
-  is_active: z.boolean().default(false),
 })
 
 const Settings = () => {
   const { toast } = useToast()
   const { profile, isLoading: isProfileLoading, updateProfile } = useProfile();
-  const { configurations, activeConfiguration } = useLLMConfigurations();
+  const { 
+    configurations, 
+    activeConfiguration,
+    createConfiguration,
+    updateConfiguration,
+    deleteConfiguration,
+    testConnection,
+    isCreating,
+    isUpdating,
+    isDeleting,
+    isTesting
+  } = useLLMConfigurations();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: profile?.name || "",
+      full_name: profile?.full_name || "",
       email: profile?.email || "",
-      is_active: profile?.is_active || false,
     },
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       await updateProfile({
-        name: values.name,
+        full_name: values.full_name,
         email: values.email,
-        is_active: values.is_active,
       });
       toast({
         title: "Perfil actualizado.",
@@ -69,6 +77,19 @@ const Settings = () => {
       })
     }
   }
+
+  const handleLLMSubmit = (data: any) => {
+    createConfiguration(data);
+  };
+
+  const handleLLMEdit = (config: any) => {
+    // For simplicity, we'll just log this for now
+    console.log('Edit config:', config);
+  };
+
+  const handleToggleActive = (configId: string, isActive: boolean) => {
+    updateConfiguration({ id: configId, is_active: isActive });
+  };
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
@@ -100,7 +121,7 @@ const Settings = () => {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="full_name"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Nombre</FormLabel>
@@ -130,26 +151,6 @@ const Settings = () => {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="is_active"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel>Cuenta Activa</FormLabel>
-                          <FormDescription>
-                            Habilita o deshabilita tu cuenta.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
                   <Button type="submit">Actualizar Perfil</Button>
                 </form>
               </Form>
@@ -166,8 +167,20 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <LLMConfigurationForm />
-              <LLMConfigurationList />
+              <LLMConfigurationForm
+                onSubmit={handleLLMSubmit}
+                onCancel={() => console.log('Cancelled')}
+                isLoading={isCreating}
+              />
+              <LLMConfigurationList
+                configurations={configurations}
+                onEdit={handleLLMEdit}
+                onDelete={deleteConfiguration}
+                onTestConnection={testConnection}
+                onToggleActive={handleToggleActive}
+                isDeleting={isDeleting}
+                isTesting={isTesting}
+              />
             </CardContent>
           </Card>
         </TabsContent>
