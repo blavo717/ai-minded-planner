@@ -12,8 +12,6 @@ import ProductivityTimer from '@/components/AI/ProductivityTimer';
 import TasksHeader from '@/components/tasks/TasksHeader';
 import TaskViewControls from '@/components/tasks/TaskViewControls';
 import TaskList from '@/components/tasks/TaskList';
-import AIInsightsPanel from '@/components/tasks/ai/AIInsightsPanel';
-import AITestingPanel from '@/components/tasks/ai/AITestingPanel';
 import DailyPlannerPreview from '@/components/AI/DailyPlannerPreview';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
@@ -31,9 +29,6 @@ const TasksContent = () => {
     setIsCreateTaskOpen,
   } = useTasksContext();
   
-  // Estados para AI monitoring
-  const [showAIMonitoring, setShowAIMonitoring] = useState(false);
-  
   const { filters, setFilters, filteredTasks, availableTags } = useTaskFilters(mainTasks, getSubtasksForTask);
   const { handleEditTask, handleManageDependencies, handleAssignTask, handleCreateSubtask } = useTaskHandlers();
 
@@ -44,22 +39,13 @@ const TasksContent = () => {
           showInsights={showInsights}
           onToggleInsights={() => setShowInsights(!showInsights)}
           onCreateTask={() => setIsCreateTaskOpen(true)}
-          showAIMonitoring={showAIMonitoring}
-          onToggleAIMonitoring={() => setShowAIMonitoring(!showAIMonitoring)}
         />
-
-        {showAIMonitoring && (
-          <div className="mb-6">
-            <AITestingPanel />
-          </div>
-        )}
 
         {showInsights && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="lg:col-span-2">
               <div className="grid grid-cols-1 gap-6">
                 <ProductivityInsights />
-                <AIInsightsPanel />
                 <DailyPlannerPreview />
               </div>
             </div>

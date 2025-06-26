@@ -1,57 +1,43 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  Plus, 
-  TrendingUp,
-  Brain
-} from 'lucide-react';
+import { Plus, BarChart3 } from 'lucide-react';
 
 interface TasksHeaderProps {
   showInsights: boolean;
   onToggleInsights: () => void;
   onCreateTask: () => void;
-  showAIMonitoring: boolean;
-  onToggleAIMonitoring: () => void;
 }
 
-const TasksHeader = ({ 
-  showInsights, 
-  onToggleInsights, 
+const TasksHeader: React.FC<TasksHeaderProps> = ({
+  showInsights,
+  onToggleInsights,
   onCreateTask,
-  showAIMonitoring,
-  onToggleAIMonitoring
-}: TasksHeaderProps) => {
+}) => {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
-        <h1 className="text-3xl font-bold">Tareas</h1>
-        <p className="text-muted-foreground">
-          Gestiona tus tareas y proyectos de manera eficiente
+        <h1 className="text-3xl font-bold text-gray-900">Gestión de Tareas</h1>
+        <p className="text-gray-600 mt-1">
+          Organiza y supervisa tus tareas con inteligencia artificial
         </p>
       </div>
       
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <Button
           variant={showInsights ? "default" : "outline"}
           onClick={onToggleInsights}
           className="flex items-center gap-2"
         >
-          <TrendingUp className="h-4 w-4" />
-          {showInsights ? "Ocultar Insights" : "Ver Insights"}
+          <BarChart3 className="h-4 w-4" />
+          {showInsights ? 'Ocultar Insights' : 'Mostrar Insights'}
         </Button>
         
-        <Button
-          variant={showAIMonitoring ? "default" : "outline"}
-          onClick={onToggleAIMonitoring}
-          className="flex items-center gap-2"
+        <Button 
+          onClick={onCreateTask}
+          className="shrink-0"
         >
-          <Brain className="h-4 w-4" />
-          {showAIMonitoring ? "Ocultar AI" : "Monitoreo AI"}
-        </Button>
-        
-        <Button onClick={onCreateTask} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 mr-2" />
           Nueva Tarea
         </Button>
       </div>

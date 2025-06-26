@@ -1,110 +1,30 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Lightbulb, 
-  TrendingUp, 
-  Clock, 
-  Target,
-  AlertTriangle
-} from 'lucide-react';
+import { Brain, TrendingUp, AlertTriangle, Target } from 'lucide-react';
 import { useAITaskMonitor } from '@/hooks/useAITaskMonitor';
 
 const AIInsightsPanel = () => {
   const { getCriticalTasks, getGeneralInsights } = useAITaskMonitor();
-  
+
   const criticalTasks = getCriticalTasks();
   const insights = getGeneralInsights();
 
-  const generateInsights = () => {
-    const insightsList = [];
-
-    if (!insights) return insightsList;
-
-    // Insight sobre salud general
-    if (insights.health_percentage < 50) {
-      insightsList.push({
-        type: 'warning',
-        icon: AlertTriangle,
-        title: 'Salud de tareas baja',
-        description: `Solo ${insights.health_percentage}% de tus tareas están en buen estado. Considera revisar las tareas críticas.`,
-        priority: 'high'
-      });
-    } else if (insights.health_percentage > 80) {
-      insightsList.push({
-        type: 'success',
-        icon: Target,
-        title: 'Excelente gestión',
-        description: `${insights.health_percentage}% de tus tareas están saludables. ¡Sigue así!`,
-        priority: 'low'
-      });
-    }
-
-    // Insight sobre cuellos de botella
-    if (insights.bottlenecked_tasks > 0) {
-      insightsList.push({
-        type: 'warning',
-        icon: Clock,
-        title: 'Cuellos de botella detectados',
-        description: `${insights.bottlenecked_tasks} tareas tienen cuellos de botella. Considera redistribuir la carga de trabajo.`,
-        priority: 'high'
-      });
-    }
-
-    // Insight sobre prioridades
-    if (insights.average_priority_score > 70) {
-      insightsList.push({
-        type: 'info',
-        icon: TrendingUp,
-        title: 'Alta carga de prioridades',
-        description: `Prioridad promedio de ${insights.average_priority_score}. Considera revisar qué es realmente urgente.`,
-        priority: 'medium'
-      });
-    }
-
-    // Insight sobre tareas críticas
-    if (criticalTasks.length > 0) {
-      const taskWithMostIssues = criticalTasks.reduce((prev, current) => 
-        prev.issues.length > current.issues.length ? prev : current
-      );
-      
-      insightsList.push({
-        type: 'warning',
-        icon: AlertTriangle,
-        title: 'Tarea requiere atención inmediata',
-        description: `Una tarea tiene ${taskWithMostIssues.issues.length} problemas detectados. Prioriza su resolución.`,
-        priority: 'high'
-      });
-    }
-
-    // Ordenar por prioridad
-    const priorityOrder = { high: 3, medium: 2, low: 1 };
-    return insightsList.sort((a, b) => 
-      priorityOrder[b.priority as keyof typeof priorityOrder] - 
-      priorityOrder[a.priority as keyof typeof priorityOrder]
-    );
-  };
-
-  const insights_list = generateInsights();
-
-  if (insights_list.length === 0) {
+  if (!insights) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Lightbulb className="h-5 w-5" />
-            Insights IA
+            <Brain className="h-5 w-5 text-purple-600" />
+            AI Insights
           </CardTitle>
-          <CardDescription>
-            Recomendaciones inteligentes para optimizar tu productividad
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            <Lightbulb className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Todo se ve bien por ahora</p>
-            <p className="text-sm mt-2">Los insights aparecerán cuando haya patrones que analizar</p>
+            <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No hay datos de análisis disponibles</p>
+            <p className="text-sm mt-2">Los insights aparecerán cuando haya tareas analizadas</p>
           </div>
         </CardContent>
       </Card>
@@ -115,54 +35,77 @@ const AIInsightsPanel = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5" />
-          Insights IA
+          <Brain className="h-5 w-5 text-purple-600" />
+          AI Insights
         </CardTitle>
-        <CardDescription>
-          Recomendaciones basadas en el análisis de tus tareas
-        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {insights_list.map((insight, index) => {
-            const IconComponent = insight.icon;
-            
-            return (
-              <div 
-                key={index}
-                className="flex items-start gap-3 p-3 border rounded-lg"
-              >
-                <div className={`
-                  p-2 rounded-full
-                  ${insight.type === 'warning' ? 'bg-red-100 text-red-600' : ''}
-                  ${insight.type === 'success' ? 'bg-green-100 text-green-600' : ''}
-                  ${insight.type === 'info' ? 'bg-blue-100 text-blue-600' : ''}
-                `}>
-                  <IconComponent className="h-4 w-4" />
-                </div>
-                
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-medium text-sm">{insight.title}</h4>
-                    <Badge 
-                      variant="outline" 
-                      className={`text-xs ${
-                        insight.priority === 'high' ? 'bg-red-50 text-red-700' :
-                        insight.priority === 'medium' ? 'bg-yellow-50 text-yellow-700' :
-                        'bg-blue-50 text-blue-700'
-                      }`}
-                    >
-                      {insight.priority === 'high' ? 'Alta' : 
-                       insight.priority === 'medium' ? 'Media' : 'Baja'}
+      <CardContent className="space-y-4">
+        {/* General Health */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-3 bg-blue-50 rounded-lg">
+            <div className="text-2xl font-bold text-blue-600">{insights.total_tasks}</div>
+            <div className="text-sm text-muted-foreground">Total tareas</div>
+          </div>
+          
+          <div className="text-center p-3 bg-green-50 rounded-lg">
+            <div className="text-2xl font-bold text-green-600">{insights.healthy_tasks}</div>
+            <div className="text-sm text-muted-foreground">Saludables</div>
+          </div>
+          
+          <div className="text-center p-3 bg-red-50 rounded-lg">
+            <div className="text-2xl font-bold text-red-600">{insights.critical_tasks}</div>
+            <div className="text-sm text-muted-foreground">Críticas</div>
+          </div>
+          
+          <div className="text-center p-3 bg-orange-50 rounded-lg">
+            <div className="text-2xl font-bold text-orange-600">{insights.bottlenecked_tasks}</div>
+            <div className="text-sm text-muted-foreground">Con cuellos</div>
+          </div>
+        </div>
+
+        {/* Critical Tasks Alert */}
+        {criticalTasks.length > 0 && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <span className="font-medium text-red-800">
+                {criticalTasks.length} tarea{criticalTasks.length > 1 ? 's' : ''} necesita{criticalTasks.length === 1 ? '' : 'n'} atención
+              </span>
+            </div>
+            <div className="space-y-2">
+              {criticalTasks.slice(0, 3).map((task, index) => (
+                <div key={index} className="text-sm">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-red-100 text-red-700">
+                      Salud: {task.health_score}%
                     </Badge>
+                    {task.bottleneck_detected && (
+                      <Badge variant="outline" className="bg-orange-100 text-orange-700">
+                        Cuello de botella
+                      </Badge>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {insight.description}
-                  </p>
                 </div>
-              </div>
-            );
-          })}
+              ))}
+              {criticalTasks.length > 3 && (
+                <p className="text-sm text-red-600">
+                  ... y {criticalTasks.length - 3} más
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Health Summary */}
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="h-5 w-5 text-blue-600" />
+            <span className="font-medium text-blue-800">Estado General del Proyecto</span>
+          </div>
+          <p className="text-blue-700 text-sm">
+            {insights.health_percentage}% de tus tareas están en buen estado. 
+            Puntuación promedio de prioridad: {insights.average_priority_score}
+          </p>
         </div>
       </CardContent>
     </Card>
