@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { LogOut, User } from 'lucide-react';
 import Sidebar from '@/components/Navigation/Sidebar';
-import AIAssistantPanel from '@/components/ai/AIAssistantPanel';
+import AIAssistantPanelSimple from '@/components/ai/AIAssistantPanelSimple';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -14,7 +13,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const { user, signOut } = useAuth();
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -50,8 +49,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           </div>
         </main>
         
-        {/* AI Assistant Panel - Disponible globalmente */}
-        <AIAssistantPanel />
+        {/* OPCIÓN B: Asistente simple en lugar del complejo */}
+        <AIAssistantPanelSimple />
       </div>
     </div>
   );

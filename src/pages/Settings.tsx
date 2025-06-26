@@ -1,138 +1,196 @@
-
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  User, 
-  Bell, 
-  Shield, 
-  Palette, 
-  Brain, 
-  BarChart3,
-  Settings as SettingsIcon,
-  ChevronRight 
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Switch } from "@/components/ui/switch"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { useToast } from "@/hooks/use-toast"
+import { useProfile } from '@/hooks/useProfile';
+import { useLLMConfigurations } from '@/hooks/useLLMConfigurations';
+import LLMConfigurationForm from '@/components/llm/LLMConfigurationForm';
+import LLMConfigurationList from '@/components/llm/LLMConfigurationList';
+import AIConfigurationPanel from '@/components/ai/AIConfigurationPanel';
+import SimpleChatTest from '@/components/testing/SimpleChatTest';
 
 const Settings = () => {
-  const settingsSections = [
-    {
-      title: 'Perfil de Usuario',
-      description: 'Gestiona tu información personal y preferencias',
-      icon: User,
-      href: '/settings/profile',
-      color: 'text-blue-600',
+  const { toast } = useToast()
+  const { profile, isLoading: isProfileLoading, updateProfile } = useProfile();
+  const { configurations, activeConfiguration } = useLLMConfigurations();
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: profile?.name || "",
+      email: profile?.email || "",
+      is_active: profile?.is_active || false,
     },
-    {
-      title: 'Inteligencia Artificial',
-      description: 'Configuraciones de IA, modelos LLM y análisis',
-      icon: Brain,
-      href: '/settings/ai',
-      color: 'text-purple-600',
-    },
-    {
-      title: 'Configuración LLM',
-      description: 'Modelos de lenguaje y parámetros de IA',
-      icon: SettingsIcon,
-      href: '/settings/llm',
-      color: 'text-green-600',
-    },
-    {
-      title: 'Notificaciones',
-      description: 'Configura alertas y recordatorios',
-      icon: Bell,
-      href: '/settings/notifications',
-      color: 'text-yellow-600',
-    },
-    {
-      title: 'Privacidad y Seguridad',
-      description: 'Controla tu información y seguridad',
-      icon: Shield,
-      href: '/settings/privacy',
-      color: 'text-red-600',
-    },
-    {
-      title: 'Apariencia',
-      description: 'Personaliza el tema y la interfaz',
-      icon: Palette,
-      href: '/settings/appearance',
-      color: 'text-pink-600',
-    },
-  ];
+  })
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      await updateProfile({
+        name: values.name,
+        email: values.email,
+        is_active: values.is_active,
+      });
+      toast({
+        title: "Perfil actualizado.",
+        description: "Tus cambios han sido guardados exitosamente.",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Algo salió mal.",
+        description: "Hubo un problema al guardar tus cambios. Intenta nuevamente.",
+      })
+    }
+  }
 
   return (
-    <div className="container max-w-4xl mx-auto p-6">
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Configuración</h1>
-          <p className="text-muted-foreground mt-1">
-            Personaliza tu experiencia y gestiona tu cuenta
-          </p>
-        </div>
-
-        {/* Settings Grid */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {settingsSections.map((section) => {
-            const IconComponent = section.icon;
-            return (
-              <Card key={section.href} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-3">
-                    <IconComponent className={`h-5 w-5 ${section.color}`} />
-                    {section.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground text-sm mb-4">
-                    {section.description}
-                  </p>
-                  <Button variant="outline" size="sm" asChild className="w-full">
-                    <Link to={section.href} className="flex items-center justify-between">
-                      <span>Configurar</span>
-                      <ChevronRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
-              Acciones Rápidas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-2 md:grid-cols-3">
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/settings/ai">
-                  <Brain className="h-4 w-4 mr-2" />
-                  Dashboard de IA
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/settings/llm">
-                  <SettingsIcon className="h-4 w-4 mr-2" />
-                  Configurar LLM
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/settings/profile">
-                  <User className="h-4 w-4 mr-2" />
-                  Editar Perfil
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="container mx-auto py-8 px-4 max-w-4xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Configuración</h1>
+        <p className="text-muted-foreground">
+          Gestiona tus preferencias y configuraciones del sistema
+        </p>
       </div>
+
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="profile">Perfil</TabsTrigger>
+          <TabsTrigger value="llm">LLM</TabsTrigger>
+          <TabsTrigger value="ai">IA</TabsTrigger>
+          <TabsTrigger value="testing">Testing</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Información del Perfil</CardTitle>
+              <CardDescription>
+                Actualiza tu información personal y preferencias de la cuenta
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Tu nombre" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Este es el nombre que se mostrará en tu perfil.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="name@example.com" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Esta es tu dirección de correo electrónico.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="is_active"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel>Cuenta Activa</FormLabel>
+                          <FormDescription>
+                            Habilita o deshabilita tu cuenta.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit">Actualizar Perfil</Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="llm" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configuraciones LLM</CardTitle>
+              <CardDescription>
+                Gestiona tus configuraciones de Large Language Models (LLM)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <LLMConfigurationForm />
+              <LLMConfigurationList />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ai" className="space-y-6">
+          <AIConfigurationPanel />
+        </TabsContent>
+
+        <TabsContent value="testing" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Tests del Sistema</CardTitle>
+              <CardDescription>
+                Ejecuta tests para verificar el funcionamiento del asistente IA simplificado
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SimpleChatTest />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
 
 export default Settings;
+
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "El nombre debe tener al menos 2 caracteres.",
+  }),
+  email: z.string().email({
+    message: "Por favor, introduce un email válido.",
+  }),
+  is_active: z.boolean().default(false),
+})

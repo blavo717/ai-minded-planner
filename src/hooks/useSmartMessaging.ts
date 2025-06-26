@@ -1,102 +1,62 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useTasks } from '@/hooks/useTasks';
-import { useAIAssistant } from '@/hooks/useAIAssistant';
-import { useLLMConfigurations } from '@/hooks/useLLMConfigurations';
+import { useState, useEffect, useCallback } from 'react';
 
 export const useSmartMessaging = () => {
-  const { user } = useAuth();
-  const { tasks } = useTasks();
-  const { addNotification, addSuggestion, messages } = useAIAssistant();
-  const { activeConfiguration } = useLLMConfigurations();
-  
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isRunning, setIsRunning] = useState(false);
   
-  // FASE 14: DESACTIVAR COMPLETAMENTE Smart Messaging durante desarrollo
-  const [isPermanentlyDisabled, setIsPermanentlyDisabled] = useState(true);
+  // OPCIÓN B: Smart Messaging PERMANENTEMENTE DESACTIVADO
+  console.log('🛑 OPCIÓN B: Smart Messaging PERMANENTLY DISABLED - Simplified chatbot only');
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  console.log('🛑 FASE 14: Smart Messaging PERMANENTLY DISABLED for development');
-
-  // FASE 14: Verificación anti-duplicados DESACTIVADA
+  // Todas las funciones son NOOPs - no hacen nada
   const checkForDuplicateMessage = useCallback(() => {
-    console.log('🛑 FASE 14: checkForDuplicateMessage DISABLED');
-    return false; // Nunca considera duplicados
+    console.log('🛑 OPCIÓN B: Smart Messaging disabled - no duplicate checks');
+    return false;
   }, []);
 
-  // FASE 14: pauseForTesting - NOOP ya que está desactivado
   const pauseForTesting = useCallback(() => {
-    console.log('🛑 FASE 14: Smart Messaging already PERMANENTLY DISABLED');
+    console.log('🛑 OPCIÓN B: Smart Messaging disabled - no pause needed');
   }, []);
 
-  // FASE 14: resumeAfterTesting - NOOP ya que está desactivado
   const resumeAfterTesting = useCallback(() => {
-    console.log('🛑 FASE 14: Smart Messaging remains PERMANENTLY DISABLED');
+    console.log('🛑 OPCIÓN B: Smart Messaging disabled - no resume needed');
   }, []);
 
-  // FASE 14: Todas las funciones de check DESACTIVADAS
   const checkFollowupTasks = useCallback(async () => {
-    console.log('🛑 FASE 14: checkFollowupTasks DISABLED');
+    console.log('🛑 OPCIÓN B: No followup task checks');
     return false;
   }, []);
 
   const checkInactiveTasks = useCallback(async () => {
-    console.log('🛑 FASE 14: checkInactiveTasks DISABLED');
+    console.log('🛑 OPCIÓN B: No inactive task checks');
     return false;
   }, []);
 
   const checkUpcomingDeadlines = useCallback(async () => {
-    console.log('🛑 FASE 14: checkUpcomingDeadlines DISABLED');
+    console.log('🛑 OPCIÓN B: No deadline checks');
     return false;
   }, []);
 
   const triggerTaskAnalysis = useCallback(async () => {
-    console.log('🛑 FASE 14: triggerTaskAnalysis DISABLED');
+    console.log('🛑 OPCIÓN B: No automatic task analysis');
   }, []);
 
-  // FASE 14: runSmartChecks DESACTIVADO
   const runSmartChecks = useCallback(async () => {
-    console.log('🛑 FASE 14: runSmartChecks PERMANENTLY DISABLED');
+    console.log('🛑 OPCIÓN B: No smart checks - simple chatbot only');
   }, []);
 
-  // FASE 14: NO configurar intervalos - todo desactivado
   useEffect(() => {
-    console.log('🛑 FASE 14: Smart messaging intervals PERMANENTLY DISABLED');
-    
-    // Limpiar cualquier intervalo previo
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    
-    setIsRunning(false);
+    console.log('🛑 OPCIÓN B: Smart Messaging permanently disabled for simplified chatbot');
+    setIsInitialized(true);
   }, []);
-
-  // Inicialización
-  useEffect(() => {
-    if (user && !isInitialized) {
-      console.log('🛑 FASE 14: Smart Messaging initialized but PERMANENTLY DISABLED');
-      setIsInitialized(true);
-    }
-  }, [user, isInitialized]);
 
   return {
     isInitialized,
-    isRunning: false, // FASE 14: Siempre false
-    isPaused: true, // FASE 14: Siempre pausado
-    pausedByTest: true, // FASE 14: Siempre pausado por test
+    isRunning: false, // Siempre false
+    isPaused: true, // Siempre pausado
+    pausedByTest: false, // No hay tests complejos
     triggerTaskAnalysis,
     pauseForTesting,
     resumeAfterTesting,
-    // Debug info - todas las funciones desactivadas
     checkFollowupTasks,
     checkInactiveTasks,
     checkUpcomingDeadlines
