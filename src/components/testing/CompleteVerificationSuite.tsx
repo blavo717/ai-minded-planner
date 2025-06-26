@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -206,9 +206,36 @@ const CompleteVerificationSuite = () => {
     ]
   };
 
+  // Función para inicializar todos los tests
+  const initializeTests = () => {
+    const allTests = [
+      ...testSuites.functional,
+      ...testSuites.integration,
+      ...testSuites.performance
+    ];
+    
+    const initialResults: TestResult[] = allTests.map(test => ({
+      id: test.id,
+      name: test.name,
+      status: 'pending',
+      message: '',
+      duration: 0,
+      category: testSuites.functional.includes(test) ? 'functional' : 
+                testSuites.integration.includes(test) ? 'integration' : 'performance'
+    }));
+    
+    console.log('Inicializando tests:', initialResults.length);
+    setTestResults(initialResults);
+    return initialResults;
+  };
+
+  // Función para ejecutar un test individual
   const runSingleTest = async (test: any, category: string): Promise<TestResult> => {
     const startTime = performance.now();
     
+    console.log(`🧪 Ejecutando test: ${test.name}`);
+    
+    // Actualizar estado a "running"
     setTestResults(prev => prev.map(t => 
       t.id === test.id ? { ...t, status: 'running' } : t
     ));
@@ -226,6 +253,9 @@ const CompleteVerificationSuite = () => {
         category: category as any
       };
       
+      console.log(`✅ Test exitoso: ${test.name} - ${message}`);
+      
+      // Actualizar resultado
       setTestResults(prev => prev.map(t => 
         t.id === test.id ? result : t
       ));
@@ -244,6 +274,9 @@ const CompleteVerificationSuite = () => {
         category: category as any
       };
       
+      console.log(`❌ Test falló: ${test.name} - ${message}`);
+      
+      // Actualizar resultado
       setTestResults(prev => prev.map(t => 
         t.id === test.id ? result : t
       ));
@@ -252,26 +285,7 @@ const CompleteVerificationSuite = () => {
     }
   };
 
-  const initializeTests = () => {
-    const allTests = [
-      ...testSuites.functional,
-      ...testSuites.integration,
-      ...testSuites.performance
-    ];
-    
-    const initialResults: TestResult[] = allTests.map(test => ({
-      id: test.id,
-      name: test.name,
-      status: 'pending',
-      message: '',
-      duration: 0,
-      category: testSuites.functional.includes(test) ? 'functional' : 
-                testSuites.integration.includes(test) ? 'integration' : 'performance'
-    }));
-    
-    setTestResults(initialResults);
-  };
-
+  // Función principal para ejecutar todos los tests
   const runAllTests = async () => {
     if (!user) {
       toast({
@@ -282,14 +296,17 @@ const CompleteVerificationSuite = () => {
       return;
     }
 
+    console.log('🚀 Iniciando ejecución completa de tests');
     setIsRunning(true);
     
     // Inicializar resultados
-    initializeTests();
-
+    const initialResults = initializeTests();
+    
     try {
       // Fase 1: Tests Funcionales
       setCurrentPhase('Ejecutando tests funcionales...');
+      console.log('📋 Fase 1: Tests Funcionales');
+      
       for (const test of testSuites.functional) {
         await runSingleTest(test, 'functional');
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -297,6 +314,8 @@ const CompleteVerificationSuite = () => {
 
       // Fase 2: Tests de Integración
       setCurrentPhase('Ejecutando tests de integración...');
+      console.log('🔗 Fase 2: Tests de Integración');
+      
       for (const test of testSuites.integration) {
         await runSingleTest(test, 'integration');
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -304,30 +323,46 @@ const CompleteVerificationSuite = () => {
 
       // Fase 3: Tests de Rendimiento
       setCurrentPhase('Ejecutando tests de rendimiento...');
+      console.log('⚡ Fase 3: Tests de Rendimiento');
+      
       for (const test of testSuites.performance) {
         await runSingleTest(test, 'performance');
         await new Promise(resolve => setTimeout(resolve, 200));
       }
 
-      // Contar resultados finales
+      // Mostrar resultados finales
       setTimeout(() => {
-        const finalResults = testResults.filter(t => t.status !== 'pending');
-        const successCount = finalResults.filter(t => t.status === 'success').length;
-        const totalCount = finalResults.length;
+        setTestResults(currentResults => {
+          const finalResults = currentResults.filter(t => t.status !== 'pending');
+          const successCount = finalResults.filter(t => t.status === 'success').length;
+          const totalCount = finalResults.length;
+          
+          console.log(`📊 Resultados finales: ${successCount}/${totalCount} tests exitosos`);
 
-        toast({
-          title: "Testing Completo",
-          description: `${successCount}/${totalCount} tests exitosos`,
-          variant: successCount === totalCount ? "default" : "destructive"
+          toast({
+            title: "Testing Completo",
+            description: `${successCount}/${totalCount} tests exitosos`,
+            variant: successCount === totalCount ? "default" : "destructive"
+          });
+          
+          return currentResults;
         });
       }, 500);
 
+    } catch (error) {
+      console.error('Error durante la ejecución de tests:', error);
+      toast({
+        title: "Error en Testing",
+        description: "Hubo un error durante la ejecución de los tests",
+        variant: "destructive"
+      });
     } finally {
       setIsRunning(false);
       setCurrentPhase('');
     }
   };
 
+  // Función para ejecutar tests de una categoría específica
   const runCategoryTests = async (category: keyof typeof testSuites) => {
     if (!user) {
       toast({
@@ -338,6 +373,7 @@ const CompleteVerificationSuite = () => {
       return;
     }
 
+    console.log(`🧪 Ejecutando tests de categoría: ${category}`);
     setIsRunning(true);
     setCurrentPhase(`Ejecutando tests de ${category}...`);
     
@@ -357,6 +393,7 @@ const CompleteVerificationSuite = () => {
     }
   };
 
+  // Función para obtener el icono según el estado
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
@@ -370,6 +407,7 @@ const CompleteVerificationSuite = () => {
     }
   };
 
+  // Función para obtener estadísticas de una categoría
   const getCategoryStats = (category: string) => {
     const categoryTests = testResults.filter(t => t.category === category);
     const success = categoryTests.filter(t => t.status === 'success').length;
@@ -379,6 +417,7 @@ const CompleteVerificationSuite = () => {
     return { success, total, percentage };
   };
 
+  // Estadísticas generales
   const overallStats = {
     success: testResults.filter(t => t.status === 'success').length,
     error: testResults.filter(t => t.status === 'error').length,
@@ -388,11 +427,23 @@ const CompleteVerificationSuite = () => {
   };
 
   // Inicializar tests al montar el componente
-  React.useEffect(() => {
+  useEffect(() => {
+    console.log('🔧 Componente montado, inicializando tests...');
     if (testResults.length === 0) {
       initializeTests();
     }
   }, []);
+
+  // Debug: Log cuando cambien los resultados
+  useEffect(() => {
+    console.log('📊 Test results updated:', {
+      total: testResults.length,
+      success: testResults.filter(t => t.status === 'success').length,
+      error: testResults.filter(t => t.status === 'error').length,
+      pending: testResults.filter(t => t.status === 'pending').length,
+      running: testResults.filter(t => t.status === 'running').length
+    });
+  }, [testResults]);
 
   return (
     <div className="space-y-6">
