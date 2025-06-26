@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, TrendingDown, Target, Clock, CheckCircle, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Clock, CheckCircle, Zap, AlertCircle } from 'lucide-react';
 import { useAnalytics } from '@/hooks/useAnalytics';
 
 interface ProductivityOverviewProps {
@@ -12,9 +12,9 @@ interface ProductivityOverviewProps {
 
 const ProductivityOverview = ({ period }: ProductivityOverviewProps) => {
   const { getProductivityMetrics } = useAnalytics();
-  const { data: metrics, isLoading } = getProductivityMetrics(period);
+  const { data: metrics, isLoading, error } = getProductivityMetrics(period);
 
-  if (isLoading || !metrics) {
+  if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
@@ -28,8 +28,34 @@ const ProductivityOverview = ({ period }: ProductivityOverviewProps) => {
     );
   }
 
+  if (error || !metrics) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center text-center">
+            <div>
+              <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-muted-foreground">Error al cargar métricas de productividad</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Validar que las métricas no sean NaN
+  const safeMetrics = {
+    ...metrics,
+    completionRate: isNaN(metrics.completionRate) ? 0 : metrics.completionRate,
+    totalWorkTime: isNaN(metrics.totalWorkTime) ? 0 : metrics.totalWorkTime,
+    averageTaskTime: isNaN(metrics.averageTaskTime) ? 0 : metrics.averageTaskTime,
+    efficiency: isNaN(metrics.efficiency) ? 100 : metrics.efficiency,
+    productivity: isNaN(metrics.productivity) ? 0 : metrics.productivity,
+    previousPeriodComparison: isNaN(metrics.previousPeriodComparison) ? 0 : metrics.previousPeriodComparison,
+  };
+
   const getTrendIcon = () => {
-    switch (metrics.trend) {
+    switch (safeMetrics.trend) {
       case 'up': return <TrendingUp className="h-4 w-4 text-green-500" />;
       case 'down': return <TrendingDown className="h-4 w-4 text-red-500" />;
       default: return <TrendingUp className="h-4 w-4 text-gray-500" />;
@@ -37,7 +63,7 @@ const ProductivityOverview = ({ period }: ProductivityOverviewProps) => {
   };
 
   const getTrendColor = () => {
-    switch (metrics.trend) {
+    switch (safeMetrics.trend) {
       case 'up': return 'text-green-500';
       case 'down': return 'text-red-500';
       default: return 'text-gray-500';
@@ -47,33 +73,50 @@ const ProductivityOverview = ({ period }: ProductivityOverviewProps) => {
   const statsData = [
     {
       title: "Tareas Completadas",
-      value: metrics.completedTasks.toString(),
+      value: safeMetrics.completedTasks.toString(),
       icon: CheckCircle,
-      description: `${metrics.completionRate.toFixed(1)}% completado`,
+      description: `${safeMetrics.completionRate.toFixed(1)}% completado`,
       color: "text-blue-500"
     },
     {
       title: "Tiempo Trabajado",
-      value: `${Math.round(metrics.totalWorkTime / 60)}h`,
+      value: `${Math.round(safeMetrics.totalWorkTime / 60)}h`,
       icon: Clock,
-      description: `${Math.round(metrics.averageTaskTime)}min promedio`,
+      description: `${Math.round(safeMetrics.averageTaskTime)}min promedio`,
       color: "text-green-500"
     },
     {
       title: "Eficiencia",
-      value: `${metrics.efficiency.toFixed(1)}%`,
+      value: `${Math.min(safeMetrics.efficiency, 200).toFixed(1)}%`,
       icon: Target,
       description: "Tiempo estimado vs real",
       color: "text-purple-500"
     },
     {
       title: "Productividad",
-      value: `${metrics.productivity.toFixed(1)}/5`,
+      value: `${safeMetrics.productivity.toFixed(1)}/5`,
       icon: Zap,
       description: "Puntuación promedio",
       color: "text-orange-500"
     }
   ];
+
+  // Mostrar mensaje informativo si no hay datos
+  if (safeMetrics.totalTasks === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center">
+            <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">No hay datos disponibles</h3>
+            <p className="text-muted-foreground">
+              Comienza creando tareas y registrando sesiones de trabajo para ver tus métricas de productividad.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -104,30 +147,30 @@ const ProductivityOverview = ({ period }: ProductivityOverviewProps) => {
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium">Tasa de Completado</span>
                 <span className="text-sm text-muted-foreground">
-                  {metrics.completedTasks} de {metrics.totalTasks}
+                  {safeMetrics.completedTasks} de {safeMetrics.totalTasks}
                 </span>
               </div>
-              <Progress value={metrics.completionRate} className="h-2" />
+              <Progress value={Math.min(safeMetrics.completionRate, 100)} className="h-2" />
             </div>
             
             <div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium">Eficiencia</span>
                 <span className="text-sm text-muted-foreground">
-                  {metrics.efficiency.toFixed(1)}%
+                  {Math.min(safeMetrics.efficiency, 200).toFixed(1)}%
                 </span>
               </div>
-              <Progress value={Math.min(metrics.efficiency, 100)} className="h-2" />
+              <Progress value={Math.min(safeMetrics.efficiency, 100)} className="h-2" />
             </div>
             
             <div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium">Productividad</span>
                 <span className="text-sm text-muted-foreground">
-                  {metrics.productivity.toFixed(1)}/5
+                  {safeMetrics.productivity.toFixed(1)}/5
                 </span>
               </div>
-              <Progress value={(metrics.productivity / 5) * 100} className="h-2" />
+              <Progress value={Math.min((safeMetrics.productivity / 5) * 100, 100)} className="h-2" />
             </div>
           </CardContent>
         </Card>
@@ -140,25 +183,25 @@ const ProductivityOverview = ({ period }: ProductivityOverviewProps) => {
             <div className="flex items-center gap-2">
               {getTrendIcon()}
               <span className={`text-sm font-medium ${getTrendColor()}`}>
-                Tendencia {metrics.trend === 'up' ? 'Positiva' : 
-                          metrics.trend === 'down' ? 'Negativa' : 'Estable'}
+                Tendencia {safeMetrics.trend === 'up' ? 'Positiva' : 
+                          safeMetrics.trend === 'down' ? 'Negativa' : 'Estable'}
               </span>
             </div>
             
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm">Comparación período anterior</span>
-                <Badge variant={metrics.previousPeriodComparison > 0 ? "default" : 
-                               metrics.previousPeriodComparison < 0 ? "destructive" : "secondary"}>
-                  {metrics.previousPeriodComparison > 0 ? '+' : ''}
-                  {metrics.previousPeriodComparison.toFixed(1)}%
+                <Badge variant={safeMetrics.previousPeriodComparison > 0 ? "default" : 
+                               safeMetrics.previousPeriodComparison < 0 ? "destructive" : "secondary"}>
+                  {safeMetrics.previousPeriodComparison > 0 ? '+' : ''}
+                  {safeMetrics.previousPeriodComparison.toFixed(1)}%
                 </Badge>
               </div>
               
               <div className="text-xs text-muted-foreground">
-                {metrics.previousPeriodComparison > 0 
+                {safeMetrics.previousPeriodComparison > 0 
                   ? '¡Excelente! Tu productividad ha mejorado'
-                  : metrics.previousPeriodComparison < 0
+                  : safeMetrics.previousPeriodComparison < 0
                   ? 'Hay margen de mejora. Revisa tus patrones de trabajo'
                   : 'Mantienes un rendimiento estable'
                 }

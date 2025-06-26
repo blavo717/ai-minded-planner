@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, BarChart3, TrendingUp, Clock, Target, Download } from 'lucide-react';
+import { Calendar, BarChart3, TrendingUp, Clock, Target, Download, Settings } from 'lucide-react';
 import ProductivityOverview from '@/components/Analytics/ProductivityOverview';
 import TaskCompletionChart from '@/components/Analytics/TaskCompletionChart';
 import TimeDistributionChart from '@/components/Analytics/TimeDistributionChart';
@@ -13,6 +13,7 @@ import ProductivityHeatmap from '@/components/Analytics/ProductivityHeatmap';
 import ReportGenerator from '@/components/Analytics/ReportGenerator';
 import WorkPatternsAnalysis from '@/components/Analytics/WorkPatternsAnalysis';
 import TimeMetricsDashboard from '@/components/Analytics/TimeMetricsDashboard';
+import TestDataGenerator from '@/components/Analytics/TestDataGenerator';
 import { useAnalytics } from '@/hooks/useAnalytics';
 
 const Analytics = () => {
@@ -76,7 +77,7 @@ const Analytics = () => {
 
       {/* Main Content */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Resumen
@@ -96,6 +97,10 @@ const Analytics = () => {
           <TabsTrigger value="reports" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             Reportes
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Config
           </TabsTrigger>
         </TabsList>
 
@@ -122,6 +127,10 @@ const Analytics = () => {
 
         <TabsContent value="reports" className="space-y-6">
           <ReportGenerator />
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <TestDataGenerator />
         </TabsContent>
       </Tabs>
     </div>
