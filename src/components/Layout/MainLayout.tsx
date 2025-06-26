@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { LogOut, User } from 'lucide-react';
 import Sidebar from '@/components/Navigation/Sidebar';
 import AIAssistantPanelSimple from '@/components/ai/AIAssistantPanelSimple';
+import ThemeToggle from '@/components/ui/theme-toggle';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -29,6 +31,9 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                   {user?.email}
                 </span>
               </div>
+              
+              <ThemeToggle />
+              
               <Button 
                 variant="outline" 
                 size="sm"
