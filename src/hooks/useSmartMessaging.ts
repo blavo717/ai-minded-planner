@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTasks } from '@/hooks/useTasks';
@@ -370,10 +371,10 @@ export const useSmartMessaging = () => {
     
     const isProduction = activeConfiguration && !window.location.hostname.includes('localhost');
     const initialDelay = 15000; // FASE 11: Delay inicial aumentado significativamente
-    const recurringInterval = isProduction ? 900000 : 120000; // FASE 11: 15 min prod, 2 min dev - aumentado significativamente
+    const intervalDuration = isProduction ? 900000 : 120000; // FASE 11: 15 min prod, 2 min dev - aumentado significativamente
     
     console.log('🔄 FASE 11 - CORRECCIÓN 5: Setting up smart messaging intervals (production mode)...');
-    console.log(`⏰ FASE 11 - CORRECCIÓN 5: Using production intervals: initial=${initialDelay}ms, recurring=${recurringInterval}ms`);
+    console.log(`⏰ FASE 11 - CORRECCIÓN 5: Using production intervals: initial=${initialDelay}ms, recurring=${intervalDuration}ms`);
     
     // FASE 11: CORRECCIÓN 5 - Timeout inicial con registro
     const initialTimeout = setTimeout(() => {
@@ -381,16 +382,16 @@ export const useSmartMessaging = () => {
         runSmartChecks();
         
         // FASE 11: CORRECCIÓN 5 - Configurar intervalo recurrente con registro
-        const recurringInterval = setInterval(() => {
+        const recurringIntervalTimer = setInterval(() => {
           if (!isPaused && !pausedByTest) {
             runSmartChecks();
           } else {
             console.log('⏸️ FASE 11 - CORRECCIÓN 5: Interval check skipped (pausado AGRESIVAMENTE)');
           }
-        }, recurringInterval);
+        }, intervalDuration);
         
-        intervalRef.current = recurringInterval;
-        allIntervalsRef.current.add(recurringInterval);
+        intervalRef.current = recurringIntervalTimer;
+        allIntervalsRef.current.add(recurringIntervalTimer);
         
         setIsRunning(true);
       }
