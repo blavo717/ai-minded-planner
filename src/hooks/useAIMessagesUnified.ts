@@ -31,7 +31,7 @@ export const useAIMessagesUnified = () => {
   const processingRef = useRef(false);
   const lastSyncRef = useRef<number>(0);
 
-  console.log('🎯 useAIMessagesUnified state (FASE 7 - RESINCRONIZACIÓN TOTAL):', {
+  console.log('🎯 FASE 8 - useAIMessagesUnified state:', {
     user: user?.id || 'none',
     messagesCount: messages.length,
     isInitialized,
@@ -40,34 +40,38 @@ export const useAIMessagesUnified = () => {
     processing: processingRef.current
   });
 
-  // FASE 7: PASO 1 - Función de reset completo
+  // FASE 8: PASO 2 - Reset completo del sistema
   const forceFullReset = useCallback(async (): Promise<void> => {
-    console.log('🔄 FASE 7 - PASO 1: Iniciando reset completo...');
+    console.log('🔄 FASE 8 - PASO 2: Iniciando RESET COMPLETO del sistema...');
     
     try {
       setIsLoading(true);
       processingRef.current = true;
       
-      // 1. Limpiar BD real
+      // 1. Limpiar BD real (Supabase)
+      console.log('🗑️ FASE 8 - PASO 2: Limpiando BD real (Supabase)...');
       await clearChatInSupabase();
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Más tiempo para BD real
       
       // 2. Limpiar localStorage
+      console.log('🗑️ FASE 8 - PASO 2: Limpiando localStorage...');
       clearLocalStorage();
       
       // 3. Limpiar memoria
+      console.log('🗑️ FASE 8 - PASO 2: Limpiando memoria...');
       memoryStore.current = [];
       
       // 4. Resetear estado React
+      console.log('🗑️ FASE 8 - PASO 2: Reseteando estado React...');
       setMessages([]);
       
-      // 5. Forzar re-sincronización
+      // 5. Forzar sincronización completa
       lastSyncRef.current = Date.now();
       
-      console.log('✅ FASE 7 - PASO 1: Reset completo exitoso');
+      console.log('✅ FASE 8 - PASO 2: RESET COMPLETO exitoso');
       
     } catch (error) {
-      console.error('❌ FASE 7 - PASO 1: Error en reset completo:', error);
+      console.error('❌ FASE 8 - PASO 2: Error en reset completo:', error);
       throw error;
     } finally {
       processingRef.current = false;
@@ -75,10 +79,57 @@ export const useAIMessagesUnified = () => {
     }
   }, [clearChatInSupabase, clearLocalStorage]);
 
-  // FASE 7: PASO 2 - Validación de consistencia BD-Estado
+  // FASE 8: PASO 3 - Validación DIRECTA contra BD real
+  const validatePersistence = useCallback(async (expectedCount: number, operation: string): Promise<boolean> => {
+    const strategy = getStrategy();
+    console.log(`🔍 FASE 8 - PASO 3: Validación DIRECTA para ${operation}, esperado: ${expectedCount}, estrategia: ${strategy}`);
+    
+    try {
+      let actualMessages: ChatMessage[] = [];
+      
+      switch (strategy) {
+        case 'supabase':
+          // FASE 8: VALIDACIÓN DIRECTA - siempre cargar desde BD, no cache
+          console.log('📥 FASE 8 - PASO 3: Cargando DIRECTAMENTE desde Supabase...');
+          actualMessages = await loadFromSupabase();
+          break;
+        case 'localStorage':
+          actualMessages = loadFromLocalStorage();
+          break;
+        case 'memory':
+          actualMessages = memoryStore.current;
+          break;
+      }
+      
+      const isValid = actualMessages.length === expectedCount;
+      console.log(`🔍 FASE 8 - PASO 3: Validación resultado:`, {
+        operation,
+        expected: expectedCount,
+        actual: actualMessages.length,
+        isValid,
+        strategy,
+        timeDiff: Date.now() - lastSyncRef.current
+      });
+      
+      if (isValid) {
+        // FASE 8: Actualizar estado solo si validación exitosa
+        setMessages(actualMessages);
+        lastSyncRef.current = Date.now();
+      } else {
+        console.warn(`⚠️ FASE 8 - PASO 3: DESINCRONIZACIÓN DETECTADA - BD: ${actualMessages.length}, Esperado: ${expectedCount}`);
+      }
+      
+      return isValid;
+    } catch (error) {
+      console.error(`❌ FASE 8 - PASO 3: Error en validación persistencia:`, error);
+      return false;
+    }
+  }, [getStrategy, loadFromSupabase, loadFromLocalStorage]);
+
+  // FASE 8: PASO 3 - Consistencia automática con auto-corrección
   const validateConsistency = useCallback(async (): Promise<boolean> => {
     const strategy = getStrategy();
-    console.log(`🔍 FASE 7 - PASO 2: Validando consistencia BD-Estado con estrategia: ${strategy}`);
+    console.log(`🔍 FASE 8 - PASO 3: Validando consistencia con estrategia: ${strategy}`);
     
     try {
       let realMessages: ChatMessage[] = [];
@@ -98,75 +149,32 @@ export const useAIMessagesUnified = () => {
       const isConsistent = realMessages.length === messages.length;
       
       if (!isConsistent) {
-        console.warn(`⚠️ FASE 7 - PASO 2: INCONSISTENCIA DETECTADA:`, {
+        console.warn(`⚠️ FASE 8 - PASO 3: INCONSISTENCIA CRÍTICA DETECTADA:`, {
           real: realMessages.length,
           local: messages.length,
           strategy,
           diff: Math.abs(realMessages.length - messages.length)
         });
         
-        // Auto-corrección: usar datos reales
+        // FASE 8: Auto-corrección inmediata
+        console.log('🔧 FASE 8 - PASO 3: Aplicando auto-corrección...');
         setMessages(realMessages);
         return false;
       }
       
-      console.log(`✅ FASE 7 - PASO 2: Consistencia BD-Estado verificada`);
+      console.log(`✅ FASE 8 - PASO 3: Consistencia verificada - ${realMessages.length} mensajes`);
       return true;
       
     } catch (error) {
-      console.error(`❌ FASE 7 - PASO 2: Error validando consistencia:`, error);
+      console.error(`❌ FASE 8 - PASO 3: Error validando consistencia:`, error);
       return false;
     }
   }, [getStrategy, loadFromSupabase, loadFromLocalStorage, messages.length]);
 
-  // FASE 7: PASO 2 - Validación directa contra BD (para tests)
-  const validatePersistence = useCallback(async (expectedCount: number, operation: string): Promise<boolean> => {
-    const strategy = getStrategy();
-    console.log(`🔍 FASE 7 - Validando persistencia DIRECTA para ${operation}, esperado: ${expectedCount}, estrategia: ${strategy}`);
-    
-    try {
-      let actualMessages: ChatMessage[] = [];
-      
-      switch (strategy) {
-        case 'supabase':
-          // FASE 7: Validación directa, no usar cache
-          actualMessages = await loadFromSupabase();
-          break;
-        case 'localStorage':
-          actualMessages = loadFromLocalStorage();
-          break;
-        case 'memory':
-          actualMessages = memoryStore.current;
-          break;
-      }
-      
-      const isValid = actualMessages.length === expectedCount;
-      console.log(`🔍 FASE 7 - Validación persistencia resultado:`, {
-        operation,
-        expected: expectedCount,
-        actual: actualMessages.length,
-        isValid,
-        strategy,
-        timeDiff: Date.now() - lastSyncRef.current
-      });
-      
-      if (isValid) {
-        // FASE 7: Actualizar estado solo si la validación es exitosa
-        setMessages(actualMessages);
-        lastSyncRef.current = Date.now();
-      }
-      
-      return isValid;
-    } catch (error) {
-      console.error(`❌ FASE 7 - Error en validación persistencia:`, error);
-      return false;
-    }
-  }, [getStrategy, loadFromSupabase, loadFromLocalStorage]);
-
-  // FASE 7: PASO 2 - Cargar mensajes con sincronización forzada
+  // FASE 8: PASO 3 - Cargar mensajes con sincronización forzada
   const loadMessages = useCallback(async (forceSync: boolean = false): Promise<ChatMessage[]> => {
     const strategy = getStrategy();
-    console.log(`📥 FASE 7 - PASO 2: Cargando mensajes con estrategia: ${strategy}, forceSync: ${forceSync}`);
+    console.log(`📥 FASE 8 - PASO 3: Cargando mensajes - estrategia: ${strategy}, forceSync: ${forceSync}`);
     
     setIsLoading(true);
     
@@ -175,7 +183,8 @@ export const useAIMessagesUnified = () => {
       
       switch (strategy) {
         case 'supabase':
-          // FASE 7: Siempre cargar desde BD en modo de resincronización
+          // FASE 8: SIEMPRE cargar desde BD para asegurar sincronización
+          console.log('📥 FASE 8 - PASO 3: Carga FORZADA desde Supabase...');
           loadedMessages = await loadFromSupabase();
           break;
         case 'localStorage':
@@ -186,63 +195,53 @@ export const useAIMessagesUnified = () => {
           break;
       }
       
-      console.log(`✅ FASE 7 - PASO 2: Cargados ${loadedMessages.length} mensajes via ${strategy}`);
+      console.log(`✅ FASE 8 - PASO 3: Cargados ${loadedMessages.length} mensajes via ${strategy}`);
       setMessages(loadedMessages);
       lastSyncRef.current = Date.now();
-      
-      // FASE 7: Validar consistencia post-carga
-      if (forceSync || Date.now() - lastSyncRef.current > 30000) {
-        await validateConsistency();
-      }
       
       return loadedMessages;
       
     } catch (error) {
-      console.error(`❌ FASE 7 - PASO 2: Error cargando mensajes via ${strategy}:`, error);
+      console.error(`❌ FASE 8 - PASO 3: Error cargando mensajes via ${strategy}:`, error);
       return [];
     } finally {
       setIsLoading(false);
     }
-  }, [getStrategy, loadFromSupabase, loadFromLocalStorage, validateConsistency]);
+  }, [getStrategy, loadFromSupabase, loadFromLocalStorage]);
 
-  // FASE 7: PASO 3 - Persistencia con pre/post validación
+  // FASE 8: PASO 3 - Guardar con validación directa post-operación
   const saveMessage = useCallback(async (message: ChatMessage): Promise<void> => {
     const strategy = getStrategy();
-    console.log(`💾 FASE 7 - PASO 3: Guardando mensaje via ${strategy}:`, {
+    console.log(`💾 FASE 8 - PASO 3: Guardando mensaje via ${strategy}:`, {
       id: message.id,
       type: message.type,
       contentPreview: message.content.substring(0, 50)
     });
     
     if (processingRef.current) {
-      console.log('⚠️ FASE 7 - PASO 3: Operación de guardado ya en progreso, rechazando');
-      throw new Error('Operación de guardado ya en progreso');
+      console.log('⚠️ FASE 8 - PASO 3: Operación ya en progreso, rechazando');
+      throw new Error('Operación ya en progreso');
     }
     
     processingRef.current = true;
     
     try {
-      // FASE 7: Pre-validación
       const preCount = messages.length;
       const expectedCount = preCount + 1;
       
-      console.log(`📊 FASE 7 - PASO 3: Pre-validación:`, {
-        preCount,
-        expectedCount,
-        strategy
-      });
+      console.log(`📊 FASE 8 - PASO 3: Pre-validación: ${preCount} → ${expectedCount}`);
       
       switch (strategy) {
         case 'supabase':
           await saveToSupabase(message);
-          console.log(`✅ FASE 7 - PASO 3: Mensaje guardado en Supabase`);
+          console.log(`✅ FASE 8 - PASO 3: Guardado en Supabase`);
           
-          // FASE 7: Post-validación con tiempo realista
-          await new Promise(resolve => setTimeout(resolve, 750));
+          // FASE 8: PASO 4 - Timeout realista para BD en producción
+          await new Promise(resolve => setTimeout(resolve, 3000)); // 3 segundos para BD real
           
           const isValid = await validatePersistence(expectedCount, 'saveMessage');
           if (!isValid) {
-            throw new Error(`FASE 7 - PASO 3: Post-validación falló para saveMessage`);
+            throw new Error(`FASE 8 - PASO 3: Post-validación falló para saveMessage`);
           }
           break;
           
@@ -260,24 +259,23 @@ export const useAIMessagesUnified = () => {
       }
       
       lastSyncRef.current = Date.now();
-      console.log(`✅ FASE 7 - PASO 3: Mensaje guardado y validado exitosamente via ${strategy}`);
+      console.log(`✅ FASE 8 - PASO 3: Mensaje guardado y validado exitosamente via ${strategy}`);
       
     } catch (error) {
-      console.error(`❌ FASE 7 - PASO 3: Error guardando mensaje via ${strategy}:`, error);
+      console.error(`❌ FASE 8 - PASO 3: Error guardando mensaje via ${strategy}:`, error);
       throw error;
     } finally {
       processingRef.current = false;
     }
   }, [getStrategy, saveToSupabase, saveToLocalStorage, messages, validatePersistence]);
 
-  // FASE 7: PASO 3 - Actualizar mensaje con validación
+  // FASE 8: PASO 3 - Actualizar con validación directa
   const updateMessage = useCallback(async (messageId: string, updates: Partial<ChatMessage>): Promise<void> => {
     const strategy = getStrategy();
-    console.log(`🔄 FASE 7 - PASO 3: Actualizando mensaje ${messageId} via ${strategy}`);
+    console.log(`🔄 FASE 8 - PASO 3: Actualizando mensaje ${messageId} via ${strategy}`);
     
     if (processingRef.current) {
-      console.log('⚠️ FASE 7 - PASO 3: Operación de actualización ya en progreso, rechazando');
-      throw new Error('Operación de actualización ya en progreso');
+      throw new Error('Operación ya en progreso');
     }
     
     processingRef.current = true;
@@ -288,14 +286,14 @@ export const useAIMessagesUnified = () => {
       switch (strategy) {
         case 'supabase':
           await updateInSupabase(messageId, updates);
-          console.log(`✅ FASE 7 - PASO 3: Mensaje actualizado en Supabase`);
+          console.log(`✅ FASE 8 - PASO 3: Actualizado en Supabase`);
           
-          // FASE 7: Post-validación
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // FASE 8: PASO 4 - Timeout realista
+          await new Promise(resolve => setTimeout(resolve, 2500));
           
           const isValid = await validatePersistence(currentCount, 'updateMessage');
           if (!isValid) {
-            throw new Error(`FASE 7 - PASO 3: Post-validación falló para updateMessage`);
+            throw new Error(`FASE 8 - PASO 3: Post-validación falló para updateMessage`);
           }
           break;
           
@@ -317,24 +315,23 @@ export const useAIMessagesUnified = () => {
       }
       
       lastSyncRef.current = Date.now();
-      console.log(`✅ FASE 7 - PASO 3: Mensaje actualizado y validado exitosamente via ${strategy}`);
+      console.log(`✅ FASE 8 - PASO 3: Mensaje actualizado y validado via ${strategy}`);
       
     } catch (error) {
-      console.error(`❌ FASE 7 - PASO 3: Error actualizando mensaje via ${strategy}:`, error);
+      console.error(`❌ FASE 8 - PASO 3: Error actualizando mensaje via ${strategy}:`, error);
       throw error;
     } finally {
       processingRef.current = false;
     }
   }, [getStrategy, updateInSupabase, saveToLocalStorage, messages, validatePersistence]);
 
-  // FASE 7: PASO 3 - Marcar todos como leídos con validación
+  // FASE 8: PASO 3 - Marcar todos como leídos con validación
   const markAllAsRead = useCallback(async (): Promise<void> => {
     const strategy = getStrategy();
-    console.log(`👁️ FASE 7 - PASO 3: Marcando todos como leídos via ${strategy}`);
+    console.log(`👁️ FASE 8 - PASO 3: Marcando todos como leídos via ${strategy}`);
     
     if (processingRef.current) {
-      console.log('⚠️ FASE 7 - PASO 3: Operación markAllAsRead ya en progreso, rechazando');
-      throw new Error('Operación markAllAsRead ya en progreso');
+      throw new Error('Operación ya en progreso');
     }
     
     processingRef.current = true;
@@ -345,14 +342,14 @@ export const useAIMessagesUnified = () => {
       switch (strategy) {
         case 'supabase':
           await markAllAsReadInSupabase();
-          console.log(`✅ FASE 7 - PASO 3: Todos los mensajes marcados como leídos en Supabase`);
+          console.log(`✅ FASE 8 - PASO 3: Todos marcados como leídos en Supabase`);
           
-          // FASE 7: Post-validación
-          await new Promise(resolve => setTimeout(resolve, 750));
+          // FASE 8: PASO 4 - Timeout realista para operaciones bulk
+          await new Promise(resolve => setTimeout(resolve, 3500));
           
           const isValid = await validatePersistence(currentCount, 'markAllAsRead');
           if (!isValid) {
-            throw new Error(`FASE 7 - PASO 3: Post-validación falló para markAllAsRead`);
+            throw new Error(`FASE 8 - PASO 3: Post-validación falló para markAllAsRead`);
           }
           break;
           
@@ -370,24 +367,23 @@ export const useAIMessagesUnified = () => {
       }
       
       lastSyncRef.current = Date.now();
-      console.log(`✅ FASE 7 - PASO 3: Todos los mensajes marcados como leídos y validados via ${strategy}`);
+      console.log(`✅ FASE 8 - PASO 3: Todos marcados como leídos y validados via ${strategy}`);
       
     } catch (error) {
-      console.error(`❌ FASE 7 - PASO 3: Error marcando todos como leídos via ${strategy}:`, error);
+      console.error(`❌ FASE 8 - PASO 3: Error marcando todos como leídos via ${strategy}:`, error);
       throw error;
     } finally {
       processingRef.current = false;
     }
   }, [getStrategy, markAllAsReadInSupabase, saveToLocalStorage, messages, validatePersistence]);
 
-  // FASE 7: PASO 1 - Limpiar chat con reset completo
+  // FASE 8: PASO 2 - Limpiar chat con reset completo
   const clearChat = useCallback(async (): Promise<void> => {
     const strategy = getStrategy();
-    console.log(`🗑️ FASE 7 - PASO 1: Limpiando chat via ${strategy}`);
+    console.log(`🗑️ FASE 8 - PASO 2: Limpiando chat via ${strategy}`);
     
     if (processingRef.current) {
-      console.log('⚠️ FASE 7 - PASO 1: Operación clearChat ya en progreso, rechazando');
-      throw new Error('Operación clearChat ya en progreso');
+      throw new Error('Operación ya en progreso');
     }
     
     processingRef.current = true;
@@ -396,14 +392,14 @@ export const useAIMessagesUnified = () => {
       switch (strategy) {
         case 'supabase':
           await clearChatInSupabase();
-          console.log(`✅ FASE 7 - PASO 1: Chat limpiado en Supabase`);
+          console.log(`✅ FASE 8 - PASO 2: Chat limpiado en Supabase`);
           
-          // FASE 7: Post-validación de limpieza
-          await new Promise(resolve => setTimeout(resolve, 750));
+          // FASE 8: PASO 4 - Timeout realista para limpieza
+          await new Promise(resolve => setTimeout(resolve, 3000));
           
           const isValid = await validatePersistence(0, 'clearChat');
           if (!isValid) {
-            throw new Error(`FASE 7 - PASO 1: Post-validación falló para clearChat`);
+            throw new Error(`FASE 8 - PASO 2: Post-validación falló para clearChat`);
           }
           break;
           
@@ -420,42 +416,42 @@ export const useAIMessagesUnified = () => {
       }
       
       lastSyncRef.current = Date.now();
-      console.log(`✅ FASE 7 - PASO 1: Chat limpiado y validado exitosamente via ${strategy}`);
+      console.log(`✅ FASE 8 - PASO 2: Chat limpiado y validado via ${strategy}`);
       
     } catch (error) {
-      console.error(`❌ FASE 7 - PASO 1: Error limpiando chat via ${strategy}:`, error);
+      console.error(`❌ FASE 8 - PASO 2: Error limpiando chat via ${strategy}:`, error);
       throw error;
     } finally {
       processingRef.current = false;
     }
   }, [getStrategy, clearChatInSupabase, clearLocalStorage, validatePersistence]);
 
-  // FASE 7: PASO 2 - Inicializar con resincronización forzada
+  // FASE 8: PASO 3 - Inicialización con sincronización forzada
   useEffect(() => {
     if (!isInitialized) {
-      console.log('🚀 FASE 7 - PASO 2: Inicializando sistema unificado con resincronización forzada...');
+      console.log('🚀 FASE 8 - PASO 3: Inicializando con sincronización FORZADA...');
       
       loadMessages(true).then(() => {
         setIsInitialized(true);
-        console.log('✅ FASE 7 - PASO 2: Sistema unificado inicializado con resincronización');
+        console.log('✅ FASE 8 - PASO 3: Sistema inicializado con sincronización forzada');
       }).catch(error => {
-        console.error('❌ FASE 7 - PASO 2: Error inicializando mensajes:', error);
+        console.error('❌ FASE 8 - PASO 3: Error inicializando:', error);
         setIsInitialized(true);
       });
     }
   }, [loadMessages, isInitialized]);
 
-  // FASE 7: PASO 5 - Monitoreo de consistencia automático
+  // FASE 8: PASO 5 - Monitoreo automático de consistencia
   useEffect(() => {
     if (!isInitialized) return;
     
     const consistencyInterval = setInterval(async () => {
       const timeSinceLastSync = Date.now() - lastSyncRef.current;
-      if (timeSinceLastSync > 60000) { // 1 minuto
-        console.log('🔄 FASE 7 - PASO 5: Ejecutando verificación de consistencia automática...');
+      if (timeSinceLastSync > 30000) { // 30 segundos
+        console.log('🔄 FASE 8 - PASO 5: Verificación automática de consistencia...');
         await validateConsistency();
       }
-    }, 30000); // Cada 30 segundos
+    }, 15000); // Cada 15 segundos
     
     return () => clearInterval(consistencyInterval);
   }, [isInitialized, validateConsistency]);
@@ -470,8 +466,8 @@ export const useAIMessagesUnified = () => {
     clearChat,
     loadMessages,
     validatePersistence,
-    forceFullReset, // FASE 7: Exponer para tests
-    validateConsistency, // FASE 7: Exponer para monitoreo
+    forceFullReset,
+    validateConsistency,
     currentStrategy: getStrategy()
   };
 };

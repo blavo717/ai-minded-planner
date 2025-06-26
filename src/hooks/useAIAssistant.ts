@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLLMService } from '@/hooks/useLLMService';
@@ -34,8 +33,8 @@ export const useAIAssistant = () => {
     markAllAsRead: markAllAsReadUnified,
     clearChat: clearChatUnified,
     validatePersistence,
-    forceFullReset, // FASE 7: Recibir función de reset
-    validateConsistency, // FASE 7: Recibir función de consistencia
+    forceFullReset,
+    validateConsistency,
     currentStrategy
   } = useAIMessagesUnified();
   
@@ -44,7 +43,7 @@ export const useAIAssistant = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'idle'>('idle');
   const lastOperationRef = useRef<number>(0);
 
-  // FASE 7: PASO 3 - Badge system con validación de consistencia
+  // FASE 8: PASO 3 - Badge system con validación de consistencia
   const getBadgeInfo = useMemo((): NotificationBadge => {
     const unreadMessages = messages.filter(msg => !msg.isRead && msg.type !== 'user');
     
@@ -54,7 +53,7 @@ export const useAIAssistant = () => {
       hasHigh: unreadMessages.some(msg => msg.priority === 'high')
     };
     
-    console.log(`🏷️ FASE 7 - Badge info COMPUTED:`, {
+    console.log(`🏷️ FASE 8 - PASO 3: Badge info calculado:`, {
       total: messages.length,
       unread: badge.count,
       urgent: badge.hasUrgent,
@@ -63,17 +62,17 @@ export const useAIAssistant = () => {
       timeSinceLastOp: Date.now() - lastOperationRef.current
     });
     
-    // FASE 7: PASO 5 - Verificar consistencia si han pasado más de 2 minutos
-    if (Date.now() - lastOperationRef.current > 120000) {
+    // FASE 8: PASO 5 - Verificar consistencia si han pasado más de 1 minuto
+    if (Date.now() - lastOperationRef.current > 60000) {
       validateConsistency().catch(error => {
-        console.warn('⚠️ FASE 7 - Error en validación automática de consistencia:', error);
+        console.warn('⚠️ FASE 8 - PASO 5: Error en validación automática:', error);
       });
     }
     
     return badge;
   }, [messages, currentStrategy, validateConsistency]);
 
-  // FASE 7: PASO 3 - addMessage con pre/post validación
+  // FASE 8: PASO 3 - addMessage con validación directa post-operación
   const addMessage = useCallback(async (message: Omit<ChatMessage, 'id' | 'timestamp'>): Promise<string> => {
     const messageId = generateValidUUID();
     const newMessage: ChatMessage = {
@@ -82,7 +81,7 @@ export const useAIAssistant = () => {
       timestamp: new Date(),
     };
     
-    console.log(`➕ FASE 7 - PASO 3: Adding message:`, {
+    console.log(`➕ FASE 8 - PASO 3: Adding message:`, {
       id: newMessage.id,
       type: newMessage.type,
       contentPreview: newMessage.content.substring(0, 50) + '...',
@@ -92,63 +91,69 @@ export const useAIAssistant = () => {
     });
     
     try {
-      // FASE 7: Pre-validación
       const preCount = messages.length;
-      console.log(`📊 FASE 7 - PASO 3: Pre-validación addMessage, mensajes actuales: ${preCount}`);
+      console.log(`📊 FASE 8 - PASO 3: Pre-validación addMessage: ${preCount} mensajes actuales`);
       
       await saveMessage(newMessage);
       
-      // FASE 7: PASO 4 - Timeout realista para BD real
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // FASE 8: PASO 4 - Timeout realista para BD en producción
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // FASE 8: PASO 3 - Validación directa post-operación
+      const isValid = await validatePersistence(preCount + 1, 'addMessage-postValidation');
+      if (!isValid) {
+        console.error('❌ FASE 8 - PASO 3: Post-validación addMessage falló');
+        throw new Error('Post-validación addMessage falló');
+      }
       
       lastOperationRef.current = Date.now();
-      console.log(`✅ FASE 7 - PASO 3: addMessage completado exitosamente, ID: ${messageId}`);
+      console.log(`✅ FASE 8 - PASO 3: addMessage completado y validado, ID: ${messageId}`);
       
       return messageId;
     } catch (error) {
-      console.error('❌ FASE 7 - PASO 3: Error en addMessage:', error);
+      console.error('❌ FASE 8 - PASO 3: Error en addMessage:', error);
       throw error;
     }
-  }, [saveMessage, currentStrategy, messages.length]);
+  }, [saveMessage, currentStrategy, messages.length, validatePersistence]);
 
-  // FASE 7: PASO 3 - markAsRead con validación
+  // FASE 8: PASO 3 - markAsRead con validación directa
   const markAsRead = useCallback(async (messageId: string) => {
-    console.log(`👁️ FASE 7 - PASO 3: Marking message as read: ${messageId} via ${currentStrategy}`);
+    console.log(`👁️ FASE 8 - PASO 3: Marking message as read: ${messageId} via ${currentStrategy}`);
     
     try {
       await updateMessage(messageId, { isRead: true });
       
-      // FASE 7: PASO 4 - Timeout realista
-      await new Promise(resolve => setTimeout(resolve, 750));
+      // FASE 8: PASO 4 - Timeout realista
+      await new Promise(resolve => setTimeout(resolve, 2500));
       
       lastOperationRef.current = Date.now();
-      console.log('✅ FASE 7 - PASO 3: Message marked as read successfully');
+      console.log('✅ FASE 8 - PASO 3: Message marked as read successfully');
     } catch (error) {
-      console.error('❌ FASE 7 - PASO 3: Error marking message as read:', error);
+      console.error('❌ FASE 8 - PASO 3: Error marking message as read:', error);
       throw error;
     }
   }, [updateMessage, currentStrategy]);
 
-  // FASE 7: PASO 3 - markAllAsRead con validación
+  // FASE 8: PASO 3 - markAllAsRead con validación directa
   const markAllAsRead = useCallback(async () => {
     const unreadCount = messages.filter(msg => !msg.isRead && msg.type !== 'user').length;
-    console.log(`👁️ FASE 7 - PASO 3: Marking all ${unreadCount} messages as read via ${currentStrategy}`);
+    console.log(`👁️ FASE 8 - PASO 3: Marking all ${unreadCount} messages as read via ${currentStrategy}`);
     
     if (unreadCount === 0) {
-      console.log('✅ FASE 7 - PASO 3: No unread messages to mark');
+      console.log('✅ FASE 8 - PASO 3: No unread messages to mark');
       return;
     }
     
     try {
       await markAllAsReadUnified();
       
-      // FASE 7: PASO 4 - Timeout realista para operaciones bulk
-      await new Promise(resolve => setTimeout(resolve, 1250));
+      // FASE 8: PASO 4 - Timeout realista para operaciones bulk
+      await new Promise(resolve => setTimeout(resolve, 4000));
       
       lastOperationRef.current = Date.now();
-      console.log('✅ FASE 7 - PASO 3: All messages marked as read successfully');
+      console.log('✅ FASE 8 - PASO 3: All messages marked as read successfully');
     } catch (error) {
-      console.error('❌ FASE 7 - PASO 3: Error marking all as read:', error);
+      console.error('❌ FASE 8 - PASO 3: Error marking all as read:', error);
       throw error;
     }
   }, [messages, markAllAsReadUnified, currentStrategy]);
@@ -231,9 +236,9 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     }
   }, [addMessage, makeLLMRequest, messages, currentStrategy]);
 
-  // FASE 7: PASO 3 - addNotification con validación
+  // FASE 8: PASO 3 - addNotification con validación directa
   const addNotification = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium', contextData?: any): Promise<string> => {
-    console.log(`🔔 FASE 7 - PASO 3: Adding notification: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
+    console.log(`🔔 FASE 8 - PASO 3: Adding notification: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
     
     const messageId = await addMessage({
       type: 'notification',
@@ -243,16 +248,16 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       contextData
     });
     
-    // FASE 7: PASO 4 - Timeout realista para operaciones críticas
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // FASE 8: PASO 4 - Timeout realista para operaciones críticas
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
-    console.log(`✅ FASE 7 - PASO 3: addNotification completed, ID: ${messageId}`);
+    console.log(`✅ FASE 8 - PASO 3: addNotification completado y validado, ID: ${messageId}`);
     return messageId;
   }, [addMessage, currentStrategy]);
 
-  // FASE 7: PASO 3 - addSuggestion con validación
+  // FASE 8: PASO 3 - addSuggestion con validación directa
   const addSuggestion = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'low', contextData?: any): Promise<string> => {
-    console.log(`💡 FASE 7 - PASO 3: Adding suggestion: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
+    console.log(`💡 FASE 8 - PASO 3: Adding suggestion: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
     
     const messageId = await addMessage({
       type: 'suggestion',
@@ -262,27 +267,27 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       contextData
     });
     
-    // FASE 7: PASO 4 - Timeout realista para operaciones críticas
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // FASE 8: PASO 4 - Timeout realista para operaciones críticas
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
-    console.log(`✅ FASE 7 - PASO 3: addSuggestion completed, ID: ${messageId}`);
+    console.log(`✅ FASE 8 - PASO 3: addSuggestion completado y validado, ID: ${messageId}`);
     return messageId;
   }, [addMessage, currentStrategy]);
 
-  // FASE 7: PASO 1 - clearChat con reset completo
+  // FASE 8: PASO 2 - clearChat con reset completo
   const clearChat = useCallback(async () => {
-    console.log(`🗑️ FASE 7 - PASO 1: Clearing chat history via ${currentStrategy}`);
+    console.log(`🗑️ FASE 8 - PASO 2: Clearing chat history via ${currentStrategy}`);
     
     try {
       await clearChatUnified();
       
-      // FASE 7: PASO 4 - Timeout realista
-      await new Promise(resolve => setTimeout(resolve, 1250));
+      // FASE 8: PASO 4 - Timeout realista
+      await new Promise(resolve => setTimeout(resolve, 4000));
       
       lastOperationRef.current = Date.now();
-      console.log('✅ FASE 7 - PASO 1: Chat cleared successfully');
+      console.log('✅ FASE 8 - PASO 2: Chat cleared successfully');
     } catch (error) {
-      console.error('❌ FASE 7 - PASO 1: Error clearing chat:', error);
+      console.error('❌ FASE 8 - PASO 2: Error clearing chat:', error);
       throw error;
     }
   }, [clearChatUnified, currentStrategy]);
@@ -306,11 +311,11 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     markAllAsRead,
     clearChat,
     
-    // FASE 7: getBadgeInfo como valor directo
+    // FASE 8: getBadgeInfo como valor directo
     getBadgeInfo,
     unreadCount: getBadgeInfo.count,
     
-    // FASE 7: Exponer funciones de resincronización para tests
+    // FASE 8: Exponer funciones de resincronización para tests
     validatePersistence,
     forceFullReset,
     validateConsistency,

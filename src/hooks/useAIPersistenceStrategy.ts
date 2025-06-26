@@ -8,22 +8,22 @@ export type PersistenceStrategy = 'supabase' | 'localStorage' | 'memory';
 export const useAIPersistenceStrategy = () => {
   const { user } = useAuth();
   
-  // CORRECCIÓN 3: Detectar automáticamente la estrategia con más precisión
+  // FASE 8: PASO 1 - FORZAR SUPABASE SIEMPRE que hay usuario autenticado
   const getStrategy = useCallback((): PersistenceStrategy => {
-    // CORRECCIÓN 3: Forzar localStorage en tests (hostname localhost)
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      console.log('🔄 Persistence strategy: localStorage (localhost detected)');
-      return 'localStorage';
-    }
-    
-    // En producción con usuario, usar Supabase
+    // FASE 8: CORRECCIÓN CRÍTICA - No detectar localhost, usar Supabase siempre con usuario
     if (user) {
-      console.log('🔄 Persistence strategy: supabase (production mode with user)');
+      console.log('🔄 FASE 8 - PASO 1: Persistence strategy: supabase (user authenticated - FORCED)');
       return 'supabase';
     }
     
-    // Fallback a memoria
-    console.log('🔄 Persistence strategy: memory (fallback mode)');
+    // Solo en caso de no tener usuario, usar localStorage
+    if (typeof window !== 'undefined') {
+      console.log('🔄 FASE 8 - PASO 1: Persistence strategy: localStorage (no user)');
+      return 'localStorage';
+    }
+    
+    // Fallback final a memoria
+    console.log('🔄 FASE 8 - PASO 1: Persistence strategy: memory (fallback mode)');
     return 'memory';
   }, [user]);
 
@@ -31,10 +31,10 @@ export const useAIPersistenceStrategy = () => {
     try {
       const storageKey = 'ai-chat-messages';
       localStorage.setItem(storageKey, JSON.stringify(messages));
-      console.log(`💾 Saved ${messages.length} messages to localStorage`);
+      console.log(`💾 FASE 8 - PASO 1: Saved ${messages.length} messages to localStorage`);
       return true;
     } catch (error) {
-      console.error('❌ Error saving to localStorage:', error);
+      console.error('❌ FASE 8 - PASO 1: Error saving to localStorage:', error);
       return false;
     }
   }, []);
@@ -45,7 +45,7 @@ export const useAIPersistenceStrategy = () => {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const messages = JSON.parse(stored) as ChatMessage[];
-        console.log(`📥 Loaded ${messages.length} messages from localStorage`);
+        console.log(`📥 FASE 8 - PASO 1: Loaded ${messages.length} messages from localStorage`);
         return messages.map(msg => ({
           ...msg,
           timestamp: new Date(msg.timestamp)
@@ -53,7 +53,7 @@ export const useAIPersistenceStrategy = () => {
       }
       return [];
     } catch (error) {
-      console.error('❌ Error loading from localStorage:', error);
+      console.error('❌ FASE 8 - PASO 1: Error loading from localStorage:', error);
       return [];
     }
   }, []);
@@ -62,10 +62,10 @@ export const useAIPersistenceStrategy = () => {
     try {
       const storageKey = 'ai-chat-messages';
       localStorage.removeItem(storageKey);
-      console.log('🗑️ Cleared localStorage messages');
+      console.log('🗑️ FASE 8 - PASO 1: Cleared localStorage messages');
       return true;
     } catch (error) {
-      console.error('❌ Error clearing localStorage:', error);
+      console.error('❌ FASE 8 - PASO 1: Error clearing localStorage:', error);
       return false;
     }
   }, []);
