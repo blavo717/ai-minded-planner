@@ -15,19 +15,19 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const { user, signOut } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
+        <header className="bg-card shadow-sm border-b border-border">
           <div className="flex justify-between items-center h-16 px-6">
             <div className="flex-1" />
             
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <User className="h-5 w-5 text-gray-500" />
-                <span className="text-sm text-gray-700">
+                <User className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm text-foreground">
                   {user?.email}
                 </span>
               </div>
@@ -54,7 +54,6 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           </div>
         </main>
         
-        {/* OPCIÓN B: Asistente simple en lugar del complejo */}
         <AIAssistantPanelSimple />
       </div>
     </div>
