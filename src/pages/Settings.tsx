@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,10 +21,20 @@ import * as z from "zod"
 import { useToast } from "@/hooks/use-toast"
 import { useProfile } from '@/hooks/useProfile';
 import { useLLMConfigurations } from '@/hooks/useLLMConfigurations';
-import LLMConfigurationForm from '@/components/llm/LLMConfigurationForm';
-import LLMConfigurationList from '@/components/llm/LLMConfigurationList';
+import LLMConfigurationForm from '@/components/LLM/LLMConfigurationForm';
+import LLMConfigurationList from '@/components/LLM/LLMConfigurationList';
 import AIConfigurationPanel from '@/components/ai/AIConfigurationPanel';
 import SimpleChatTest from '@/components/testing/SimpleChatTest';
+
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "El nombre debe tener al menos 2 caracteres.",
+  }),
+  email: z.string().email({
+    message: "Por favor, introduce un email válido.",
+  }),
+  is_active: z.boolean().default(false),
+})
 
 const Settings = () => {
   const { toast } = useToast()
@@ -184,13 +195,3 @@ const Settings = () => {
 };
 
 export default Settings;
-
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "El nombre debe tener al menos 2 caracteres.",
-  }),
-  email: z.string().email({
-    message: "Por favor, introduce un email válido.",
-  }),
-  is_active: z.boolean().default(false),
-})
