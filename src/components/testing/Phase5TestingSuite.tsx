@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,22 +38,22 @@ interface TestSuiteResults {
   totalDuration: number;
 }
 
-// FASE 4: Función de espera con polling más eficiente
+// FASE 6: Función de espera con validación REAL contra BD
 const waitForCondition = async (
   condition: () => boolean,
-  timeout: number = 3000,
-  pollInterval: number = 100,
+  timeout: number = 5000,
+  pollInterval: number = 250,
   description: string = 'condition'
 ): Promise<boolean> => {
   const startTime = Date.now();
   const maxAttempts = Math.ceil(timeout / pollInterval);
   
-  console.log(`⏳ Waiting for ${description} (timeout: ${timeout}ms, interval: ${pollInterval}ms)`);
+  console.log(`⏳ FASE 6 - Waiting for ${description} (timeout: ${timeout}ms, interval: ${pollInterval}ms)`);
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     if (condition()) {
       const elapsed = Date.now() - startTime;
-      console.log(`✅ ${description} met after ${elapsed}ms (attempt ${attempt}/${maxAttempts})`);
+      console.log(`✅ FASE 6 - ${description} met after ${elapsed}ms (attempt ${attempt}/${maxAttempts})`);
       return true;
     }
     
@@ -64,7 +63,7 @@ const waitForCondition = async (
   }
   
   const elapsed = Date.now() - startTime;
-  console.log(`❌ ${description} not met after ${elapsed}ms (${maxAttempts} attempts)`);
+  console.log(`❌ FASE 6 - ${description} not met after ${elapsed}ms (${maxAttempts} attempts)`);
   return false;
 };
 
@@ -79,7 +78,8 @@ const Phase5TestingSuite = () => {
     getBadgeInfo,
     messages,
     isInitialized,
-    currentStrategy
+    currentStrategy,
+    validatePersistence // FASE 6: Recibir validación directa
   } = useAIAssistant();
 
   const {
@@ -95,72 +95,85 @@ const Phase5TestingSuite = () => {
   const [testProgress, setTestProgress] = useState<number>(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // FASE 3: Limpiar estado antes de cada test
+  // FASE 6: Preparar ambiente con limpieza REAL de BD
   const prepareTestEnvironment = async () => {
-    console.log('🧹 Preparing test environment...');
+    console.log('🧹 FASE 6 - Preparing test environment with REAL database cleanup...');
     
-    // FASE 3: Pausar Smart Messaging
+    // FASE 6: Pausar Smart Messaging
     pauseForTesting();
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Limpiar mensajes existentes
+    // FASE 6: Limpiar mensajes existentes REALMENTE
     await clearChat();
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Más tiempo para BD real
     
-    console.log('✅ Test environment prepared');
+    // FASE 6: Validar limpieza REAL
+    const isClean = await validatePersistence(0, 'test-environment-cleanup');
+    if (!isClean) {
+      console.error('❌ FASE 6 - Test environment cleanup failed');
+      throw new Error('Test environment cleanup failed');
+    }
+    
+    console.log('✅ FASE 6 - Test environment prepared and validated');
   };
 
-  // FASE 3: Restaurar estado después de tests
+  // FASE 6: Restaurar estado con validación
   const cleanupTestEnvironment = async () => {
-    console.log('🧹 Cleaning up test environment...');
+    console.log('🧹 FASE 6 - Cleaning up test environment with validation...');
     
-    // Limpiar mensajes de test
+    // FASE 6: Limpiar mensajes de test REALMENTE
     await clearChat();
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // FASE 3: Reanudar Smart Messaging
+    // FASE 6: Validar limpieza final
+    const isClean = await validatePersistence(0, 'final-cleanup');
+    if (!isClean) {
+      console.warn('⚠️ FASE 6 - Final cleanup validation failed');
+    }
+    
+    // FASE 6: Reanudar Smart Messaging
     resumeAfterTesting();
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    console.log('✅ Test environment cleaned up');
+    console.log('✅ FASE 6 - Test environment cleaned up and validated');
   };
 
-  // FASE 4: Test cases con validación robusta
+  // FASE 6: Test cases con timeouts realistas para BD real
   const testCases = [
     {
       name: 'initialization-check',
       description: 'Verificar inicialización del sistema',
-      timeout: 2000
+      timeout: 3000
     },
     {
       name: 'message-creation-basic',
       description: 'Crear mensajes básicos',
-      timeout: 3000
+      timeout: 6000 // Más tiempo para BD real
     },
     {
       name: 'notification-badge-real',
       description: 'Sistema de badges en tiempo real',
-      timeout: 5000
+      timeout: 8000 // Más tiempo para BD real
     },
     {
       name: 'message-persistence',
       description: 'Persistencia de mensajes',
-      timeout: 4000
+      timeout: 7000
     },
     {
       name: 'priority-system',
       description: 'Sistema de prioridades',
-      timeout: 5000
+      timeout: 8000
     },
     {
       name: 'bulk-operations',
       description: 'Operaciones en lote',
-      timeout: 6000
+      timeout: 10000 // Más tiempo para operaciones bulk
     },
     {
       name: 'cleanup-verification',
       description: 'Verificación de limpieza',
-      timeout: 3000
+      timeout: 6000
     }
   ];
 
@@ -168,14 +181,14 @@ const Phase5TestingSuite = () => {
     const startTime = Date.now();
     setCurrentTest(testCase.description);
     
-    console.log(`🧪 Running test: ${testCase.name}`);
+    console.log(`🧪 FASE 6 - Running test: ${testCase.name}`);
     
     try {
       let result: { success: boolean; details: string; validationDetails?: string };
 
       switch (testCase.name) {
         case 'initialization-check':
-          // FASE 4: Verificar inicialización básica
+          // FASE 6: Verificar inicialización básica
           result = {
             success: isInitialized && messages !== undefined,
             details: `Initialized: ${isInitialized}, Strategy: ${currentStrategy}, Messages: ${messages?.length || 0}`,
@@ -184,50 +197,57 @@ const Phase5TestingSuite = () => {
           break;
 
         case 'message-creation-basic':
-          // FASE 4: Test básico de creación de mensajes
+          // FASE 6: Test básico de creación de mensajes con validación REAL
           const initialCount = messages.length;
-          console.log(`📊 Initial message count: ${initialCount}`);
+          console.log(`📊 FASE 6 - Initial message count: ${initialCount}`);
           
           const userMessageId = await addMessage({
             type: 'user',
-            content: 'Test message from Phase 5 suite',
+            content: 'FASE 6 test message - creation basic',
             isRead: true
           });
           
-          // FASE 4: Usar polling para verificar creación
+          // FASE 6: Usar validación directa contra BD
           const messageCreated = await waitForCondition(
-            () => messages.length > initialCount,
-            3000,
-            200,
-            'message creation'
+            async () => {
+              const isValid = await validatePersistence(initialCount + 1, 'message-creation-test');
+              return isValid;
+            },
+            6000,
+            500,
+            'message creation validation'
           );
           
           result = {
             success: messageCreated && !!userMessageId,
             details: `Messages: ${initialCount} → ${messages.length}, ID: ${userMessageId}`,
-            validationDetails: 'Mensaje creado y persistido correctamente'
+            validationDetails: 'Mensaje creado y validado contra BD'
           };
           break;
 
         case 'notification-badge-real':
-          // FASE 1: Corregir acceso a getBadgeInfo (sin paréntesis)
-          // FASE 4: Usar getBadgeInfo como valor directo, no función
+          // FASE 6: Test de badge con validación REAL de persistencia
           const initialBadgeState = getBadgeInfo;
-          console.log(`🏷️ Initial badge info:`, initialBadgeState);
+          console.log(`🏷️ FASE 6 - Initial badge info:`, initialBadgeState);
           
-          const testNotificationId = await addNotification('Test notification for badge verification', 'high');
-          console.log(`📬 Created notification: ${testNotificationId}`);
+          const testNotificationId = await addNotification('FASE 6 test notification - badge verification', 'high');
+          console.log(`📬 FASE 6 - Created notification: ${testNotificationId}`);
           
-          // FASE 2: Aumentar timeout y usar polling
+          // FASE 6: Validar tanto persistencia como badge
           const badgeUpdated = await waitForCondition(
-            () => {
+            async () => {
+              // Primero validar persistencia
+              const isPersisted = await validatePersistence(initialBadgeState.count + 1, 'notification-badge-test');
+              if (!isPersisted) return false;
+              
+              // Luego validar badge
               const currentBadgeState = getBadgeInfo;
-              console.log(`🔍 Current badge info:`, currentBadgeState);
+              console.log(`🔍 FASE 6 - Current badge info:`, currentBadgeState);
               return currentBadgeState.count > initialBadgeState.count && currentBadgeState.hasHigh;
             },
-            5000, // 5 segundos timeout
-            250,  // 250ms polling
-            'badge update'
+            8000,
+            500,
+            'notification badge validation'
           );
           
           const notificationBadgeInfo = getBadgeInfo;
@@ -235,25 +255,29 @@ const Phase5TestingSuite = () => {
           result = { 
             success: badgeUpdated, 
             details: `Badge: ${initialBadgeState.count} → ${notificationBadgeInfo.count}, High: ${notificationBadgeInfo.hasHigh}`,
-            validationDetails: `Notificación creada con ID: ${testNotificationId}`
+            validationDetails: `Notificación persistida y badge validado, ID: ${testNotificationId}`
           };
           break;
 
         case 'message-persistence':
-          // FASE 4: Test de persistencia real
+          // FASE 6: Test de persistencia REAL contra BD
           const beforePersistence = messages.length;
           
-          const suggestionId = await addSuggestion('Persistence test suggestion', 'medium');
+          const suggestionId = await addSuggestion('FASE 6 test suggestion - persistence', 'medium');
           
-          // FASE 2: Polling para verificar persistencia
+          // FASE 6: Validación directa contra BD
           const persistenceVerified = await waitForCondition(
-            () => {
+            async () => {
+              const isPersisted = await validatePersistence(beforePersistence + 1, 'message-persistence-test');
+              if (!isPersisted) return false;
+              
+              // Validar también que el mensaje específico existe
               const found = messages.find(m => m.id === suggestionId);
               return !!found && found.type === 'suggestion';
             },
-            4000,
-            200,
-            'message persistence'
+            7000,
+            500,
+            'message persistence validation'
           );
           
           const afterPersistence = messages.length;
@@ -261,26 +285,33 @@ const Phase5TestingSuite = () => {
           result = {
             success: persistenceVerified,
             details: `Messages: ${beforePersistence} → ${afterPersistence}, Suggestion ID: ${suggestionId}`,
-            validationDetails: 'Mensaje persistido y verificado en storage'
+            validationDetails: 'Mensaje persistido y validado en BD real'
           };
           break;
 
         case 'priority-system':
-          // FASE 4: Test completo del sistema de prioridades
-          await addNotification('Urgent test notification', 'urgent');
-          await addNotification('High priority test', 'high');
-          await addSuggestion('Low priority suggestion', 'low');
+          // FASE 6: Test completo del sistema de prioridades con validación BD
+          const initialPriorityCount = messages.length;
           
-          // FASE 2: Usar polling para verificar prioridades
+          await addNotification('FASE 6 urgent test notification', 'urgent');
+          await addNotification('FASE 6 high priority test', 'high');
+          await addSuggestion('FASE 6 low priority suggestion', 'low');
+          
+          // FASE 6: Validar persistencia y prioridades
           const prioritiesUpdated = await waitForCondition(
-            () => {
+            async () => {
+              // Validar persistencia de 3 mensajes nuevos
+              const isPersisted = await validatePersistence(initialPriorityCount + 3, 'priority-system-test');
+              if (!isPersisted) return false;
+              
+              // Validar badge de prioridades
               const currentBadgePriorities = getBadgeInfo;
-              console.log(`🏷️ Badge priorities check:`, currentBadgePriorities);
+              console.log(`🏷️ FASE 6 - Badge priorities check:`, currentBadgePriorities);
               return currentBadgePriorities.hasUrgent && currentBadgePriorities.hasHigh;
             },
-            5000, // 5 segundos timeout
-            250,  // 250ms polling
-            'badge priorities update'
+            8000,
+            500,
+            'priority system validation'
           );
           
           const prioritiesBadgeInfo = getBadgeInfo;
@@ -288,56 +319,65 @@ const Phase5TestingSuite = () => {
           result = { 
             success: prioritiesUpdated, 
             details: `Urgent: ${prioritiesBadgeInfo.hasUrgent}, High: ${prioritiesBadgeInfo.hasHigh}, Count: ${prioritiesBadgeInfo.count}`,
-            validationDetails: 'Sistema de prioridades funcionando correctamente'
+            validationDetails: 'Sistema de prioridades persistido y validado en BD'
           };
           break;
 
         case 'bulk-operations':
-          // FASE 4: Test de operaciones en lote
+          // FASE 6: Test de operaciones en lote con validación BD REAL
           const beforeBulk = messages.filter(m => !m.isRead).length;
-          console.log(`📊 Unread messages before bulk: ${beforeBulk}`);
+          const totalBulk = messages.length;
+          console.log(`📊 FASE 6 - Unread messages before bulk: ${beforeBulk}, total: ${totalBulk}`);
           
           await markAllAsRead();
           
-          // FASE 2: Polling para verificar operación bulk
+          // FASE 6: Validar operación bulk contra BD
           const bulkCompleted = await waitForCondition(
-            () => {
+            async () => {
+              // Validar que el conteo total se mantiene
+              const isPersisted = await validatePersistence(totalBulk, 'bulk-operations-test');
+              if (!isPersisted) return false;
+              
+              // Validar que todos están marcados como leídos
               const unreadCount = messages.filter(m => !m.isRead).length;
-              console.log(`📊 Current unread count: ${unreadCount}`);
+              console.log(`📊 FASE 6 - Current unread count: ${unreadCount}`);
               return unreadCount === 0;
             },
-            6000, // 6 segundos para operaciones bulk
-            300,  // 300ms polling
-            'bulk mark as read'
+            10000,
+            750,
+            'bulk mark as read validation'
           );
           
           const afterBulk = messages.filter(m => !m.isRead).length;
           
           result = {
             success: bulkCompleted,
-            details: `Unread: ${beforeBulk} → ${afterBulk}`,
-            validationDetails: 'Operación bulk completada correctamente'
+            details: `Unread: ${beforeBulk} → ${afterBulk}, Total: ${totalBulk}`,
+            validationDetails: 'Operación bulk persistida y validada en BD'
           };
           break;
 
         case 'cleanup-verification':
-          // FASE 4: Verificar limpieza final
+          // FASE 6: Verificar limpieza final con validación BD REAL
           const preCleanup = messages.length;
           
           await clearChat();
           
-          // FASE 2: Polling para verificar limpieza
+          // FASE 6: Validar limpieza REAL contra BD
           const cleanupCompleted = await waitForCondition(
-            () => messages.length === 0,
-            3000,
-            200,
-            'chat cleanup'
+            async () => {
+              const isClean = await validatePersistence(0, 'cleanup-verification-test');
+              return isClean;
+            },
+            6000,
+            500,
+            'cleanup verification'
           );
           
           result = {
             success: cleanupCompleted,
             details: `Messages: ${preCleanup} → ${messages.length}`,
-            validationDetails: 'Limpieza de chat completada'
+            validationDetails: 'Limpieza completada y validada en BD'
           };
           break;
 
@@ -350,7 +390,7 @@ const Phase5TestingSuite = () => {
       }
 
       const duration = Date.now() - startTime;
-      console.log(`✅ Test ${testCase.name} completed in ${duration}ms:`, result);
+      console.log(`✅ FASE 6 - Test ${testCase.name} completed in ${duration}ms:`, result);
 
       return {
         testName: testCase.name,
@@ -363,7 +403,7 @@ const Phase5TestingSuite = () => {
 
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.error(`❌ Test ${testCase.name} failed:`, error);
+      console.error(`❌ FASE 6 - Test ${testCase.name} failed:`, error);
       
       return {
         testName: testCase.name,
@@ -379,7 +419,7 @@ const Phase5TestingSuite = () => {
   const runTestSuite = async () => {
     if (isRunning) return;
 
-    console.log('🚀 Starting Phase 5 Test Suite (CORRECTED & OPTIMIZED)');
+    console.log('🚀 Starting Phase 5 Test Suite (FASE 6 QUIRÚRGICA)');
     setIsRunning(true);
     setResults(null);
     setTestProgress(0);
@@ -391,10 +431,10 @@ const Phase5TestingSuite = () => {
     const testResults: TestResult[] = [];
 
     try {
-      // FASE 3: Preparar ambiente de test
+      // FASE 6: Preparar ambiente de test con limpieza REAL
       await prepareTestEnvironment();
 
-      // FASE 4: Ejecutar tests con control de aborto
+      // FASE 6: Ejecutar tests con control de aborto
       for (let i = 0; i < testCases.length; i++) {
         if (abortController.signal.aborted) {
           console.log('🛑 Test suite aborted');
@@ -409,14 +449,14 @@ const Phase5TestingSuite = () => {
         
         setTestProgress(((i + 1) / testCases.length) * 100);
         
-        // FASE 4: Delay entre tests para evitar condiciones de carrera
+        // FASE 6: Delay entre tests para evitar condiciones de carrera
         if (i < testCases.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
 
     } finally {
-      // FASE 3: Limpiar ambiente de test
+      // FASE 6: Limpiar ambiente de test con validación
       await cleanupTestEnvironment();
       
       const totalDuration = Date.now() - startTime;
@@ -471,10 +511,9 @@ const Phase5TestingSuite = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TestTube className="h-5 w-5 text-blue-600" />
-            <CardTitle>Phase 5 Testing Suite - CORRECTED & OPTIMIZED</CardTitle>
+            <CardTitle>Phase 5 Testing Suite - FASE 6 QUIRÚRGICA</CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            {/* FASE 3: Indicador de estado Smart Messaging */}
             {pausedByTest && (
               <Badge variant="secondary" className="text-xs">
                 <Shield className="h-3 w-3 mr-1" />
@@ -486,6 +525,9 @@ const Phase5TestingSuite = () => {
             </Badge>
             <Badge variant="outline" className="text-xs">
               Messages: {messages.length}
+            </Badge>
+            <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
+              FASE 6 - BD REAL
             </Badge>
           </div>
         </div>

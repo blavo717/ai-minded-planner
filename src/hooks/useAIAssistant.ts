@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLLMService } from '@/hooks/useLLMService';
@@ -33,6 +32,7 @@ export const useAIAssistant = () => {
     updateMessage,
     markAllAsRead: markAllAsReadUnified,
     clearChat: clearChatUnified,
+    validatePersistence, // FASE 6: Recibir validación
     currentStrategy
   } = useAIMessagesUnified();
   
@@ -40,8 +40,7 @@ export const useAIAssistant = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'idle'>('idle');
 
-  // FASE 4: Simplificar badge system - eliminar badgeUpdateTrigger, usar solo messages
-  // FASE 1: getBadgeInfo como valor computado, no función
+  // FASE 6: Badge system con logging detallado
   const getBadgeInfo = useMemo((): NotificationBadge => {
     const unreadMessages = messages.filter(msg => !msg.isRead && msg.type !== 'user');
     
@@ -51,7 +50,7 @@ export const useAIAssistant = () => {
       hasHigh: unreadMessages.some(msg => msg.priority === 'high')
     };
     
-    console.log(`🏷️ Badge info COMPUTED (FASE 4 - simplified):`, {
+    console.log(`🏷️ FASE 6 - Badge info COMPUTED:`, {
       total: messages.length,
       unread: badge.count,
       urgent: badge.hasUrgent,
@@ -61,9 +60,9 @@ export const useAIAssistant = () => {
     });
     
     return badge;
-  }, [messages, currentStrategy]); // FASE 4: Solo dependencias esenciales
+  }, [messages, currentStrategy]);
 
-  // FASE 1 & 2: addMessage con async/await correcto y timeout realista
+  // FASE 6: addMessage con validación realista (750ms timeout)
   const addMessage = useCallback(async (message: Omit<ChatMessage, 'id' | 'timestamp'>): Promise<string> => {
     const messageId = generateValidUUID();
     const newMessage: ChatMessage = {
@@ -72,7 +71,7 @@ export const useAIAssistant = () => {
       timestamp: new Date(),
     };
     
-    console.log(`➕ Adding message (FASE 1-2 corrected):`, {
+    console.log(`➕ FASE 6 - Adding message:`, {
       id: newMessage.id,
       type: newMessage.type,
       contentPreview: newMessage.content.substring(0, 50) + '...',
@@ -83,48 +82,48 @@ export const useAIAssistant = () => {
     
     try {
       await saveMessage(newMessage);
-      console.log('✅ Message successfully persisted');
+      console.log('✅ FASE 6 - Message successfully persisted and validated');
       
-      // FASE 2: Timeout realista para asegurar persistencia
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // FASE 6: Timeout realista para BD real
+      await new Promise(resolve => setTimeout(resolve, 750));
       
-      console.log(`✅ addMessage returning ID: ${messageId}`);
+      console.log(`✅ FASE 6 - addMessage returning ID: ${messageId}`);
       return messageId;
     } catch (error) {
-      console.error('❌ Failed to save message:', error);
+      console.error('❌ FASE 6 - Failed to save message:', error);
       throw error;
     }
   }, [saveMessage, currentStrategy]);
 
   const markAsRead = useCallback(async (messageId: string) => {
-    console.log(`👁️ Marking message as read: ${messageId} via ${currentStrategy}`);
+    console.log(`👁️ FASE 6 - Marking message as read: ${messageId} via ${currentStrategy}`);
     
     try {
       await updateMessage(messageId, { isRead: true });
-      // FASE 2: Timeout realista
-      await new Promise(resolve => setTimeout(resolve, 100));
-      console.log('✅ Message marked as read successfully');
+      // FASE 6: Timeout realista
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('✅ FASE 6 - Message marked as read successfully');
     } catch (error) {
-      console.error('❌ Failed to mark message as read:', error);
+      console.error('❌ FASE 6 - Failed to mark message as read:', error);
     }
   }, [updateMessage, currentStrategy]);
 
   const markAllAsRead = useCallback(async () => {
     const unreadCount = messages.filter(msg => !msg.isRead && msg.type !== 'user').length;
-    console.log(`👁️ Marking all ${unreadCount} messages as read via ${currentStrategy}`);
+    console.log(`👁️ FASE 6 - Marking all ${unreadCount} messages as read via ${currentStrategy}`);
     
     if (unreadCount === 0) {
-      console.log('✅ No unread messages to mark');
+      console.log('✅ FASE 6 - No unread messages to mark');
       return;
     }
     
     try {
       await markAllAsReadUnified();
-      // FASE 2: Timeout más largo para operaciones bulk
-      await new Promise(resolve => setTimeout(resolve, 200));
-      console.log('✅ All messages marked as read successfully');
+      // FASE 6: Timeout realista para operaciones bulk
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('✅ FASE 6 - All messages marked as read successfully');
     } catch (error) {
-      console.error('❌ Failed to mark all as read:', error);
+      console.error('❌ FASE 6 - Failed to mark all as read:', error);
     }
   }, [messages, markAllAsReadUnified, currentStrategy]);
 
@@ -206,9 +205,9 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     }
   }, [addMessage, makeLLMRequest, messages, currentStrategy]);
 
-  // FASE 1 & 2: addNotification y addSuggestion con async/await correcto
+  // FASE 6: addNotification y addSuggestion con timeouts realistas
   const addNotification = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium', contextData?: any): Promise<string> => {
-    console.log(`🔔 Adding notification (FASE 1-2): ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
+    console.log(`🔔 FASE 6 - Adding notification: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
     const messageId = await addMessage({
       type: 'notification',
       content,
@@ -217,15 +216,15 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       contextData
     });
     
-    // FASE 2: Delay adicional para operaciones críticas
-    await new Promise(resolve => setTimeout(resolve, 150));
+    // FASE 6: Timeout realista para operaciones críticas
+    await new Promise(resolve => setTimeout(resolve, 750));
     
-    console.log(`✅ addNotification returning ID: ${messageId}`);
+    console.log(`✅ FASE 6 - addNotification returning ID: ${messageId}`);
     return messageId;
   }, [addMessage, currentStrategy]);
 
   const addSuggestion = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'low', contextData?: any): Promise<string> => {
-    console.log(`💡 Adding suggestion (FASE 1-2): ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
+    console.log(`💡 FASE 6 - Adding suggestion: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
     const messageId = await addMessage({
       type: 'suggestion',
       content,
@@ -234,23 +233,23 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       contextData
     });
     
-    // FASE 2: Delay adicional para operaciones críticas
-    await new Promise(resolve => setTimeout(resolve, 150));
+    // FASE 6: Timeout realista para operaciones críticas
+    await new Promise(resolve => setTimeout(resolve, 750));
     
-    console.log(`✅ addSuggestion returning ID: ${messageId}`);
+    console.log(`✅ FASE 6 - addSuggestion returning ID: ${messageId}`);
     return messageId;
   }, [addMessage, currentStrategy]);
 
   const clearChat = useCallback(async () => {
-    console.log(`🗑️ Clearing chat history via ${currentStrategy}`);
+    console.log(`🗑️ FASE 6 - Clearing chat history via ${currentStrategy}`);
     
     try {
       await clearChatUnified();
-      // FASE 2: Timeout realista
-      await new Promise(resolve => setTimeout(resolve, 200));
-      console.log('✅ Chat cleared successfully');
+      // FASE 6: Timeout realista
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('✅ FASE 6 - Chat cleared successfully');
     } catch (error) {
-      console.error('❌ Failed to clear chat:', error);
+      console.error('❌ FASE 6 - Failed to clear chat:', error);
     }
   }, [clearChatUnified, currentStrategy]);
 
@@ -273,9 +272,12 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     markAllAsRead,
     clearChat,
     
-    // FASE 1 & 4: getBadgeInfo como valor directo (no función)
+    // FASE 6: getBadgeInfo como valor directo
     getBadgeInfo,
     unreadCount: getBadgeInfo.count,
+    
+    // FASE 6: Exponer validación para tests
+    validatePersistence,
     
     // Debug info
     currentStrategy
