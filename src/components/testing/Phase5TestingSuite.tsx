@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -172,12 +171,12 @@ const Phase5TestingSuite = () => {
           return { success: false, details: 'Timeout esperando respuesta de IA' };
 
         case 'notification-badge-real':
-          const initialBadgeInfo = getBadgeInfo();
-          const testNotificationId = addNotification('Test notification for badge verification', 'high');
+          const initialBadgeInfo = getBadgeInfo;
+          const testNotificationId = await addNotification('Test notification for badge verification', 'high');
           
           await new Promise(resolve => setTimeout(resolve, 500));
           
-          const updatedBadgeInfo = getBadgeInfo();
+          const updatedBadgeInfo = getBadgeInfo;
           const badgeIncreased = updatedBadgeInfo.count > initialBadgeInfo.count;
           const hasHighPriority = updatedBadgeInfo.hasHigh;
           
@@ -264,13 +263,13 @@ const Phase5TestingSuite = () => {
 
         case 'badge-priorities':
           // Crear notificaciones con diferentes prioridades
-          addNotification('Urgent test', 'urgent');
-          addNotification('High test', 'high');
-          addSuggestion('Low test', 'low');
+          await addNotification('Urgent test', 'urgent');
+          await addNotification('High test', 'high');
+          await addSuggestion('Low test', 'low');
           
           await new Promise(resolve => setTimeout(resolve, 500));
           
-          const badgeInfo = getBadgeInfo();
+          const badgeInfo = getBadgeInfo;
           
           return { 
             success: badgeInfo.hasUrgent && badgeInfo.hasHigh, 
