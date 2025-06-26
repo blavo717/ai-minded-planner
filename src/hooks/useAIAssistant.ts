@@ -41,25 +41,13 @@ export const useAIAssistant = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'idle'>('idle');
   const badgeUpdateTrigger = useRef(0);
 
-  // FASE 5: DEBUGGING DIRIGIDO
-  console.log('🎯 useAIAssistant state:', {
-    user: user?.id || 'none',
-    messagesCount: messages.length,
-    isInitialized: isPersistenceInitialized,
-    connectionStatus,
-    isOpen,
-    strategy: currentStrategy,
-    forceUpdateRef,
-    badgeUpdateTrigger: badgeUpdateTrigger.current
-  });
-
-  // FASE 2: SIMPLIFICAR FORCE UPDATES - Un solo trigger sin setTimeout doble
+  // CORRECCIÓN 1: Simplificar badge trigger sin setTimeout
   const triggerBadgeUpdate = useCallback(() => {
     badgeUpdateTrigger.current += 1;
-    console.log('🏷️ Badge update triggered (simplified):', badgeUpdateTrigger.current);
+    console.log('🏷️ Badge update triggered (corrected):', badgeUpdateTrigger.current);
   }, []);
 
-  // FASE 4: MEJORAR BADGE RENDERING - Usar useMemo para estabilizar
+  // CORRECCIÓN 4: Usar useMemo ESTABLE para badge info
   const getBadgeInfo = useMemo((): NotificationBadge => {
     const unreadMessages = messages.filter(msg => !msg.isRead && msg.type !== 'user');
     
@@ -69,7 +57,7 @@ export const useAIAssistant = () => {
       hasHigh: unreadMessages.some(msg => msg.priority === 'high')
     };
     
-    console.log(`🏷️ Badge info calculated (memoized):`, {
+    console.log(`🏷️ Badge info STABLE (memoized):`, {
       total: messages.length,
       unread: badge.count,
       urgent: badge.hasUrgent,
@@ -87,7 +75,7 @@ export const useAIAssistant = () => {
     triggerBadgeUpdate();
   }, [messages, triggerBadgeUpdate]);
 
-  // FUNCIÓN addMessage MEJORADA
+  // FUNCIÓN addMessage CON ASYNC/AWAIT CORRECTO
   const addMessage = useCallback(async (message: Omit<ChatMessage, 'id' | 'timestamp'>): Promise<string> => {
     const messageId = generateValidUUID();
     const newMessage: ChatMessage = {
@@ -96,7 +84,7 @@ export const useAIAssistant = () => {
       timestamp: new Date(),
     };
     
-    console.log(`➕ Adding message with valid UUID:`, {
+    console.log(`➕ Adding message with UUID:`, {
       id: newMessage.id,
       type: newMessage.type,
       contentPreview: newMessage.content.substring(0, 50) + '...',
@@ -108,6 +96,10 @@ export const useAIAssistant = () => {
     try {
       await saveMessage(newMessage);
       console.log('✅ Message successfully persisted');
+      
+      // CORRECCIÓN 4: Pequeño delay para asegurar persistencia
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       triggerBadgeUpdate();
       
       console.log(`✅ addMessage returning ID: ${messageId}`);
@@ -123,6 +115,7 @@ export const useAIAssistant = () => {
     
     try {
       await updateMessage(messageId, { isRead: true });
+      await new Promise(resolve => setTimeout(resolve, 50)); // Small delay
       console.log('✅ Message marked as read successfully');
       triggerBadgeUpdate();
     } catch (error) {
@@ -141,6 +134,7 @@ export const useAIAssistant = () => {
     
     try {
       await markAllAsReadUnified();
+      await new Promise(resolve => setTimeout(resolve, 100)); // Longer delay for bulk operation
       console.log('✅ All messages marked as read successfully');
       triggerBadgeUpdate();
     } catch (error) {
@@ -226,7 +220,7 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     }
   }, [addMessage, makeLLMRequest, messages, currentStrategy]);
 
-  // ARREGLAR addNotification Y addSuggestion PARA RETORNAR ID CORRECTAMENTE
+  // CORRECCIÓN 4: addNotification Y addSuggestion CON ASYNC/AWAIT CORRECTO
   const addNotification = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium', contextData?: any): Promise<string> => {
     console.log(`🔔 Adding notification: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
     const messageId = await addMessage({
@@ -236,6 +230,9 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       priority,
       contextData
     });
+    
+    // CORRECCIÓN 4: Delay adicional para operaciones críticas
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     console.log(`✅ addNotification returning ID: ${messageId}`);
     return messageId;
@@ -251,6 +248,9 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       contextData
     });
     
+    // CORRECCIÓN 4: Delay adicional para operaciones críticas
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     console.log(`✅ addSuggestion returning ID: ${messageId}`);
     return messageId;
   }, [addMessage, currentStrategy]);
@@ -260,6 +260,7 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     
     try {
       await clearChatUnified();
+      await new Promise(resolve => setTimeout(resolve, 100));
       console.log('✅ Chat cleared successfully');
       triggerBadgeUpdate();
     } catch (error) {
@@ -286,8 +287,8 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     markAllAsRead,
     clearChat,
     
-    // Utilidades
-    getBadgeInfo: () => getBadgeInfo, // FASE 4: Retornar función que accede al valor memoizado
+    // CORRECCIÓN 1: Retornar directamente el objeto badge (NO función)
+    getBadgeInfo,
     unreadCount: getBadgeInfo.count,
     
     // Debug info

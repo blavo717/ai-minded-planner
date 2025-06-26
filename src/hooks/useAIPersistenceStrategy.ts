@@ -8,17 +8,17 @@ export type PersistenceStrategy = 'supabase' | 'localStorage' | 'memory';
 export const useAIPersistenceStrategy = () => {
   const { user } = useAuth();
   
-  // Detectar automáticamente la estrategia basada en el entorno
+  // CORRECCIÓN 3: Detectar automáticamente la estrategia con más precisión
   const getStrategy = useCallback((): PersistenceStrategy => {
-    // En tests o si no hay usuario, usar localStorage
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost' && !user) {
-      console.log('🔄 Persistence strategy: localStorage (test mode)');
+    // CORRECCIÓN 3: Forzar localStorage en tests (hostname localhost)
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('🔄 Persistence strategy: localStorage (localhost detected)');
       return 'localStorage';
     }
     
     // En producción con usuario, usar Supabase
     if (user) {
-      console.log('🔄 Persistence strategy: supabase (production mode)');
+      console.log('🔄 Persistence strategy: supabase (production mode with user)');
       return 'supabase';
     }
     

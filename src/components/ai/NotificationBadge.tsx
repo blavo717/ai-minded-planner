@@ -9,12 +9,11 @@ interface NotificationBadgeProps {
 }
 
 const NotificationBadge = ({ count, hasUrgent, hasHigh, className = '' }: NotificationBadgeProps) => {
-  // DEBUGGING MASIVO para el badge
-  console.log('🏷️ NotificationBadge render:', { 
+  // CORRECCIÓN 5: Debugging optimizado
+  console.log('🏷️ NotificationBadge render (CORRECTED):', { 
     count, 
     hasUrgent, 
     hasHigh,
-    timestamp: Date.now(),
     key: `${count}-${hasUrgent}-${hasHigh}`
   });
   
@@ -39,12 +38,12 @@ const NotificationBadge = ({ count, hasUrgent, hasHigh, className = '' }: Notifi
   const displayCount = count > 99 ? '99+' : count.toString();
   console.log('🏷️ NotificationBadge: displaying count:', displayCount);
 
-  // FORZAR RE-RENDER CON KEY ÚNICA
-  const uniqueKey = `badge-${count}-${hasUrgent ? 'urgent' : ''}-${hasHigh ? 'high' : ''}-${Date.now()}`;
+  // CORRECCIÓN 4: Clave ESTABLE sin Date.now()
+  const stableKey = `badge-${count}-${hasUrgent ? 'urgent' : ''}-${hasHigh ? 'high' : ''}`;
   
   return (
     <div 
-      key={uniqueKey}
+      key={stableKey}
       className={`
         absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold
         transition-all duration-200 transform hover:scale-110
@@ -55,7 +54,7 @@ const NotificationBadge = ({ count, hasUrgent, hasHigh, className = '' }: Notifi
       data-count={count}
       data-has-urgent={hasUrgent}
       data-has-high={hasHigh}
-      data-unique-key={uniqueKey}
+      data-stable-key={stableKey}
     >
       {displayCount}
     </div>

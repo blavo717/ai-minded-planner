@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,7 @@ const AIAssistantPanel = () => {
     markAsRead,
     markAllAsRead,
     clearChat,
-    getBadgeInfo,
+    getBadgeInfo, // CORRECCIÓN 1: Ya no es función, es objeto directo
     currentStrategy,
     badgeUpdateTrigger
   } = useAIAssistant();
@@ -51,27 +52,20 @@ const AIAssistantPanel = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // FASE 5: DEBUGGING DIRIGIDO
-  console.log('🎯 AIAssistantPanel render:', {
+  // CORRECCIÓN 1: getBadgeInfo ya es un objeto, no una función
+  const badgeInfo = getBadgeInfo;
+
+  // CORRECCIÓN 5: Debug visual mejorado
+  console.log('🎯 AIAssistantPanel render (CORRECTED):', {
     isOpen,
     messagesCount: messages.length,
     isInitialized,
     connectionStatus,
     isMinimized,
     strategy: currentStrategy,
+    badgeInfo,
     badgeUpdateTrigger
   });
-
-  // FASE 4: MEJORAR BADGE RENDERING - Usar useMemo para estabilizar badgeInfo
-  const badgeInfo = useMemo(() => {
-    const info = getBadgeInfo();
-    console.log('🏷️ Badge info memoized in AIAssistantPanel:', {
-      ...info,
-      strategy: currentStrategy,
-      trigger: badgeUpdateTrigger
-    });
-    return info;
-  }, [getBadgeInfo, currentStrategy, badgeUpdateTrigger]);
 
   // useEffect hooks for auto-scroll and focus
 
@@ -159,9 +153,9 @@ const AIAssistantPanel = () => {
     }
   };
 
-  // FASE 4: BOTÓN FLOTANTE CON BADGE ESTABLE - Eliminar Date.now() de la key
+  // CORRECCIÓN 4: BOTÓN FLOTANTE CON BADGE ESTABLE - Clave simplificada y estable
   if (!isOpen) {
-    console.log('🎯 Rendering floating button with badge:', {
+    console.log('🎯 Rendering floating button with badge (CORRECTED):', {
       ...badgeInfo,
       strategy: currentStrategy
     });
@@ -180,7 +174,7 @@ const AIAssistantPanel = () => {
         >
           <MessageCircle className="h-6 w-6 text-white" />
           <NotificationBadge 
-            key={`badge-${badgeInfo.count}-${badgeInfo.hasUrgent}-${badgeInfo.hasHigh}-${currentStrategy}`}
+            key={`stable-${badgeInfo.count}-${badgeInfo.hasUrgent}-${badgeInfo.hasHigh}`}
             count={badgeInfo.count}
             hasUrgent={badgeInfo.hasUrgent}
             hasHigh={badgeInfo.hasHigh}
@@ -190,7 +184,7 @@ const AIAssistantPanel = () => {
     );
   }
 
-  console.log('🎯 Rendering full chat panel');
+  console.log('🎯 Rendering full chat panel (CORRECTED)');
 
   return (
     <div className="fixed bottom-6 right-6 z-50 animate-fade-in" data-testid="ai-assistant-panel">
