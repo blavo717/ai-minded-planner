@@ -14,6 +14,8 @@ import TaskViewControls from '@/components/tasks/TaskViewControls';
 import TaskList from '@/components/tasks/TaskList';
 import TaskHistory from '@/components/tasks/TaskHistory';
 import DailyPlannerPreview from '@/components/AI/DailyPlannerPreview';
+import TimelineView from '@/components/tasks/views/TimelineView';
+import CalendarView from '@/components/tasks/views/CalendarView';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
 
@@ -56,6 +58,51 @@ const TasksContent = () => {
     );
   }
 
+  const renderTaskView = () => {
+    switch (viewMode) {
+      case 'kanban':
+        return (
+          <div className="w-full overflow-x-auto">
+            <KanbanBoard
+              tasks={filteredTasks}
+              getSubtasksForTask={getSubtasksForTask}
+              onEditTask={handleEditTask}
+            />
+          </div>
+        );
+      case 'timeline':
+        return (
+          <TimelineView
+            tasks={filteredTasks}
+            onEditTask={handleEditTask}
+            onCompleteTask={handleCompleteTask}
+          />
+        );
+      case 'calendar':
+        return (
+          <CalendarView
+            tasks={filteredTasks}
+            onEditTask={handleEditTask}
+            onCompleteTask={handleCompleteTask}
+          />
+        );
+      case 'list':
+      default:
+        return (
+          <TaskList
+            tasks={filteredTasks}
+            getSubtasksForTask={getSubtasksForTask}
+            onEditTask={handleEditTask}
+            onManageDependencies={handleManageDependencies}
+            onAssignTask={handleAssignTask}
+            onCompleteTask={handleCompleteTask}
+            onArchiveTask={handleArchiveTask}
+            onCreateSubtask={handleCreateSubtask}
+          />
+        );
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       <TasksHeader
@@ -94,26 +141,7 @@ const TasksContent = () => {
         />
 
         <div className="min-h-96">
-          {viewMode === 'kanban' ? (
-            <div className="w-full overflow-x-auto">
-              <KanbanBoard
-                tasks={filteredTasks}
-                getSubtasksForTask={getSubtasksForTask}
-                onEditTask={handleEditTask}
-              />
-            </div>
-          ) : (
-            <TaskList
-              tasks={filteredTasks}
-              getSubtasksForTask={getSubtasksForTask}
-              onEditTask={handleEditTask}
-              onManageDependencies={handleManageDependencies}
-              onAssignTask={handleAssignTask}
-              onCompleteTask={handleCompleteTask}
-              onArchiveTask={handleArchiveTask}
-              onCreateSubtask={handleCreateSubtask}
-            />
-          )}
+          {renderTaskView()}
         </div>
       </div>
 

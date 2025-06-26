@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Task } from '@/hooks/useTasks';
 
@@ -20,8 +21,8 @@ interface TasksContextType {
   setIsCompleteModalOpen: (open: boolean) => void;
   
   // View and state management
-  viewMode: 'list' | 'kanban';
-  setViewMode: (mode: 'list' | 'kanban') => void;
+  viewMode: 'list' | 'kanban' | 'timeline' | 'calendar';
+  setViewMode: (mode: 'list' | 'kanban' | 'timeline' | 'calendar') => void;
   
   showInsights: boolean;
   setShowInsights: (show: boolean) => void;
@@ -67,7 +68,7 @@ export const TasksProvider = ({ children }: TasksProviderProps) => {
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
   
   // View states
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'timeline' | 'calendar'>('list');
   const [showInsights, setShowInsights] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   

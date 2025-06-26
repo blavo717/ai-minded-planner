@@ -2,11 +2,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { List, LayoutGrid } from 'lucide-react';
+import { List, LayoutGrid, Clock, Calendar } from 'lucide-react';
 
 interface TaskViewControlsProps {
-  viewMode: 'list' | 'kanban';
-  onViewModeChange: (mode: 'list' | 'kanban') => void;
+  viewMode: 'list' | 'kanban' | 'timeline' | 'calendar';
+  onViewModeChange: (mode: 'list' | 'kanban' | 'timeline' | 'calendar') => void;
   taskCount: number;
 }
 
@@ -29,6 +29,22 @@ const TaskViewControls = ({ viewMode, onViewModeChange, taskCount }: TaskViewCon
         >
           <LayoutGrid className="h-4 w-4 mr-2" />
           Kanban
+        </Button>
+        <Button
+          variant={viewMode === 'timeline' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => onViewModeChange('timeline')}
+        >
+          <Clock className="h-4 w-4 mr-2" />
+          Timeline
+        </Button>
+        <Button
+          variant={viewMode === 'calendar' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => onViewModeChange('calendar')}
+        >
+          <Calendar className="h-4 w-4 mr-2" />
+          Calendario
         </Button>
       </div>
       
