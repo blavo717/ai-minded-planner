@@ -51,18 +51,19 @@ export const generateTestData = async (userId: string) => {
       .limit(10);
 
     if (existingTasks && existingTasks.length > 0) {
-      const updates = existingTasks.map(task => ({
-        id: task.id,
-        actual_duration: Math.floor(Math.random() * 180) + 30, // 30-210 minutos
-        estimated_duration: Math.floor(Math.random() * 120) + 60, // 60-180 minutos
-      }));
+      // Actualizar cada tarea individualmente
+      for (const task of existingTasks) {
+        const { error: updateError } = await supabase
+          .from('tasks')
+          .update({
+            actual_duration: Math.floor(Math.random() * 180) + 30, // 30-210 minutos
+            estimated_duration: Math.floor(Math.random() * 120) + 60, // 60-180 minutos
+          })
+          .eq('id', task.id);
 
-      const { error: updateError } = await supabase
-        .from('tasks')
-        .upsert(updates);
-
-      if (updateError) {
-        console.error('Error actualizando tareas:', updateError);
+        if (updateError) {
+          console.error('Error actualizando tarea:', updateError);
+        }
       }
     }
 
