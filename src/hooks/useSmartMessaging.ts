@@ -13,7 +13,7 @@ export const useSmartMessaging = () => {
   
   const [isInitialized, setIsInitialized] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  // FASE 2 & 3: Control absoluto de pausas
+  // FASE 10: PASO 4 - Control TOTAL de pausas para aislamiento
   const [isPaused, setIsPaused] = useState(false);
   const [pausedByTest, setPausedByTest] = useState(false);
   
@@ -37,43 +37,48 @@ export const useSmartMessaging = () => {
     return isDuplicate;
   }, [messages]);
 
-  // FASE 3: Pausar Smart Messaging para tests
+  // FASE 10: PASO 4 - Pausar Smart Messaging REAL para tests con confirmación
   const pauseForTesting = useCallback(() => {
-    console.log('⏸️ Smart Messaging PAUSED for testing');
+    console.log('⏸️ FASE 10 - PASO 4: Smart Messaging PAUSADO REAL para testing');
     setIsPaused(true);
     setPausedByTest(true);
     
+    // FASE 10: PASO 4 - Limpieza TOTAL de intervalos
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+      console.log('🛑 FASE 10 - PASO 4: Interval principal limpiado');
     }
     
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
+      console.log('🛑 FASE 10 - PASO 4: Timeout inicial limpiado');
     }
     
     setIsRunning(false);
+    console.log('✅ FASE 10 - PASO 4: Smart Messaging completamente desactivado para testing');
   }, []);
 
-  // FASE 3: Reanudar Smart Messaging después de tests
+  // FASE 10: PASO 4 - Reanudar Smart Messaging después de tests con confirmación
   const resumeAfterTesting = useCallback(() => {
-    console.log('▶️ Smart Messaging RESUMED after testing');
+    console.log('▶️ FASE 10 - PASO 4: Smart Messaging REANUDADO después de testing');
     setIsPaused(false);
     setPausedByTest(false);
     
-    // Reiniciar con delay para evitar conflictos
+    // FASE 10: PASO 4 - Reiniciar con delay aumentado para evitar conflictos
     setTimeout(() => {
       if (user && activeConfiguration) {
+        console.log('🔄 FASE 10 - PASO 4: Reiniciando Smart Messaging con configuración válida');
         setIsRunning(true);
       }
-    }, 2000);
+    }, 5000); // Delay aumentado
   }, [user, activeConfiguration]);
 
   // FASE 2: Verificar tareas que necesitan seguimiento (con anti-duplicados)
   const checkFollowupTasks = useCallback(async () => {
     if (isPaused || pausedByTest) {
-      console.log('⏸️ checkFollowupTasks: Skipped (paused)');
+      console.log('⏸️ FASE 10 - PASO 4: checkFollowupTasks: Skipped (PAUSADO)');
       return false;
     }
     
@@ -120,7 +125,7 @@ export const useSmartMessaging = () => {
   // FASE 2: Verificar tareas inactivas (con anti-duplicados)
   const checkInactiveTasks = useCallback(async () => {
     if (isPaused || pausedByTest) {
-      console.log('⏸️ checkInactiveTasks: Skipped (paused)');
+      console.log('⏸️ FASE 10 - PASO 4: checkInactiveTasks: Skipped (PAUSADO)');
       return false;
     }
     
@@ -171,7 +176,7 @@ export const useSmartMessaging = () => {
   // FASE 2: Verificar próximos deadlines (con anti-duplicados)
   const checkUpcomingDeadlines = useCallback(async () => {
     if (isPaused || pausedByTest) {
-      console.log('⏸️ checkUpcomingDeadlines: Skipped (paused)');
+      console.log('⏸️ FASE 10 - PASO 4: checkUpcomingDeadlines: Skipped (PAUSADO)');
       return false;
     }
     
@@ -258,7 +263,7 @@ export const useSmartMessaging = () => {
     }
     
     if (isPaused || pausedByTest) {
-      console.log('⏸️ triggerTaskAnalysis: Skipped (paused)');
+      console.log('⏸️ FASE 10 - PASO 4: triggerTaskAnalysis: Skipped (PAUSADO)');
       return;
     }
     
@@ -282,10 +287,10 @@ export const useSmartMessaging = () => {
     }
   }, [addSuggestion, activeConfiguration, checkForDuplicateMessage, tasks.length, isPaused, pausedByTest]);
 
-  // FASE 3: Ejecutar todas las verificaciones con control de pausas
+  // FASE 10: PASO 4 - Ejecutar todas las verificaciones con control TOTAL de pausas
   const runSmartChecks = useCallback(async () => {
     if (isPaused || pausedByTest) {
-      console.log('⏸️ runSmartChecks: Skipped (system paused)');
+      console.log('⏸️ FASE 10 - PASO 4: runSmartChecks: Skipped (sistema PAUSADO TOTALMENTE)');
       return;
     }
     
@@ -316,24 +321,24 @@ export const useSmartMessaging = () => {
     }
   }, [user, tasks.length, checkFollowupTasks, checkInactiveTasks, checkUpcomingDeadlines, isPaused, pausedByTest]);
 
-  // FASE 3: Configurar intervalos con control de pausas
+  // FASE 10: PASO 4 - Configurar intervalos con control TOTAL de pausas
   useEffect(() => {
     if (!user || isPaused || pausedByTest) {
-      console.log('🛑 Smart messaging intervals not started (no user, paused, or test mode)');
+      console.log('🛑 FASE 10 - PASO 4: Smart messaging intervals not started (no user, paused, or test mode)');
       return;
     }
     
     if (intervalRef.current) {
-      console.log('🛑 Cleaning up smart messaging intervals');
+      console.log('🛑 FASE 10 - PASO 4: Cleaning up smart messaging intervals');
       clearInterval(intervalRef.current);
       clearTimeout(timeoutRef.current);
     }
     
     const isProduction = activeConfiguration && !window.location.hostname.includes('localhost');
-    const initialDelay = isProduction ? 5000 : 5000; // 5 segundos inicial
-    const recurringInterval = isProduction ? 300000 : 30000; // 5 min prod, 30 seg dev
+    const initialDelay = isProduction ? 8000 : 8000; // 8 segundos inicial aumentado
+    const recurringInterval = isProduction ? 600000 : 60000; // 10 min prod, 1 min dev - aumentado
     
-    console.log('🔄 Setting up smart messaging intervals (production mode)...');
+    console.log('🔄 FASE 10 - PASO 4: Setting up smart messaging intervals (production mode)...');
     console.log(`⏰ Using production intervals: initial=${initialDelay}ms, recurring=${recurringInterval}ms`);
     
     // Delay inicial antes del primer check
@@ -345,6 +350,8 @@ export const useSmartMessaging = () => {
         intervalRef.current = setInterval(() => {
           if (!isPaused && !pausedByTest) {
             runSmartChecks();
+          } else {
+            console.log('⏸️ FASE 10 - PASO 4: Interval check skipped (pausado)');
           }
         }, recurringInterval);
         
@@ -353,7 +360,7 @@ export const useSmartMessaging = () => {
     }, initialDelay);
     
     return () => {
-      console.log('🛑 Cleaning up smart messaging intervals');
+      console.log('🛑 FASE 10 - PASO 4: Cleaning up smart messaging intervals');
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -369,7 +376,7 @@ export const useSmartMessaging = () => {
   // Inicialización
   useEffect(() => {
     if (user && !isInitialized) {
-      console.log('🚀 Smart Messaging initialized');
+      console.log('🚀 FASE 10 - PASO 4: Smart Messaging initialized');
       setIsInitialized(true);
     }
   }, [user, isInitialized]);
@@ -380,7 +387,7 @@ export const useSmartMessaging = () => {
     isPaused,
     pausedByTest,
     triggerTaskAnalysis,
-    // FASE 3: Exponer controles para tests
+    // FASE 10: PASO 4 - Exponer controles para tests
     pauseForTesting,
     resumeAfterTesting,
     // Debug info
