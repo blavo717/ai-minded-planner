@@ -3,8 +3,9 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, TrendingDown, Target, Clock, CheckCircle, Zap, AlertCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Clock, CheckCircle, Zap, AlertCircle, PlayCircle } from 'lucide-react';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { Button } from '@/components/ui/button';
 
 interface ProductivityOverviewProps {
   period: 'week' | 'month' | 'quarter' | 'year';
@@ -49,10 +50,76 @@ const ProductivityOverview = ({ period }: ProductivityOverviewProps) => {
     completionRate: isNaN(metrics.completionRate) ? 0 : metrics.completionRate,
     totalWorkTime: isNaN(metrics.totalWorkTime) ? 0 : metrics.totalWorkTime,
     averageTaskTime: isNaN(metrics.averageTaskTime) ? 0 : metrics.averageTaskTime,
-    efficiency: isNaN(metrics.efficiency) ? 100 : metrics.efficiency,
+    efficiency: isNaN(metrics.efficiency) ? 0 : metrics.efficiency,
     productivity: isNaN(metrics.productivity) ? 0 : metrics.productivity,
     previousPeriodComparison: isNaN(metrics.previousPeriodComparison) ? 0 : metrics.previousPeriodComparison,
   };
+
+  // Estado sin datos: si no hay tareas Y no hay tiempo trabajado
+  const hasNoData = safeMetrics.totalTasks === 0 && safeMetrics.totalWorkTime === 0;
+  
+  // Estado sin sesiones: hay tareas pero no hay tiempo trabajado
+  const hasNoSessions = safeMetrics.totalTasks > 0 && safeMetrics.totalWorkTime === 0;
+
+  if (hasNoData) {
+    return (
+      <Card>
+        <CardContent className="p-8">
+          <div className="text-center">
+            <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">¡Empecemos a medir tu productividad!</h3>
+            <p className="text-muted-foreground mb-6">
+              Para ver tus métricas de productividad, necesitas crear tareas y registrar sesiones de trabajo.
+            </p>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-center justify-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                <span>1. Crea algunas tareas en la sección "Tareas"</span>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <PlayCircle className="h-4 w-4" />
+                <span>2. Registra sesiones de trabajo para cada tarea</span>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Target className="h-4 w-4" />
+                <span>3. Vuelve aquí para ver tu análisis de productividad</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (hasNoSessions) {
+    return (
+      <Card>
+        <CardContent className="p-8">
+          <div className="text-center">
+            <Clock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Tienes {safeMetrics.totalTasks} tareas creadas</h3>
+            <p className="text-muted-foreground mb-6">
+              Para ver métricas de productividad, necesitas registrar sesiones de trabajo en tus tareas.
+            </p>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-center justify-center gap-2">
+                <PlayCircle className="h-4 w-4" />
+                <span>Inicia un cronómetro cuando trabajes en una tarea</span>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Clock className="h-4 w-4" />
+                <span>Registra el tiempo dedicado a cada tarea</span>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Target className="h-4 w-4" />
+                <span>Califica tu productividad en cada sesión</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const getTrendIcon = () => {
     switch (safeMetrics.trend) {
@@ -87,36 +154,19 @@ const ProductivityOverview = ({ period }: ProductivityOverviewProps) => {
     },
     {
       title: "Eficiencia",
-      value: `${Math.min(safeMetrics.efficiency, 200).toFixed(1)}%`,
+      value: safeMetrics.efficiency > 0 ? `${Math.min(safeMetrics.efficiency, 200).toFixed(1)}%` : "Sin datos",
       icon: Target,
-      description: "Tiempo estimado vs real",
+      description: safeMetrics.efficiency > 0 ? "Tiempo estimado vs real" : "Necesita estimaciones",
       color: "text-purple-500"
     },
     {
       title: "Productividad",
-      value: `${safeMetrics.productivity.toFixed(1)}/5`,
+      value: safeMetrics.productivity > 0 ? `${safeMetrics.productivity.toFixed(1)}/5` : "Sin datos",
       icon: Zap,
-      description: "Puntuación promedio",
+      description: safeMetrics.productivity > 0 ? "Puntuación promedio" : "Necesita calificaciones",
       color: "text-orange-500"
     }
   ];
-
-  // Mostrar mensaje informativo si no hay datos
-  if (safeMetrics.totalTasks === 0) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center">
-            <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">No hay datos disponibles</h3>
-            <p className="text-muted-foreground">
-              Comienza creando tareas y registrando sesiones de trabajo para ver tus métricas de productividad.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -153,25 +203,29 @@ const ProductivityOverview = ({ period }: ProductivityOverviewProps) => {
               <Progress value={Math.min(safeMetrics.completionRate, 100)} className="h-2" />
             </div>
             
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Eficiencia</span>
-                <span className="text-sm text-muted-foreground">
-                  {Math.min(safeMetrics.efficiency, 200).toFixed(1)}%
-                </span>
+            {safeMetrics.efficiency > 0 && (
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">Eficiencia</span>
+                  <span className="text-sm text-muted-foreground">
+                    {Math.min(safeMetrics.efficiency, 200).toFixed(1)}%
+                  </span>
+                </div>
+                <Progress value={Math.min(safeMetrics.efficiency, 100)} className="h-2" />
               </div>
-              <Progress value={Math.min(safeMetrics.efficiency, 100)} className="h-2" />
-            </div>
+            )}
             
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Productividad</span>
-                <span className="text-sm text-muted-foreground">
-                  {safeMetrics.productivity.toFixed(1)}/5
-                </span>
+            {safeMetrics.productivity > 0 && (
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">Productividad</span>
+                  <span className="text-sm text-muted-foreground">
+                    {safeMetrics.productivity.toFixed(1)}/5
+                  </span>
+                </div>
+                <Progress value={Math.min((safeMetrics.productivity / 5) * 100, 100)} className="h-2" />
               </div>
-              <Progress value={Math.min((safeMetrics.productivity / 5) * 100, 100)} className="h-2" />
-            </div>
+            )}
           </CardContent>
         </Card>
 

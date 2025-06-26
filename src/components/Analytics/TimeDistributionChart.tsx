@@ -6,7 +6,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Clock, AlertCircle } from 'lucide-react';
+import { Clock, AlertCircle, PlayCircle } from 'lucide-react';
 
 interface TimeDistributionChartProps {
   period: 'week' | 'month' | 'quarter' | 'year';
@@ -47,6 +47,7 @@ const TimeDistributionChart = ({ period }: TimeDistributionChartProps) => {
     );
   }
 
+  // Solo mostrar datos reales - sin generar datos ficticios
   if (!timeData || timeData.length === 0) {
     return (
       <Card>
@@ -60,10 +61,20 @@ const TimeDistributionChart = ({ period }: TimeDistributionChartProps) => {
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No hay datos de tiempo disponibles</h3>
-              <p className="text-muted-foreground">
-                Registra sesiones de trabajo para ver la distribución de tu tiempo.
+              <h3 className="text-lg font-medium mb-2">No hay sesiones de trabajo registradas</h3>
+              <p className="text-muted-foreground mb-4">
+                Para ver la distribución de tu tiempo, necesitas registrar sesiones de trabajo.
               </p>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center justify-center gap-2">
+                  <PlayCircle className="h-4 w-4" />
+                  <span>Inicia un cronómetro al trabajar en una tarea</span>
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  <span>Registra el tiempo dedicado cada día</span>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -78,7 +89,7 @@ const TimeDistributionChart = ({ period }: TimeDistributionChartProps) => {
       date_formatted: format(parseISO(item.date), 'dd MMM', { locale: es }),
       work_hours: isNaN(workHours) ? 0 : workHours,
     };
-  }).filter(item => item.work_hours > 0); // Filtrar días sin trabajo
+  }).filter(item => item.work_hours > 0); // Filtrar días sin trabajo real
 
   const chartConfig = {
     work_hours: {
@@ -92,7 +103,7 @@ const TimeDistributionChart = ({ period }: TimeDistributionChartProps) => {
       <CardHeader>
         <CardTitle>Distribución del Tiempo</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Horas trabajadas por día
+          Horas trabajadas por día (solo días con sesiones registradas)
         </p>
       </CardHeader>
       <CardContent>

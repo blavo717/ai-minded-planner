@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -96,7 +95,7 @@ export const useAnalytics = () => {
           .gte('created_at', previousStartDate.toISOString())
           .lt('created_at', startDate.toISOString());
 
-        // Valores por defecto para evitar errores
+        // Usar solo datos reales, sin generar datos ficticios
         const tasks = currentTasks || [];
         const sessions = currentSessions || [];
         const prevTasks = previousTasks || [];
@@ -108,19 +107,25 @@ export const useAnalytics = () => {
         const totalWorkTime = sessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
         const averageTaskTime = completedTasks > 0 ? totalWorkTime / completedTasks : 0;
 
-        // Calcular eficiencia (tiempo real vs estimado) - evitar división por cero
-        const tasksWithEstimate = tasks.filter(t => t.estimated_duration && t.actual_duration && t.actual_duration > 0);
+        // Calcular eficiencia solo con datos reales
+        const tasksWithEstimate = tasks.filter(t => 
+          t.estimated_duration && 
+          t.actual_duration && 
+          t.actual_duration > 0 &&
+          t.estimated_duration > 0
+        );
         const efficiency = tasksWithEstimate.length > 0 
-          ? Math.min(tasksWithEstimate.reduce((sum, t) => sum + (t.estimated_duration! / t.actual_duration!), 0) / tasksWithEstimate.length * 100, 200)
-          : 100;
+          ? Math.min(tasksWithEstimate.reduce((sum, t) => 
+              sum + (t.estimated_duration! / t.actual_duration!), 0) / tasksWithEstimate.length * 100, 200)
+          : 0; // 0 cuando no hay datos, no 100
 
-        // Calcular productividad promedio - evitar NaN
+        // Calcular productividad promedio de sesiones reales
         const productivitySessions = sessions.filter(s => s.productivity_score && s.productivity_score > 0);
         const productivity = productivitySessions.length > 0
           ? productivitySessions.reduce((sum, s) => sum + s.productivity_score!, 0) / productivitySessions.length
           : 0;
 
-        // Comparar con período anterior - evitar división por cero
+        // Comparar con período anterior
         const previousCompletedTasks = prevTasks.filter(t => t.status === 'completed').length;
         const previousCompletionRate = prevTasks.length > 0 
           ? (previousCompletedTasks / prevTasks.length) * 100 
@@ -140,7 +145,7 @@ export const useAnalytics = () => {
           completionRate: isNaN(completionRate) ? 0 : completionRate,
           totalWorkTime: isNaN(totalWorkTime) ? 0 : totalWorkTime,
           averageTaskTime: isNaN(averageTaskTime) ? 0 : averageTaskTime,
-          efficiency: isNaN(efficiency) ? 100 : efficiency,
+          efficiency: isNaN(efficiency) ? 0 : efficiency,
           productivity: isNaN(productivity) ? 0 : productivity,
           trend,
           previousPeriodComparison: isNaN(previousPeriodComparison) ? 0 : previousPeriodComparison,
@@ -188,24 +193,12 @@ export const useAnalytics = () => {
           .gte('created_at', startDate.toISOString())
           .lte('created_at', now.toISOString());
 
-        // Generar datos de ejemplo si no hay datos reales
+        // Solo usar datos reales - no generar datos ficticios
         if (!sessions || sessions.length === 0) {
-          const daysToGenerate = period === 'week' ? 7 : period === 'month' ? 30 : period === 'quarter' ? 90 : 365;
-          const exampleData: TimeDistribution[] = [];
-          
-          for (let i = daysToGenerate - 1; i >= 0; i--) {
-            const date = subDays(now, i);
-            exampleData.push({
-              date: format(date, 'yyyy-MM-dd'),
-              work_time: Math.floor(Math.random() * 480) + 60, // 1-8 horas en minutos
-              tasks_completed: Math.floor(Math.random() * 8) + 1,
-              productivity_score: Math.floor(Math.random() * 3) + 3 // 3-5
-            });
-          }
-          return exampleData;
+          return [];
         }
 
-        // Agrupar por día
+        // Agrupar por día usando solo datos reales
         const dailyData: Record<string, TimeDistribution> = {};
 
         sessions.forEach(session => {
@@ -235,8 +228,18 @@ export const useAnalytics = () => {
           });
         }
 
-        const result = Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date));
-        return result.length > 0 ? result : [];
+        // Calcular productividad promedio por día
+        Object.values(dailyData).forEach(day => {
+          const sessionsInDay = sessions.filter(s => 
+            format(new Date(s.started_at), 'yyyy-MM-dd') === day.date &&
+            s.productivity_score
+          );
+          if (sessionsInDay.length > 0) {
+            day.productivity_score = day.productivity_score / sessionsInDay.length;
+          }
+        });
+
+        return Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date));
       },
       enabled: !!user,
     });
@@ -298,17 +301,23 @@ export const useAnalytics = () => {
           }) || [];
 
           const totalTime = projectSessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
-          const tasksWithDuration = projectTasks.filter(t => t.estimated_duration && t.actual_duration && t.actual_duration > 0);
+          const tasksWithDuration = projectTasks.filter(t => 
+            t.estimated_duration && 
+            t.actual_duration && 
+            t.actual_duration > 0 &&
+            t.estimated_duration > 0
+          );
           const efficiency = tasksWithDuration.length > 0
-            ? Math.min(tasksWithDuration.reduce((sum, t) => sum + (t.estimated_duration! / t.actual_duration!), 0) / tasksWithDuration.length * 100, 200)
-            : 100;
+            ? Math.min(tasksWithDuration.reduce((sum, t) => 
+                sum + (t.estimated_duration! / t.actual_duration!), 0) / tasksWithDuration.length * 100, 200)
+            : 0;
 
           return {
             project_id: project.id,
             project_name: project.name,
             tasks_completed: completedTasks,
             total_time: totalTime,
-            efficiency: isNaN(efficiency) ? 100 : efficiency,
+            efficiency: isNaN(efficiency) ? 0 : efficiency,
             completion_rate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
           };
         });
@@ -353,23 +362,9 @@ export const useAnalytics = () => {
           .eq('user_id', user.id)
           .gte('completed_at', startDate.toISOString());
 
-        // Generar datos de ejemplo si no hay datos reales
+        // Solo usar datos reales - no generar patrones ficticios
         if (!sessions || sessions.length === 0) {
-          const examplePatterns: WorkPattern[] = [];
-          
-          // Generar patrones para horas laborables
-          for (let hour = 8; hour <= 18; hour++) {
-            for (let day = 1; day <= 5; day++) {
-              examplePatterns.push({
-                hour,
-                day_of_week: day,
-                productivity_score: Math.floor(Math.random() * 3) + 3, // 3-5
-                tasks_completed: Math.floor(Math.random() * 5) + 1,
-                total_sessions: Math.floor(Math.random() * 10) + 5
-              });
-            }
-          }
-          return examplePatterns;
+          return [];
         }
 
         const patterns: Record<string, WorkPattern> = {};
