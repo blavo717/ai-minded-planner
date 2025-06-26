@@ -92,7 +92,7 @@ const Index = () => {
           {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
               <CardContent className="p-6">
-                <div className="h-16 bg-gray-100 rounded animate-pulse" />
+                <div className="h-16 bg-muted rounded animate-pulse" />
               </CardContent>
             </Card>
           ))}
@@ -105,7 +105,7 @@ const Index = () => {
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground">
           Bienvenido a tu espacio de trabajo inteligente
         </p>
@@ -138,11 +138,11 @@ const Index = () => {
             {statsData.map((stat, index) => (
               <Card key={index}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                  <CardTitle className="text-sm font-medium text-card-foreground">{stat.title}</CardTitle>
                   <stat.icon className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <div className="text-2xl font-bold text-card-foreground">{stat.value}</div>
                   {stat.description && (
                     <p className="text-xs text-muted-foreground">{stat.description}</p>
                   )}
@@ -173,7 +173,6 @@ const Index = () => {
         </TabsContent>
 
         <TabsContent value="tasks">
-          {/* Tasks Tab Content */}
           <TaskList 
             tasks={tasks} 
             title="Todas las Tareas"
@@ -181,10 +180,9 @@ const Index = () => {
         </TabsContent>
 
         <TabsContent value="projects">
-          {/* Projects Tab Content */}
           <Card>
             <CardHeader>
-              <CardTitle>Todos los Proyectos</CardTitle>
+              <CardTitle className="text-card-foreground">Todos los Proyectos</CardTitle>
             </CardHeader>
             <CardContent>
               {projects.length === 0 ? (
@@ -196,7 +194,7 @@ const Index = () => {
                   {projects.map((project) => (
                     <div
                       key={project.id}
-                      className="flex items-start justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-start justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors"
                     >
                       <div className="flex items-start gap-3 flex-1">
                         <div 
@@ -204,7 +202,7 @@ const Index = () => {
                           style={{ backgroundColor: project.color }}
                         />
                         <div className="flex-1 space-y-1">
-                          <h4 className="font-medium">{project.name}</h4>
+                          <h4 className="font-medium text-card-foreground">{project.name}</h4>
                           {project.description && (
                             <p className="text-sm text-muted-foreground">
                               {project.description}

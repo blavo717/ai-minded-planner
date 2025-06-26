@@ -27,7 +27,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <User className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm text-foreground">
+                <span className="text-sm text-card-foreground">
                   {user?.email}
                 </span>
               </div>
