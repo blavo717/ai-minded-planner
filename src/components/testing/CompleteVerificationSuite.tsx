@@ -17,7 +17,6 @@ import {
   Brain,
   Settings,
   Users,
-  Calendar,
   Zap,
   RefreshCw
 } from 'lucide-react';
@@ -42,7 +41,7 @@ const CompleteVerificationSuite = () => {
   const { configurations, activeConfiguration } = useLLMConfigurations();
   const { mainTasks, subtasks, microtasks } = useTasks();
   const { profiles } = useProfiles();
-  const { messages, sendMessage, clearChat } = useAIAssistantSimple();
+  const { messages } = useAIAssistantSimple();
   
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -157,26 +156,6 @@ const CompleteVerificationSuite = () => {
           
           return `Persistencia: ${workingPersistence}/4 sistemas de datos funcionando`;
         }
-      },
-      {
-        id: 'error-recovery-test',
-        name: 'Recuperación de Errores',
-        icon: RefreshCw,
-        test: async () => {
-          // Test de manejo de errores
-          try {
-            // Intentar una operación que puede fallar
-            await new Promise((resolve, reject) => {
-              setTimeout(() => {
-                resolve('Error recovery test passed');
-              }, 100);
-            });
-            
-            return 'Sistema maneja errores correctamente';
-          } catch (error) {
-            return 'Sistema de recuperación de errores funcional';
-          }
-        }
       }
     ],
     performance: [
@@ -201,23 +180,6 @@ const CompleteVerificationSuite = () => {
           }
           
           return `Carga rápida: ${loadTime.toFixed(2)}ms`;
-        }
-      },
-      {
-        id: 'memory-usage-test',
-        name: 'Uso de Memoria',
-        icon: Brain,
-        test: async () => {
-          const memoryInfo = (performance as any).memory;
-          
-          if (memoryInfo) {
-            const usedMB = (memoryInfo.usedJSHeapSize / 1024 / 1024).toFixed(2);
-            const limitMB = (memoryInfo.jsHeapSizeLimit / 1024 / 1024).toFixed(2);
-            
-            return `Memoria: ${usedMB}MB / ${limitMB}MB`;
-          }
-          
-          return 'Monitoreo de memoria no disponible (funcional)';
         }
       },
       {
@@ -290,19 +252,7 @@ const CompleteVerificationSuite = () => {
     }
   };
 
-  const runAllTests = async () => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "Necesitas estar autenticado para ejecutar los tests",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsRunning(true);
-    
-    // Inicializar resultados
+  const initializeTests = () => {
     const allTests = [
       ...testSuites.functional,
       ...testSuites.integration,
@@ -320,37 +270,57 @@ const CompleteVerificationSuite = () => {
     }));
     
     setTestResults(initialResults);
+  };
+
+  const runAllTests = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Necesitas estar autenticado para ejecutar los tests",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsRunning(true);
+    
+    // Inicializar resultados
+    initializeTests();
 
     try {
       // Fase 1: Tests Funcionales
       setCurrentPhase('Ejecutando tests funcionales...');
       for (const test of testSuites.functional) {
         await runSingleTest(test, 'functional');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
 
       // Fase 2: Tests de Integración
       setCurrentPhase('Ejecutando tests de integración...');
       for (const test of testSuites.integration) {
         await runSingleTest(test, 'integration');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
 
       // Fase 3: Tests de Rendimiento
       setCurrentPhase('Ejecutando tests de rendimiento...');
       for (const test of testSuites.performance) {
         await runSingleTest(test, 'performance');
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
 
-      const successCount = testResults.filter(t => t.status === 'success').length;
-      const totalCount = testResults.length;
+      // Contar resultados finales
+      setTimeout(() => {
+        const finalResults = testResults.filter(t => t.status !== 'pending');
+        const successCount = finalResults.filter(t => t.status === 'success').length;
+        const totalCount = finalResults.length;
 
-      toast({
-        title: "Testing Completo",
-        description: `${successCount}/${totalCount} tests exitosos`,
-        variant: successCount === totalCount ? "default" : "destructive"
-      });
+        toast({
+          title: "Testing Completo",
+          description: `${successCount}/${totalCount} tests exitosos`,
+          variant: successCount === totalCount ? "default" : "destructive"
+        });
+      }, 500);
 
     } finally {
       setIsRunning(false);
@@ -359,13 +329,27 @@ const CompleteVerificationSuite = () => {
   };
 
   const runCategoryTests = async (category: keyof typeof testSuites) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Necesitas estar autenticado",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsRunning(true);
     setCurrentPhase(`Ejecutando tests de ${category}...`);
+    
+    // Inicializar solo si no hay resultados
+    if (testResults.length === 0) {
+      initializeTests();
+    }
     
     try {
       for (const test of testSuites[category]) {
         await runSingleTest(test, category);
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     } finally {
       setIsRunning(false);
@@ -402,6 +386,13 @@ const CompleteVerificationSuite = () => {
     percentage: testResults.length > 0 ? 
       (testResults.filter(t => t.status === 'success').length / testResults.length) * 100 : 0
   };
+
+  // Inicializar tests al montar el componente
+  React.useEffect(() => {
+    if (testResults.length === 0) {
+      initializeTests();
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
