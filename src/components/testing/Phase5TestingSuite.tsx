@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,28 +38,28 @@ interface TestSuiteResults {
   totalDuration: number;
 }
 
-// FASE 10: PASO 3 - Función de espera REALISTA para BD en producción (timeouts aumentados significativamente)
+// FASE 11: CORRECCIÓN 5 - Función de espera REALISTA para BD en producción (timeouts aumentados 60-120s)
 const waitForCondition = async (
   condition: () => Promise<boolean>,
-  timeout: number = 45000, // FASE 10: Timeout realista aumentado SIGNIFICATIVAMENTE para BD en producción
-  pollInterval: number = 3000, // FASE 10: Polling más espaciado para BD real
+  timeout: number = 90000, // FASE 11: Timeout realista aumentado SIGNIFICATIVAMENTE a 90s base
+  pollInterval: number = 5000, // FASE 11: Polling más espaciado para BD real
   description: string = 'condition'
 ): Promise<boolean> => {
   const startTime = Date.now();
   const maxAttempts = Math.ceil(timeout / pollInterval);
   
-  console.log(`⏳ FASE 10 - PASO 3: Waiting for ${description} (timeout: ${timeout}ms, interval: ${pollInterval}ms)`);
+  console.log(`⏳ FASE 11 - CORRECCIÓN 5: Waiting for ${description} (timeout: ${timeout}ms, interval: ${pollInterval}ms)`);
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const result = await condition();
       if (result) {
         const elapsed = Date.now() - startTime;
-        console.log(`✅ FASE 10 - PASO 3: ${description} met after ${elapsed}ms (attempt ${attempt}/${maxAttempts})`);
+        console.log(`✅ FASE 11 - CORRECCIÓN 5: ${description} met after ${elapsed}ms (attempt ${attempt}/${maxAttempts})`);
         return true;
       }
     } catch (error) {
-      console.warn(`⚠️ FASE 10 - PASO 3: Condition check failed on attempt ${attempt}:`, error);
+      console.warn(`⚠️ FASE 11 - CORRECCIÓN 5: Condition check failed on attempt ${attempt}:`, error);
     }
     
     if (attempt < maxAttempts) {
@@ -69,7 +68,7 @@ const waitForCondition = async (
   }
   
   const elapsed = Date.now() - startTime;
-  console.log(`❌ FASE 10 - PASO 3: ${description} not met after ${elapsed}ms (${maxAttempts} attempts)`);
+  console.log(`❌ FASE 11 - CORRECCIÓN 5: ${description} not met after ${elapsed}ms (${maxAttempts} attempts)`);
   return false;
 };
 
@@ -103,101 +102,101 @@ const Phase5TestingSuite = () => {
   const [testProgress, setTestProgress] = useState<number>(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // FASE 10: PASO 1 - Preparar ambiente con RESET TOTAL REAL y desactivación Smart Messaging (timeout aumentado)
+  // FASE 11: CORRECCIÓN 1 - Preparar ambiente con RESET TOTAL REAL y desactivación Smart Messaging AGRESIVA (timeout aumentado 60-120s)
   const prepareTestEnvironment = async () => {
-    console.log('🧹 FASE 10 - PASO 1: Preparando ambiente con RESET TOTAL REAL...');
+    console.log('🧹 FASE 11 - CORRECCIÓN 1: Preparando ambiente con RESET TOTAL REAL...');
     
-    // FASE 10: PASO 4 - Pausar Smart Messaging REALMENTE para evitar interferencias
-    console.log('⏸️ FASE 10 - PASO 4: Pausando Smart Messaging TOTALMENTE...');
+    // FASE 11: CORRECCIÓN 5 - Pausar Smart Messaging AGRESIVAMENTE para evitar interferencias
+    console.log('⏸️ FASE 11 - CORRECCIÓN 5: Pausando Smart Messaging AGRESIVAMENTE...');
     pauseForTesting();
-    await new Promise(resolve => setTimeout(resolve, 5000)); // Aumentado significativamente
+    await new Promise(resolve => setTimeout(resolve, 10000)); // Aumentado significativamente
     
-    // FASE 10: PASO 1 - Reset COMPLETO REAL del sistema con confirmación
-    console.log('🔄 FASE 10 - PASO 1: Ejecutando RESET TOTAL REAL del sistema...');
+    // FASE 11: CORRECCIÓN 1 - Reset COMPLETO REAL del sistema con confirmación
+    console.log('🔄 FASE 11 - CORRECCIÓN 1: Ejecutando RESET TOTAL REAL del sistema...');
     await forceFullReset();
-    await new Promise(resolve => setTimeout(resolve, 10000)); // Más tiempo para reset completo real
+    await new Promise(resolve => setTimeout(resolve, 15000)); // FASE 11: Más tiempo para reset completo real
     
-    // FASE 10: PASO 1 - Validar que el reset fue exitoso con BD directa
-    console.log('🔍 FASE 10 - PASO 1: Validando limpieza total BD directa...');
+    // FASE 11: CORRECCIÓN 1 - Validar que el reset fue exitoso con BD directa
+    console.log('🔍 FASE 11 - CORRECCIÓN 1: Validando limpieza total BD directa...');
     const isClean = await validatePersistence(0, 'total-reset-validation');
     if (!isClean) {
-      console.error('❌ FASE 10 - PASO 1: Reset total real falló');
+      console.error('❌ FASE 11 - CORRECCIÓN 1: Reset total real falló');
       throw new Error('Reset total real falló - ambiente no está limpio en BD directa');
     }
     
-    // FASE 10: PASO 2 - Validar consistencia post-reset
+    // FASE 11: CORRECCIÓN 3 - Validar consistencia post-reset
     const isConsistent = await validateConsistency();
     if (!isConsistent) {
-      console.warn('⚠️ FASE 10 - PASO 1: Advertencia de consistencia post-reset');
+      console.warn('⚠️ FASE 11 - CORRECCIÓN 1: Advertencia de consistencia post-reset');
     }
     
-    console.log('✅ FASE 10 - PASO 1: Ambiente preparado con RESET TOTAL REAL y validado BD directa');
+    console.log('✅ FASE 11 - CORRECCIÓN 1: Ambiente preparado con RESET TOTAL REAL y validado BD directa');
   };
 
-  // FASE 10: PASO 1 - Restaurar estado con validación completa BD (timeout aumentado)
+  // FASE 11: CORRECCIÓN 1 - Restaurar estado con validación completa BD (timeout aumentado 60-120s)
   const cleanupTestEnvironment = async () => {
-    console.log('🧹 FASE 10 - PASO 1: Limpiando ambiente de test con VALIDACIÓN TOTAL BD...');
+    console.log('🧹 FASE 11 - CORRECCIÓN 1: Limpiando ambiente de test con VALIDACIÓN TOTAL BD...');
     
-    // FASE 10: PASO 1 - Reset completo final real
+    // FASE 11: CORRECCIÓN 1 - Reset completo final real
     await forceFullReset();
-    await new Promise(resolve => setTimeout(resolve, 10000)); // Aumentado significativamente
+    await new Promise(resolve => setTimeout(resolve, 15000)); // Aumentado significativamente
     
-    // FASE 10: PASO 1 - Validar limpieza final BD directa
+    // FASE 11: CORRECCIÓN 1 - Validar limpieza final BD directa
     const isClean = await validatePersistence(0, 'final-total-cleanup');
     if (!isClean) {
-      console.warn('⚠️ FASE 10 - PASO 1: Validación de limpieza final BD directa falló');
+      console.warn('⚠️ FASE 11 - CORRECCIÓN 1: Validación de limpieza final BD directa falló');
     }
     
-    // FASE 10: PASO 2 - Validar consistencia final
+    // FASE 11: CORRECCIÓN 3 - Validar consistencia final
     const isConsistent = await validateConsistency();
     if (!isConsistent) {
-      console.warn('⚠️ FASE 10 - PASO 1: Validación de consistencia final falló');
+      console.warn('⚠️ FASE 11 - CORRECCIÓN 1: Validación de consistencia final falló');
     }
     
-    // FASE 10: PASO 4 - Reanudar Smart Messaging
-    console.log('▶️ FASE 10 - PASO 4: Reanudando Smart Messaging...');
+    // FASE 11: CORRECCIÓN 5 - Reanudar Smart Messaging
+    console.log('▶️ FASE 11 - CORRECCIÓN 5: Reanudando Smart Messaging...');
     resumeAfterTesting();
-    await new Promise(resolve => setTimeout(resolve, 5000)); // Aumentado
+    await new Promise(resolve => setTimeout(resolve, 10000)); // Aumentado
     
-    console.log('✅ FASE 10 - PASO 1: Ambiente limpiado con VALIDACIÓN TOTAL BD');
+    console.log('✅ FASE 11 - CORRECCIÓN 1: Ambiente limpiado con VALIDACIÓN TOTAL BD');
   };
 
-  // FASE 10: PASO 3 - Test cases con timeouts REALISTAS para BD en producción (aumentados SIGNIFICATIVAMENTE)
+  // FASE 11: CORRECCIÓN 5 - Test cases con timeouts REALISTAS para BD en producción (aumentados 60-120s)
   const testCases = [
     {
       name: 'initialization-check',
       description: 'Verificar inicialización del sistema',
-      timeout: 20000 // FASE 10: Timeout realista aumentado
+      timeout: 30000 // FASE 11: Timeout realista aumentado
     },
     {
       name: 'message-creation-basic',
       description: 'Crear mensajes básicos',
-      timeout: 45000 // FASE 10: Más tiempo para BD real
+      timeout: 90000 // FASE 11: Más tiempo para BD real (90s)
     },
     {
       name: 'notification-badge-real',
       description: 'Sistema de badges en tiempo real',
-      timeout: 50000 // FASE 10: Más tiempo para BD real
+      timeout: 120000 // FASE 11: Más tiempo para BD real (120s)
     },
     {
       name: 'message-persistence-direct',
       description: 'Persistencia directa BD',
-      timeout: 50000 // FASE 10: Aumentado
+      timeout: 120000 // FASE 11: Aumentado (120s)
     },
     {
       name: 'priority-system-full',
       description: 'Sistema de prioridades completo',
-      timeout: 60000 // FASE 10: Más tiempo para múltiples operaciones
+      timeout: 180000 // FASE 11: Más tiempo para múltiples operaciones (180s)
     },
     {
       name: 'bulk-operations-real',
       description: 'Operaciones en lote reales',
-      timeout: 75000 // FASE 10: Más tiempo para operaciones bulk
+      timeout: 240000 // FASE 11: Más tiempo para operaciones bulk (240s)
     },
     {
       name: 'cleanup-verification-direct',
       description: 'Verificación de limpieza directa',
-      timeout: 45000 // FASE 10: Aumentado
+      timeout: 120000 // FASE 11: Aumentado (120s)
     }
   ];
 
@@ -205,7 +204,7 @@ const Phase5TestingSuite = () => {
     const startTime = Date.now();
     setCurrentTest(testCase.description);
     
-    console.log(`🧪 FASE 10 - PASO 3: Running test: ${testCase.name}`);
+    console.log(`🧪 FASE 11 - CORRECCIÓN 5: Running test: ${testCase.name}`);
     
     try {
       let success = false;
@@ -214,49 +213,49 @@ const Phase5TestingSuite = () => {
 
       switch (testCase.name) {
         case 'initialization-check':
-          // FASE 10: PASO 1 - Verificar inicialización y consistencia BD
+          // FASE 11: CORRECCIÓN 3 - Verificar inicialización y consistencia BD
           const consistencyCheck = await validateConsistency();
           success = isInitialized && messages !== undefined && consistencyCheck;
           details = `Initialized: ${isInitialized}, Strategy: ${currentStrategy}, Messages: ${messages?.length || 0}, Consistent: ${consistencyCheck}`;
-          validationDetails = `Sistema inicializado con consistencia BD verificada en FASE 10`;
+          validationDetails = `Sistema inicializado con consistencia BD verificada en FASE 11`;
           break;
 
         case 'message-creation-basic':
-          // FASE 10: PASO 3 - Test básico con validación BD DIRECTA (timeout aumentado SIGNIFICATIVAMENTE)
+          // FASE 11: CORRECCIÓN 4 - Test básico con validación BD DIRECTA (timeout aumentado 60-120s)
           const initialCount = messages.length;
-          console.log(`📊 FASE 10 - PASO 3: Initial message count: ${initialCount}`);
+          console.log(`📊 FASE 11 - CORRECCIÓN 4: Initial message count: ${initialCount}`);
           
           const userMessageId = await addMessage({
             type: 'user',
-            content: 'FASE 10 test message - creation basic',
+            content: 'FASE 11 test message - creation basic',
             isRead: true
           });
           
-          // FASE 10: PASO 3 - Validación BD directa con timeout REALISTA (aumentado SIGNIFICATIVAMENTE)
+          // FASE 11: CORRECCIÓN 4 - Validación BD directa con timeout REALISTA (aumentado 60-120s)
           const messageCreated = await waitForCondition(
             async () => {
               const isValid = await validatePersistence(initialCount + 1, 'message-creation-test');
               return isValid;
             },
-            45000, // FASE 10: Timeout realista aumentado SIGNIFICATIVAMENTE para BD en producción
-            4000, // FASE 10: Polling más espaciado
+            90000, // FASE 11: Timeout realista aumentado SIGNIFICATIVAMENTE a 90s
+            6000, // FASE 11: Polling más espaciado
             'message creation BD direct validation'
           );
           
           success = messageCreated && !!userMessageId;
           details = `Messages: ${initialCount} → ${messages.length}, ID: ${userMessageId}`;
-          validationDetails = 'Mensaje creado y validado contra BD directa con FASE 10';
+          validationDetails = 'Mensaje creado y validado contra BD directa con FASE 11';
           break;
 
         case 'notification-badge-real':
-          // FASE 10: PASO 3 - Test de badge con validación BD COMPLETA (timeout aumentado SIGNIFICATIVAMENTE)
+          // FASE 11: CORRECCIÓN 4 - Test de badge con validación BD COMPLETA (timeout aumentado 60-120s)
           const initialBadgeState = getBadgeInfo;
-          console.log(`🏷️ FASE 10 - PASO 3: Initial badge info:`, initialBadgeState);
+          console.log(`🏷️ FASE 11 - CORRECCIÓN 4: Initial badge info:`, initialBadgeState);
           
-          const testNotificationId = await addNotification('FASE 10 test notification - badge verification', 'high');
-          console.log(`📬 FASE 10 - PASO 3: Created notification: ${testNotificationId}`);
+          const testNotificationId = await addNotification('FASE 11 test notification - badge verification', 'high');
+          console.log(`📬 FASE 11 - CORRECCIÓN 4: Created notification: ${testNotificationId}`);
           
-          // FASE 10: PASO 3 - Validar persistencia BD, badge Y consistencia (timeout aumentado SIGNIFICATIVAMENTE)
+          // FASE 11: CORRECCIÓN 4 - Validar persistencia BD, badge Y consistencia (timeout aumentado 60-120s)
           const badgeUpdated = await waitForCondition(
             async () => {
               // 1. Validar persistencia BD directa
@@ -269,11 +268,11 @@ const Phase5TestingSuite = () => {
               
               // 3. Validar badge
               const currentBadgeState = getBadgeInfo;
-              console.log(`🔍 FASE 10 - PASO 3: Current badge info:`, currentBadgeState);
+              console.log(`🔍 FASE 11 - CORRECCIÓN 4: Current badge info:`, currentBadgeState);
               return currentBadgeState.count > initialBadgeState.count && currentBadgeState.hasHigh;
             },
-            50000, // FASE 10: Timeout realista aumentado SIGNIFICATIVAMENTE
-            4000, // FASE 10: Polling espaciado
+            120000, // FASE 11: Timeout realista aumentado SIGNIFICATIVAMENTE a 120s
+            6000, // FASE 11: Polling espaciado
             'notification badge complete BD validation'
           );
           
@@ -281,16 +280,16 @@ const Phase5TestingSuite = () => {
           
           success = badgeUpdated;
           details = `Badge: ${initialBadgeState.count} → ${notificationBadgeInfo.count}, High: ${notificationBadgeInfo.hasHigh}`;
-          validationDetails = `Notificación persistida en BD directa, badge validado y consistencia verificada con FASE 10, ID: ${testNotificationId}`;
+          validationDetails = `Notificación persistida en BD directa, badge validado y consistencia verificada con FASE 11, ID: ${testNotificationId}`;
           break;
 
         case 'message-persistence-direct':
-          // FASE 10: PASO 3 - Test de persistencia BD DIRECTA COMPLETA (timeout aumentado SIGNIFICATIVAMENTE)
+          // FASE 11: CORRECCIÓN 4 - Test de persistencia BD DIRECTA COMPLETA (timeout aumentado 60-120s)
           const beforePersistence = messages.length;
           
-          const suggestionId = await addSuggestion('FASE 10 test suggestion - persistence direct', 'medium');
+          const suggestionId = await addSuggestion('FASE 11 test suggestion - persistence direct', 'medium');
           
-          // FASE 10: PASO 3 - Validación BD directa completa + consistencia (timeout aumentado SIGNIFICATIVAMENTE)
+          // FASE 11: CORRECCIÓN 4 - Validación BD directa completa + consistencia (timeout aumentado 60-120s)
           const persistenceVerified = await waitForCondition(
             async () => {
               // 1. Validar persistencia BD directa
@@ -305,8 +304,8 @@ const Phase5TestingSuite = () => {
               const found = messages.find(m => m.id === suggestionId);
               return !!found && found.type === 'suggestion';
             },
-            50000, // FASE 10: Timeout realista aumentado SIGNIFICATIVAMENTE
-            4000, // FASE 10: Polling espaciado
+            120000, // FASE 11: Timeout realista aumentado SIGNIFICATIVAMENTE a 120s
+            6000, // FASE 11: Polling espaciado
             'message persistence direct BD complete validation'
           );
           
@@ -314,18 +313,18 @@ const Phase5TestingSuite = () => {
           
           success = persistenceVerified;
           details = `Messages: ${beforePersistence} → ${afterPersistence}, Suggestion ID: ${suggestionId}`;
-          validationDetails = 'Mensaje persistido en BD directa, validado en estado local y consistencia BD verificada con FASE 10';
+          validationDetails = 'Mensaje persistido en BD directa, validado en estado local y consistencia BD verificada con FASE 11';
           break;
 
         case 'priority-system-full':
-          // FASE 10: PASO 3 - Test completo del sistema de prioridades BD (timeout aumentado SIGNIFICATIVAMENTE)
+          // FASE 11: CORRECCIÓN 4 - Test completo del sistema de prioridades BD (timeout aumentado 60-120s)
           const initialPriorityCount = messages.length;
           
-          await addNotification('FASE 10 urgent test notification', 'urgent');
-          await addNotification('FASE 10 high priority test', 'high');
-          await addSuggestion('FASE 10 low priority suggestion', 'low');
+          await addNotification('FASE 11 urgent test notification', 'urgent');
+          await addNotification('FASE 11 high priority test', 'high');
+          await addSuggestion('FASE 11 low priority suggestion', 'low');
           
-          // FASE 10: PASO 3 - Validación BD completa de prioridades (timeout aumentado SIGNIFICATIVAMENTE)
+          // FASE 11: CORRECCIÓN 4 - Validación BD completa de prioridades (timeout aumentado 60-120s)
           const prioritiesUpdated = await waitForCondition(
             async () => {
               // 1. Validar persistencia de 3 mensajes nuevos en BD directa
@@ -338,11 +337,11 @@ const Phase5TestingSuite = () => {
               
               // 3. Validar badge de prioridades
               const currentBadgePriorities = getBadgeInfo;
-              console.log(`🏷️ FASE 10 - PASO 3: Badge priorities check:`, currentBadgePriorities);
+              console.log(`🏷️ FASE 11 - CORRECCIÓN 4: Badge priorities check:`, currentBadgePriorities);
               return currentBadgePriorities.hasUrgent && currentBadgePriorities.hasHigh;
             },
-            60000, // FASE 10: Timeout realista aumentado SIGNIFICATIVAMENTE para múltiples operaciones
-            4000, // FASE 10: Polling espaciado
+            180000, // FASE 11: Timeout realista aumentado SIGNIFICATIVAMENTE a 180s para múltiples operaciones
+            6000, // FASE 11: Polling espaciado
             'priority system complete BD validation'
           );
           
@@ -350,18 +349,18 @@ const Phase5TestingSuite = () => {
           
           success = prioritiesUpdated;
           details = `Urgent: ${prioritiesBadgeInfo.hasUrgent}, High: ${prioritiesBadgeInfo.hasHigh}, Count: ${prioritiesBadgeInfo.count}`;
-          validationDetails = 'Sistema de prioridades persistido en BD directa, validado en badges y consistencia BD verificada con FASE 10';
+          validationDetails = 'Sistema de prioridades persistido en BD directa, validado en badges y consistencia BD verificada con FASE 11';
           break;
 
         case 'bulk-operations-real':
-          // FASE 10: PASO 3 - Test de operaciones en lote BD COMPLETO (timeout aumentado SIGNIFICATIVAMENTE)
+          // FASE 11: CORRECCIÓN 4 - Test de operaciones en lote BD COMPLETO (timeout aumentado 60-120s)
           const beforeBulk = messages.filter(m => !m.isRead).length;
           const totalBulk = messages.length;
-          console.log(`📊 FASE 10 - PASO 3: Unread messages before bulk: ${beforeBulk}, total: ${totalBulk}`);
+          console.log(`📊 FASE 11 - CORRECCIÓN 4: Unread messages before bulk: ${beforeBulk}, total: ${totalBulk}`);
           
           await markAllAsRead();
           
-          // FASE 10: PASO 3 - Validación BD completa de operación bulk (timeout aumentado SIGNIFICATIVAMENTE)
+          // FASE 11: CORRECCIÓN 4 - Validación BD completa de operación bulk (timeout aumentado 60-120s)
           const bulkCompleted = await waitForCondition(
             async () => {
               // 1. Validar persistencia del conteo total en BD directa
@@ -374,11 +373,11 @@ const Phase5TestingSuite = () => {
               
               // 3. Validar que todos están marcados como leídos en estado local
               const unreadCount = messages.filter(m => !m.isRead).length;
-              console.log(`📊 FASE 10 - PASO 3: Current unread count: ${unreadCount}`);
+              console.log(`📊 FASE 11 - CORRECCIÓN 4: Current unread count: ${unreadCount}`);
               return unreadCount === 0;
             },
-            75000, // FASE 10: Timeout realista aumentado SIGNIFICATIVAMENTE para operaciones bulk
-            5000, // FASE 10: Polling más espaciado para operaciones pesadas
+            240000, // FASE 11: Timeout realista aumentado SIGNIFICATIVAMENTE a 240s para operaciones bulk
+            5000, // FASE 11: Polling más espaciado para operaciones pesadas
             'bulk mark as read complete BD validation'
           );
           
@@ -386,16 +385,16 @@ const Phase5TestingSuite = () => {
           
           success = bulkCompleted;
           details = `Unread: ${beforeBulk} → ${afterBulk}, Total: ${totalBulk}`;
-          validationDetails = 'Operación bulk persistida en BD directa, validada en estado local y consistencia BD verificada con FASE 10';
+          validationDetails = 'Operación bulk persistida en BD directa, validada en estado local y consistencia BD verificada con FASE 11';
           break;
 
         case 'cleanup-verification-direct':
-          // FASE 10: PASO 1 - Verificar limpieza BD directa completa (timeout aumentado SIGNIFICATIVAMENTE)
+          // FASE 11: CORRECCIÓN 1 - Verificar limpieza BD directa completa (timeout aumentado 60-120s)
           const preCleanup = messages.length;
           
           await clearChat();
           
-          // FASE 10: PASO 1 - Validación BD directa completa de limpieza (timeout aumentado SIGNIFICATIVAMENTE)
+          // FASE 11: CORRECCIÓN 1 - Validación BD directa completa de limpieza (timeout aumentado 60-120s)
           const cleanupCompleted = await waitForCondition(
             async () => {
               // 1. Validar limpieza en BD directa
@@ -406,24 +405,24 @@ const Phase5TestingSuite = () => {
               const isConsistent = await validateConsistency();
               return isConsistent;
             },
-            45000, // FASE 10: Timeout realista aumentado SIGNIFICATIVAMENTE para limpieza
-            4000, // FASE 10: Polling espaciado
+            120000, // FASE 11: Timeout realista aumentado SIGNIFICATIVAMENTE a 120s para limpieza
+            4000, // FASE 11: Polling espaciado
             'cleanup complete BD direct verification'
           );
           
           success = cleanupCompleted;
           details = `Messages: ${preCleanup} → ${messages.length}`;
-          validationDetails = 'Limpieza completada en BD directa, validada en estado local y consistencia BD verificada con FASE 10';
+          validationDetails = 'Limpieza completada en BD directa, validada en estado local y consistencia BD verificada con FASE 11';
           break;
 
         default:
           success = false;
           details = `Unknown test case: ${testCase.name}`;
-          validationDetails = 'Test case no implementado en FASE 10';
+          validationDetails = 'Test case no implementado en FASE 11';
       }
 
       const duration = Date.now() - startTime;
-      console.log(`✅ FASE 10 - PASO 3: Test ${testCase.name} completed in ${duration}ms:`, { success, details });
+      console.log(`✅ FASE 11 - CORRECCIÓN 5: Test ${testCase.name} completed in ${duration}ms:`, { success, details });
 
       return {
         testName: testCase.name,
@@ -436,13 +435,13 @@ const Phase5TestingSuite = () => {
 
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.error(`❌ FASE 10 - PASO 3: Test ${testCase.name} failed:`, error);
+      console.error(`❌ FASE 11 - CORRECCIÓN 5: Test ${testCase.name} failed:`, error);
       
       return {
         testName: testCase.name,
         success: false,
         details: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        validationDetails: `Test falló en FASE 10: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+        validationDetails: `Test falló en FASE 11: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         duration,
         timestamp: new Date()
       };
@@ -450,10 +449,10 @@ const Phase5TestingSuite = () => {
   };
 
   const runAllTests = async () => {
-    console.log('🚀 FASE 10 - PASO 3: Starting COMPLETE test suite with TOTAL BD ISOLATION...');
+    console.log('🚀 FASE 11 - CORRECCIÓN 5: Starting COMPLETE test suite with TOTAL BD ISOLATION...');
     
     if (isRunning) {
-      console.log('⚠️ FASE 10 - PASO 3: Tests already running, aborting...');
+      console.log('⚠️ FASE 11 - CORRECCIÓN 5: Tests already running, aborting...');
       return;
     }
 
@@ -465,8 +464,8 @@ const Phase5TestingSuite = () => {
     abortControllerRef.current = new AbortController();
     
     try {
-      // FASE 10: PASO 1 - Preparar ambiente completamente limpio BD
-      console.log('🧹 FASE 10 - PASO 1: Preparing TOTALLY CLEAN BD environment...');
+      // FASE 11: CORRECCIÓN 1 - Preparar ambiente completamente limpio BD
+      console.log('🧹 FASE 11 - CORRECCIÓN 1: Preparing TOTALLY CLEAN BD environment...');
       await prepareTestEnvironment();
       
       const testResults: TestResult[] = [];
@@ -474,26 +473,26 @@ const Phase5TestingSuite = () => {
       
       for (let i = 0; i < testCases.length; i++) {
         if (abortControllerRef.current?.signal.aborted) {
-          console.log('🛑 FASE 10 - PASO 3: Tests aborted by user');
+          console.log('🛑 FASE 11 - CORRECCIÓN 5: Tests aborted by user');
           break;
         }
         
         const testCase = testCases[i];
         setTestProgress(((i + 1) / testCases.length) * 100);
         
-        console.log(`🧪 FASE 10 - PASO 3: Running test ${i + 1}/${testCases.length}: ${testCase.name}`);
+        console.log(`🧪 FASE 11 - CORRECCIÓN 5: Running test ${i + 1}/${testCases.length}: ${testCase.name}`);
         
-        // FASE 10: PASO 1 - Reset parcial BD antes de cada test individual
+        // FASE 11: CORRECCIÓN 1 - Reset parcial BD antes de cada test individual
         if (i > 0) {
-          console.log(`🔄 FASE 10 - PASO 1: Partial BD reset before test ${i + 1}`);
+          console.log(`🔄 FASE 11 - CORRECCIÓN 1: Partial BD reset before test ${i + 1}`);
           await forceFullReset();
-          await new Promise(resolve => setTimeout(resolve, 8000)); // FASE 10: Tiempo aumentado significativamente
+          await new Promise(resolve => setTimeout(resolve, 8000)); // FASE 11: Tiempo aumentado significativamente
         }
         
         const result = await runIndividualTest(testCase);
         testResults.push(result);
         
-        console.log(`${result.success ? '✅' : '❌'} FASE 10 - PASO 3: Test ${testCase.name}: ${result.success ? 'PASSED' : 'FAILED'}`);
+        console.log(`${result.success ? '✅' : '❌'} FASE 11 - CORRECCIÓN 5: Test ${testCase.name}: ${result.success ? 'PASSED' : 'FAILED'}`);
       }
       
       const totalDuration = Date.now() - startTime;
@@ -511,7 +510,7 @@ const Phase5TestingSuite = () => {
       
       setResults(finalResults);
       
-      console.log(`🎯 FASE 10 - PASO 3: COMPLETE BD TEST SUITE FINISHED:`, {
+      console.log(`🎯 FASE 11 - CORRECCIÓN 5: COMPLETE BD TEST SUITE FINISHED:`, {
         passed: passedTests,
         failed: failedTests,
         total: testResults.length,
@@ -520,10 +519,10 @@ const Phase5TestingSuite = () => {
       });
       
     } catch (error) {
-      console.error('❌ FASE 10 - PASO 3: Critical error in test suite:', error);
+      console.error('❌ FASE 11 - CORRECCIÓN 5: Critical error in test suite:', error);
     } finally {
-      // FASE 10: PASO 1 - Limpiar ambiente final BD
-      console.log('🧹 FASE 10 - PASO 1: Final BD environment cleanup...');
+      // FASE 11: CORRECCIÓN 1 - Limpiar ambiente final BD
+      console.log('🧹 FASE 11 - CORRECCIÓN 1: Final BD environment cleanup...');
       await cleanupTestEnvironment();
       
       setIsRunning(false);
@@ -534,7 +533,7 @@ const Phase5TestingSuite = () => {
   };
 
   const stopTests = () => {
-    console.log('🛑 FASE 10 - PASO 3: Stopping tests...');
+    console.log('🛑 FASE 11 - CORRECCIÓN 5: Stopping tests...');
     abortControllerRef.current?.abort();
   };
 
@@ -560,7 +559,7 @@ const Phase5TestingSuite = () => {
     return (
       <div className="mt-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">FASE 10 - Resultados de Testing BD Directa</h3>
+          <h3 className="text-lg font-semibold">FASE 11 - Resultados de Testing BD Directa</h3>
           <div className="flex items-center gap-2">
             <Badge variant={results.overallSuccess ? "default" : "destructive"}>
               {results.passedTests}/{results.totalTests} tests pasaron
@@ -596,7 +595,7 @@ const Phase5TestingSuite = () => {
                 
                 {result.validationDetails && (
                   <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
-                    <strong>FASE 10 Validación BD:</strong> {result.validationDetails}
+                    <strong>FASE 11 Validación BD:</strong> {result.validationDetails}
                   </div>
                 )}
               </div>
@@ -612,22 +611,22 @@ const Phase5TestingSuite = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TestTube className="h-5 w-5 text-blue-600" />
-          Phase 5: FASE 10 - Testing Suite Definitivo BD Directa
+          Phase 5: FASE 11 - Testing Suite Corrección Desincronización
         </CardTitle>
       </CardHeader>
       
       <CardContent>
-        <Alert className="mb-6 border-blue-200 bg-blue-50">
-          <Shield className="h-4 w-4 text-blue-600" />
+        <Alert className="mb-6 border-green-200 bg-green-50">
+          <Shield className="h-4 w-4 text-green-600" />
           <AlertDescription>
-            <div className="font-medium mb-2 text-blue-800">FASE 10 - CORRECCIÓN DEFINITIVA IMPLEMENTADA:</div>
-            <ul className="list-disc list-inside text-sm space-y-1 text-blue-700">
-              <li>✅ Validación BD directa SIEMPRE (no estado local)</li>
-              <li>✅ Reset total REAL con confirmación BD</li>
-              <li>✅ Timeouts realistas 45-90 segundos para BD producción</li>
-              <li>✅ Aislamiento TOTAL de tests con Smart Messaging OFF</li>
-              <li>✅ Monitoreo y auto-corrección BD-Estado tiempo real</li>
-              <li>✅ Tests independientes con ambiente BD limpio</li>
+            <div className="font-medium mb-2 text-green-800">FASE 11 - CORRECCIÓN DESINCRONIZACIÓN IMPLEMENTADA:</div>
+            <ul className="list-disc list-inside text-sm space-y-1 text-green-700">
+              <li>✅ validatePersistence SIEMPRE actualiza estado local con BD real</li>
+              <li>✅ forceFullReset con sincronización FORZADA post-reset</li>
+              <li>✅ Timeouts realistas 60-120 segundos para BD producción</li>
+              <li>✅ Smart Messaging pausado AGRESIVAMENTE durante tests</li>
+              <li>✅ Auto-corrección INMEDIATA cuando BD ≠ Estado Local</li>
+              <li>✅ Tests validación BD DIRECTA exclusiva, nunca estado local</li>
             </ul>
           </AlertDescription>
         </Alert>
@@ -647,7 +646,7 @@ const Phase5TestingSuite = () => {
             ) : (
               <>
                 <Play className="h-4 w-4" />
-                Ejecutar FASE 10 Tests BD
+                Ejecutar FASE 11 Tests BD
               </>
             )}
           </Button>

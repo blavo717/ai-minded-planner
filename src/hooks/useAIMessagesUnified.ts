@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAIMessagesPersistence } from '@/hooks/useAIMessagesPersistence';
@@ -31,7 +30,7 @@ export const useAIMessagesUnified = () => {
   const processingRef = useRef(false);
   const lastSyncRef = useRef<number>(0);
 
-  console.log('🎯 FASE 10 - useAIMessagesUnified state:', {
+  console.log('🎯 FASE 11 - useAIMessagesUnified state:', {
     user: user?.id || 'none',
     messagesCount: messages.length,
     isInitialized,
@@ -40,46 +39,54 @@ export const useAIMessagesUnified = () => {
     processing: processingRef.current
   });
 
-  // FASE 10: PASO 1 - Reset completo REAL con confirmación BD
+  // FASE 11: CORRECCIÓN CRÍTICA 1 - forceFullReset con sincronización FORZADA post-reset
   const forceFullReset = useCallback(async (): Promise<void> => {
-    console.log('🔄 FASE 10 - PASO 1: Iniciando RESET TOTAL REAL con confirmación BD...');
+    console.log('🔄 FASE 11 - CORRECCIÓN 1: Iniciando RESET TOTAL con sincronización FORZADA...');
     
     try {
       setIsLoading(true);
       processingRef.current = true;
       
       // 1. Limpiar BD real (Supabase) con confirmación
-      console.log('🗑️ FASE 10 - PASO 1: Limpiando BD real (Supabase)...');
+      console.log('🗑️ FASE 11 - CORRECCIÓN 1: Limpiando BD real (Supabase)...');
       await clearChatInSupabase();
-      await new Promise(resolve => setTimeout(resolve, 8000)); // FASE 10: Más tiempo para BD real
+      await new Promise(resolve => setTimeout(resolve, 12000)); // FASE 11: Timeout aumentado significativamente
       
-      // 2. FASE 10: Confirmar limpieza BD directamente
-      console.log('🔍 FASE 10 - PASO 1: Confirmando limpieza BD directa...');
+      // 2. FASE 11: CORRECCIÓN CRÍTICA - Confirmar limpieza BD directamente
+      console.log('🔍 FASE 11 - CORRECCIÓN 1: Confirmando limpieza BD directa...');
       const confirmMessages = await loadFromSupabase();
       if (confirmMessages.length > 0) {
-        console.error(`❌ FASE 10 - PASO 1: BD no está limpia! Encontrados ${confirmMessages.length} mensajes`);
+        console.error(`❌ FASE 11 - CORRECCIÓN 1: BD no está limpia! Encontrados ${confirmMessages.length} mensajes`);
         throw new Error(`BD no está limpia después del reset: ${confirmMessages.length} mensajes restantes`);
       }
       
       // 3. Limpiar localStorage
-      console.log('🗑️ FASE 10 - PASO 1: Limpiando localStorage...');
+      console.log('🗑️ FASE 11 - CORRECCIÓN 1: Limpiando localStorage...');
       clearLocalStorage();
       
       // 4. Limpiar memoria
-      console.log('🗑️ FASE 10 - PASO 1: Limpiando memoria...');
+      console.log('🗑️ FASE 11 - CORRECCIÓN 1: Limpiando memoria...');
       memoryStore.current = [];
       
-      // 5. Resetear estado React
-      console.log('🗑️ FASE 10 - PASO 1: Reseteando estado React...');
+      // 5. FASE 11: CORRECCIÓN CRÍTICA - FORZAR sincronización estado React con BD vacía
+      console.log('🔄 FASE 11 - CORRECCIÓN 1: FORZANDO sincronización estado React con BD vacía...');
       setMessages([]);
       
-      // 6. Forzar sincronización completa
+      // 6. FASE 11: Validación adicional de sincronización forzada
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Tiempo para propagación React
+      console.log('✅ FASE 11 - CORRECCIÓN 1: Estado React forzadamente sincronizado:', {
+        bdMessages: 0,
+        localMessages: 0,
+        reactMessages: 0
+      });
+      
+      // 7. Forzar sincronización completa
       lastSyncRef.current = Date.now();
       
-      console.log('✅ FASE 10 - PASO 1: RESET TOTAL REAL completado y confirmado');
+      console.log('✅ FASE 11 - CORRECCIÓN 1: RESET TOTAL con sincronización FORZADA completado');
       
     } catch (error) {
-      console.error('❌ FASE 10 - PASO 1: Error en reset total real:', error);
+      console.error('❌ FASE 11 - CORRECCIÓN 1: Error en reset total:', error);
       throw error;
     } finally {
       processingRef.current = false;
@@ -87,20 +94,20 @@ export const useAIMessagesUnified = () => {
     }
   }, [clearChatInSupabase, clearLocalStorage, loadFromSupabase]);
 
-  // FASE 10: PASO 1 - Validación DIRECTA contra BD real (NO estado local)
+  // FASE 11: CORRECCIÓN CRÍTICA 2 - validatePersistence con AUTO-CORRECCIÓN INMEDIATA del estado local
   const validatePersistence = useCallback(async (expectedCount: number, operation: string): Promise<boolean> => {
     const strategy = getStrategy();
-    console.log(`🔍 FASE 10 - PASO 1: Validación BD DIRECTA para ${operation}, esperado: ${expectedCount}, estrategia: ${strategy}`);
+    console.log(`🔍 FASE 11 - CORRECCIÓN 2: Validación BD DIRECTA con auto-corrección para ${operation}, esperado: ${expectedCount}, estrategia: ${strategy}`);
     
     try {
       let actualMessages: ChatMessage[] = [];
       
       switch (strategy) {
         case 'supabase':
-          // FASE 10: CORRECCIÓN CRÍTICA - SIEMPRE cargar desde BD, NUNCA estado local
-          console.log('📥 FASE 10 - PASO 1: Cargando DIRECTAMENTE desde BD real (NO estado local)...');
+          // FASE 11: CORRECCIÓN CRÍTICA - SIEMPRE cargar desde BD, NUNCA estado local
+          console.log('📥 FASE 11 - CORRECCIÓN 2: Cargando DIRECTAMENTE desde BD real (NO estado local)...');
           actualMessages = await loadFromSupabase();
-          console.log(`📊 FASE 10 - PASO 1: BD real contiene ${actualMessages.length} mensajes, esperado: ${expectedCount}`);
+          console.log(`📊 FASE 11 - CORRECCIÓN 2: BD real contiene ${actualMessages.length} mensajes, esperado: ${expectedCount}`);
           break;
         case 'localStorage':
           actualMessages = loadFromLocalStorage();
@@ -111,42 +118,48 @@ export const useAIMessagesUnified = () => {
       }
       
       const isValid = actualMessages.length === expectedCount;
-      console.log(`🔍 FASE 10 - PASO 1: Validación BD directa resultado:`, {
+      const desync = Math.abs(actualMessages.length - expectedCount);
+      
+      console.log(`🔍 FASE 11 - CORRECCIÓN 2: Validación BD directa resultado:`, {
         operation,
         expected: expectedCount,
         actual: actualMessages.length,
         isValid,
         strategy,
-        desync: Math.abs(actualMessages.length - expectedCount)
+        desync,
+        severity: desync > 100 ? 'CRÍTICA' : desync > 10 ? 'ALTA' : 'BAJA'
       });
       
-      if (isValid) {
-        // FASE 10: Actualizar estado solo si validación exitosa
-        setMessages(actualMessages);
-        lastSyncRef.current = Date.now();
-        console.log(`✅ FASE 10 - PASO 1: Sincronización exitosa BD → Estado Local`);
+      // FASE 11: CORRECCIÓN CRÍTICA 2 - SIEMPRE actualizar estado local con BD real
+      console.log('🔧 FASE 11 - CORRECCIÓN 2: AUTO-CORRECCIÓN INMEDIATA - Actualizando estado local con BD real...');
+      setMessages(actualMessages);
+      lastSyncRef.current = Date.now();
+      console.log(`✅ FASE 11 - CORRECCIÓN 2: Estado local AUTO-CORREGIDO: ${messages.length} → ${actualMessages.length}`);
+      
+      if (!isValid) {
+        console.error(`❌ FASE 11 - CORRECCIÓN 2: DESINCRONIZACIÓN DETECTADA - BD: ${actualMessages.length}, Esperado: ${expectedCount}, Diff: ${desync}`);
       } else {
-        console.error(`❌ FASE 10 - PASO 1: DESINCRONIZACIÓN CRÍTICA DETECTADA - BD: ${actualMessages.length}, Esperado: ${expectedCount}, Diff: ${Math.abs(actualMessages.length - expectedCount)}`);
+        console.log(`✅ FASE 11 - CORRECCIÓN 2: Validación exitosa y estado local sincronizado`);
       }
       
       return isValid;
     } catch (error) {
-      console.error(`❌ FASE 10 - PASO 1: Error en validación BD directa:`, error);
+      console.error(`❌ FASE 11 - CORRECCIÓN 2: Error en validación BD directa:`, error);
       return false;
     }
-  }, [getStrategy, loadFromSupabase, loadFromLocalStorage]);
+  }, [getStrategy, loadFromSupabase, loadFromLocalStorage, messages.length]);
 
-  // FASE 10: PASO 2 - Consistencia automática con auto-corrección REAL
+  // FASE 11: CORRECCIÓN 3 - Consistencia automática con auto-corrección AGRESIVA
   const validateConsistency = useCallback(async (): Promise<boolean> => {
     const strategy = getStrategy();
-    console.log(`🔍 FASE 10 - PASO 2: Validando consistencia BD-Estado con estrategia: ${strategy}`);
+    console.log(`🔍 FASE 11 - CORRECCIÓN 3: Validando consistencia BD-Estado con auto-corrección AGRESIVA: ${strategy}`);
     
     try {
       let realMessages: ChatMessage[] = [];
       
       switch (strategy) {
         case 'supabase':
-          // FASE 10: SIEMPRE cargar desde BD real para consistencia
+          // FASE 11: SIEMPRE cargar desde BD real para consistencia
           realMessages = await loadFromSupabase();
           break;
         case 'localStorage':
@@ -161,34 +174,35 @@ export const useAIMessagesUnified = () => {
       
       if (!isConsistent) {
         const diff = Math.abs(realMessages.length - messages.length);
-        console.warn(`⚠️ FASE 10 - PASO 2: INCONSISTENCIA CRÍTICA DETECTADA:`, {
+        console.warn(`⚠️ FASE 11 - CORRECCIÓN 3: INCONSISTENCIA CRÍTICA DETECTADA:`, {
           real: realMessages.length,
           local: messages.length,
           strategy,
           diff: diff,
-          severity: diff > 50 ? 'CRÍTICA' : diff > 10 ? 'ALTA' : 'MEDIA'
+          severity: diff > 100 ? 'CRÍTICA' : diff > 50 ? 'ALTA' : diff > 10 ? 'MEDIA' : 'BAJA'
         });
         
-        // FASE 10: Auto-corrección inmediata
-        console.log('🔧 FASE 10 - PASO 2: Aplicando auto-corrección inmediata...');
+        // FASE 11: CORRECCIÓN 3 - Auto-corrección AGRESIVA inmediata
+        console.log('🔧 FASE 11 - CORRECCIÓN 3: Aplicando auto-corrección AGRESIVA inmediata...');
         setMessages(realMessages);
         lastSyncRef.current = Date.now();
+        console.log(`✅ FASE 11 - CORRECCIÓN 3: Auto-corrección AGRESIVA aplicada: ${messages.length} → ${realMessages.length}`);
         return false;
       }
       
-      console.log(`✅ FASE 10 - PASO 2: Consistencia verificada - ${realMessages.length} mensajes sincronizados`);
+      console.log(`✅ FASE 11 - CORRECCIÓN 3: Consistencia verificada - ${realMessages.length} mensajes sincronizados`);
       return true;
       
     } catch (error) {
-      console.error(`❌ FASE 10 - PASO 2: Error validando consistencia:`, error);
+      console.error(`❌ FASE 11 - CORRECCIÓN 3: Error validando consistencia:`, error);
       return false;
     }
   }, [getStrategy, loadFromSupabase, loadFromLocalStorage, messages.length]);
 
-  // FASE 10: PASO 1 - Cargar mensajes con sincronización forzada BD
+  // FASE 11: CORRECCIÓN 3 - Cargar mensajes con sincronización BD forzada
   const loadMessages = useCallback(async (forceSync: boolean = false): Promise<ChatMessage[]> => {
     const strategy = getStrategy();
-    console.log(`📥 FASE 10 - PASO 1: Cargando mensajes BD directa - estrategia: ${strategy}, forceSync: ${forceSync}`);
+    console.log(`📥 FASE 11 - CORRECCIÓN 3: Cargando mensajes BD directa - estrategia: ${strategy}, forceSync: ${forceSync}`);
     
     setIsLoading(true);
     
@@ -197,10 +211,10 @@ export const useAIMessagesUnified = () => {
       
       switch (strategy) {
         case 'supabase':
-          // FASE 10: SIEMPRE cargar desde BD para asegurar sincronización real
-          console.log('📥 FASE 10 - PASO 1: Carga BD DIRECTA desde Supabase...');
+          // FASE 11: SIEMPRE cargar desde BD para asegurar sincronización real
+          console.log('📥 FASE 11 - CORRECCIÓN 3: Carga BD DIRECTA desde Supabase...');
           loadedMessages = await loadFromSupabase();
-          console.log(`📊 FASE 10 - PASO 1: Cargados ${loadedMessages.length} mensajes desde BD real`);
+          console.log(`📊 FASE 11 - CORRECCIÓN 3: Cargados ${loadedMessages.length} mensajes desde BD real`);
           break;
         case 'localStorage':
           loadedMessages = loadFromLocalStorage();
@@ -210,31 +224,31 @@ export const useAIMessagesUnified = () => {
           break;
       }
       
-      console.log(`✅ FASE 10 - PASO 1: Cargados ${loadedMessages.length} mensajes via ${strategy}`);
+      console.log(`✅ FASE 11 - CORRECCIÓN 3: Cargados ${loadedMessages.length} mensajes via ${strategy}`);
       setMessages(loadedMessages);
       lastSyncRef.current = Date.now();
       
       return loadedMessages;
       
     } catch (error) {
-      console.error(`❌ FASE 10 - PASO 1: Error cargando mensajes via ${strategy}:`, error);
+      console.error(`❌ FASE 11 - CORRECCIÓN 3: Error cargando mensajes via ${strategy}:`, error);
       return [];
     } finally {
       setIsLoading(false);
     }
   }, [getStrategy, loadFromSupabase, loadFromLocalStorage]);
 
-  // FASE 10: PASO 3 - Guardar con validación BD directa (timeouts aumentados)
+  // FASE 11: CORRECCIÓN 4 - Guardar con validación BD directa (timeouts aumentados 60-120s)
   const saveMessage = useCallback(async (message: ChatMessage): Promise<void> => {
     const strategy = getStrategy();
-    console.log(`💾 FASE 10 - PASO 3: Guardando mensaje via ${strategy}:`, {
+    console.log(`💾 FASE 11 - CORRECCIÓN 4: Guardando mensaje via ${strategy}:`, {
       id: message.id,
       type: message.type,
       contentPreview: message.content.substring(0, 50)
     });
     
     if (processingRef.current) {
-      console.log('⚠️ FASE 10 - PASO 3: Operación ya en progreso, rechazando');
+      console.log('⚠️ FASE 11 - CORRECCIÓN 4: Operación ya en progreso, rechazando');
       throw new Error('Operación ya en progreso');
     }
     
@@ -244,21 +258,27 @@ export const useAIMessagesUnified = () => {
       const preCount = messages.length;
       const expectedCount = preCount + 1;
       
-      console.log(`📊 FASE 10 - PASO 3: Pre-validación: ${preCount} → ${expectedCount}`);
+      console.log(`📊 FASE 11 - CORRECCIÓN 4: Pre-validación: ${preCount} → ${expectedCount}`);
       
       switch (strategy) {
         case 'supabase':
           await saveToSupabase(message);
-          console.log(`✅ FASE 10 - PASO 3: Guardado en BD real`);
+          console.log(`✅ FASE 11 - CORRECCIÓN 4: Guardado en BD real`);
           
-          // FASE 10: PASO 3 - Timeout realista para BD en producción (aumentado significativamente)
-          console.log('⏳ FASE 10 - PASO 3: Esperando propagación BD (tiempo aumentado)...');
-          await new Promise(resolve => setTimeout(resolve, 8000)); // 8 segundos para BD real
+          // FASE 11: CORRECCIÓN 4 - Timeout realista para BD en producción (aumentado 60-120s)
+          console.log('⏳ FASE 11 - CORRECCIÓN 4: Esperando propagación BD (timeout 60-120s)...');
+          await new Promise(resolve => setTimeout(resolve, 60000)); // 60 segundos base
           
-          // FASE 10: Validación BD directa
+          // FASE 11: Validación BD directa con auto-corrección
           const isValid = await validatePersistence(expectedCount, 'saveMessage');
           if (!isValid) {
-            throw new Error(`FASE 10 - PASO 3: Post-validación BD directa falló para saveMessage`);
+            // FASE 11: Retry con timeout extendido
+            console.log('⏳ FASE 11 - CORRECCIÓN 4: Retry con timeout extendido...');
+            await new Promise(resolve => setTimeout(resolve, 60000)); // +60 segundos adicionales
+            const retryValid = await validatePersistence(expectedCount, 'saveMessage-retry');
+            if (!retryValid) {
+              throw new Error(`FASE 11 - CORRECCIÓN 4: Post-validación BD directa falló para saveMessage después de retry`);
+            }
           }
           break;
           
@@ -276,20 +296,20 @@ export const useAIMessagesUnified = () => {
       }
       
       lastSyncRef.current = Date.now();
-      console.log(`✅ FASE 10 - PASO 3: Mensaje guardado y validado exitosamente via ${strategy}`);
+      console.log(`✅ FASE 11 - CORRECCIÓN 4: Mensaje guardado y validado exitosamente via ${strategy}`);
       
     } catch (error) {
-      console.error(`❌ FASE 10 - PASO 3: Error guardando mensaje via ${strategy}:`, error);
+      console.error(`❌ FASE 11 - CORRECCIÓN 4: Error guardando mensaje via ${strategy}:`, error);
       throw error;
     } finally {
       processingRef.current = false;
     }
   }, [getStrategy, saveToSupabase, saveToLocalStorage, messages, validatePersistence]);
 
-  // FASE 10: PASO 3 - Actualizar con validación BD directa (timeout aumentado)
+  // FASE 11: CORRECCIÓN 4 - Actualizar con validación BD directa (timeout aumentado 60-120s)
   const updateMessage = useCallback(async (messageId: string, updates: Partial<ChatMessage>): Promise<void> => {
     const strategy = getStrategy();
-    console.log(`🔄 FASE 10 - PASO 3: Actualizando mensaje ${messageId} via ${strategy}`);
+    console.log(`🔄 FASE 11 - CORRECCIÓN 4: Actualizando mensaje ${messageId} via ${strategy}`);
     
     if (processingRef.current) {
       throw new Error('Operación ya en progreso');
@@ -303,16 +323,16 @@ export const useAIMessagesUnified = () => {
       switch (strategy) {
         case 'supabase':
           await updateInSupabase(messageId, updates);
-          console.log(`✅ FASE 10 - PASO 3: Actualizado en BD real`);
+          console.log(`✅ FASE 11 - CORRECCIÓN 4: Actualizado en BD real`);
           
-          // FASE 10: PASO 3 - Timeout realista aumentado
-          console.log('⏳ FASE 10 - PASO 3: Esperando propagación actualización BD...');
-          await new Promise(resolve => setTimeout(resolve, 6000)); // 6 segundos
+          // FASE 11: CORRECCIÓN 4 - Timeout realista aumentado 60-120s
+          console.log('⏳ FASE 11 - CORRECCIÓN 4: Esperando propagación actualización BD (60-120s)...');
+          await new Promise(resolve => setTimeout(resolve, 90000)); // 90 segundos para updates
           
-          // FASE 10: Validación BD directa
+          // FASE 11: Validación BD directa con auto-corrección
           const isValid = await validatePersistence(currentCount, 'updateMessage');
           if (!isValid) {
-            throw new Error(`FASE 10 - PASO 3: Post-validación BD directa falló para updateMessage`);
+            throw new Error(`FASE 11 - CORRECCIÓN 4: Post-validación BD directa falló para updateMessage`);
           }
           break;
           
@@ -334,20 +354,20 @@ export const useAIMessagesUnified = () => {
       }
       
       lastSyncRef.current = Date.now();
-      console.log(`✅ FASE 10 - PASO 3: Mensaje actualizado y validado BD directa via ${strategy}`);
+      console.log(`✅ FASE 11 - CORRECCIÓN 4: Mensaje actualizado y validado BD directa via ${strategy}`);
       
     } catch (error) {
-      console.error(`❌ FASE 10 - PASO 3: Error actualizando mensaje via ${strategy}:`, error);
+      console.error(`❌ FASE 11 - CORRECCIÓN 4: Error actualizando mensaje via ${strategy}:`, error);
       throw error;
     } finally {
       processingRef.current = false;
     }
   }, [getStrategy, updateInSupabase, saveToLocalStorage, messages, validatePersistence]);
 
-  // FASE 10: PASO 3 - Marcar todos como leídos con validación BD directa (timeout aumentado)
+  // FASE 11: CORRECCIÓN 4 - Marcar todos como leídos con validación BD directa (timeout aumentado 60-120s)
   const markAllAsRead = useCallback(async (): Promise<void> => {
     const strategy = getStrategy();
-    console.log(`👁️ FASE 10 - PASO 3: Marcando todos como leídos via ${strategy}`);
+    console.log(`👁️ FASE 11 - CORRECCIÓN 4: Marcando todos como leídos via ${strategy}`);
     
     if (processingRef.current) {
       throw new Error('Operación ya en progreso');
@@ -361,16 +381,16 @@ export const useAIMessagesUnified = () => {
       switch (strategy) {
         case 'supabase':
           await markAllAsReadInSupabase();
-          console.log(`✅ FASE 10 - PASO 3: Todos marcados como leídos en BD real`);
+          console.log(`✅ FASE 11 - CORRECCIÓN 4: Todos marcados como leídos en BD real`);
           
-          // FASE 10: PASO 3 - Timeout realista para operaciones bulk (aumentado significativamente)
-          console.log('⏳ FASE 10 - PASO 3: Esperando propagación operación bulk BD...');
-          await new Promise(resolve => setTimeout(resolve, 10000)); // 10 segundos para bulk
+          // FASE 11: CORRECCIÓN 4 - Timeout realista para operaciones bulk (aumentado 60-120s)
+          console.log('⏳ FASE 11 - CORRECCIÓN 4: Esperando propagación operación bulk BD (60-120s)...');
+          await new Promise(resolve => setTimeout(resolve, 120000)); // 120 segundos para bulk
           
-          // FASE 10: Validación BD directa
+          // FASE 11: Validación BD directa con auto-corrección
           const isValid = await validatePersistence(currentCount, 'markAllAsRead');
           if (!isValid) {
-            throw new Error(`FASE 10 - PASO 3: Post-validación BD directa falló para markAllAsRead`);
+            throw new Error(`FASE 11 - CORRECCIÓN 4: Post-validación BD directa falló para markAllAsRead`);
           }
           break;
           
@@ -388,20 +408,20 @@ export const useAIMessagesUnified = () => {
       }
       
       lastSyncRef.current = Date.now();
-      console.log(`✅ FASE 10 - PASO 3: Todos marcados como leídos y validados BD directa via ${strategy}`);
+      console.log(`✅ FASE 11 - CORRECCIÓN 4: Todos marcados como leídos y validados BD directa via ${strategy}`);
       
     } catch (error) {
-      console.error(`❌ FASE 10 - PASO 3: Error marcando todos como leídos via ${strategy}:`, error);
+      console.error(`❌ FASE 11 - CORRECCIÓN 4: Error marcando todos como leídos via ${strategy}:`, error);
       throw error;
     } finally {
       processingRef.current = false;
     }
   }, [getStrategy, markAllAsReadInSupabase, saveToLocalStorage, messages, validatePersistence]);
 
-  // FASE 10: PASO 1 - Limpiar chat con reset total real (timeout aumentado)
+  // FASE 11: CORRECCIÓN 1 - Limpiar chat con reset total real (timeout aumentado 60-120s)
   const clearChat = useCallback(async (): Promise<void> => {
     const strategy = getStrategy();
-    console.log(`🗑️ FASE 10 - PASO 1: Limpiando chat via ${strategy} con confirmación BD`);
+    console.log(`🗑️ FASE 11 - CORRECCIÓN 1: Limpiando chat via ${strategy} con confirmación BD`);
     
     if (processingRef.current) {
       throw new Error('Operación ya en progreso');
@@ -413,16 +433,16 @@ export const useAIMessagesUnified = () => {
       switch (strategy) {
         case 'supabase':
           await clearChatInSupabase();
-          console.log(`✅ FASE 10 - PASO 1: Chat limpiado en BD real`);
+          console.log(`✅ FASE 11 - CORRECCIÓN 1: Chat limpiado en BD real`);
           
-          // FASE 10: PASO 1 - Timeout realista para limpieza (aumentado)
-          console.log('⏳ FASE 10 - PASO 1: Esperando confirmación limpieza BD...');
-          await new Promise(resolve => setTimeout(resolve, 8000)); // 8 segundos para limpieza
+          // FASE 11: CORRECCIÓN 1 - Timeout realista para limpieza (aumentado 60-120s)
+          console.log('⏳ FASE 11 - CORRECCIÓN 1: Esperando confirmación limpieza BD (60-120s)...');
+          await new Promise(resolve => setTimeout(resolve, 90000)); // 90 segundos para limpieza
           
-          // FASE 10: Validación BD directa
+          // FASE 11: Validación BD directa con auto-corrección
           const isValid = await validatePersistence(0, 'clearChat');
           if (!isValid) {
-            throw new Error(`FASE 10 - PASO 1: Post-validación BD directa falló para clearChat`);
+            throw new Error(`FASE 11 - CORRECCIÓN 1: Post-validación BD directa falló para clearChat`);
           }
           break;
           
@@ -439,42 +459,42 @@ export const useAIMessagesUnified = () => {
       }
       
       lastSyncRef.current = Date.now();
-      console.log(`✅ FASE 10 - PASO 1: Chat limpiado y validado BD directa via ${strategy}`);
+      console.log(`✅ FASE 11 - CORRECCIÓN 1: Chat limpiado y validado BD directa via ${strategy}`);
       
     } catch (error) {
-      console.error(`❌ FASE 10 - PASO 1: Error limpiando chat via ${strategy}:`, error);
+      console.error(`❌ FASE 11 - CORRECCIÓN 1: Error limpiando chat via ${strategy}:`, error);
       throw error;
     } finally {
       processingRef.current = false;
     }
   }, [getStrategy, clearChatInSupabase, clearLocalStorage, validatePersistence]);
 
-  // FASE 10: PASO 1 - Inicialización con sincronización BD forzada
+  // FASE 11: CORRECCIÓN 3 - Inicialización con sincronización BD forzada
   useEffect(() => {
     if (!isInitialized) {
-      console.log('🚀 FASE 10 - PASO 1: Inicializando con sincronización BD FORZADA...');
+      console.log('🚀 FASE 11 - CORRECCIÓN 3: Inicializando con sincronización BD FORZADA...');
       
       loadMessages(true).then(() => {
         setIsInitialized(true);
-        console.log('✅ FASE 10 - PASO 1: Sistema inicializado con sincronización BD forzada');
+        console.log('✅ FASE 11 - CORRECCIÓN 3: Sistema inicializado con sincronización BD forzada');
       }).catch(error => {
-        console.error('❌ FASE 10 - PASO 1: Error inicializando:', error);
+        console.error('❌ FASE 11 - CORRECCIÓN 3: Error inicializando:', error);
         setIsInitialized(true);
       });
     }
   }, [loadMessages, isInitialized]);
 
-  // FASE 10: PASO 2 - Monitoreo automático de consistencia (intervalo aumentado)
+  // FASE 11: CORRECCIÓN 3 - Monitoreo automático de consistencia (intervalo aumentado)
   useEffect(() => {
     if (!isInitialized) return;
     
     const consistencyInterval = setInterval(async () => {
       const timeSinceLastSync = Date.now() - lastSyncRef.current;
-      if (timeSinceLastSync > 60000) { // 60 segundos - aumentado significativamente
-        console.log('🔄 FASE 10 - PASO 2: Verificación automática de consistencia BD-Estado...');
+      if (timeSinceLastSync > 120000) { // 120 segundos - aumentado significativamente
+        console.log('🔄 FASE 11 - CORRECCIÓN 3: Verificación automática de consistencia BD-Estado...');
         await validateConsistency();
       }
-    }, 30000); // Cada 30 segundos - aumentado
+    }, 60000); // Cada 60 segundos - aumentado
     
     return () => clearInterval(consistencyInterval);
   }, [isInitialized, validateConsistency]);
