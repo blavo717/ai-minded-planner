@@ -1,34 +1,58 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Task } from '@/hooks/useTasks';
 
-interface TasksContextValue {
-  // Modal states
+interface TasksContextType {
+  // Existing modals
   isCreateTaskOpen: boolean;
   setIsCreateTaskOpen: (open: boolean) => void;
+  
   isEditModalOpen: boolean;
   setIsEditModalOpen: (open: boolean) => void;
+  
   isDependenciesModalOpen: boolean;
   setIsDependenciesModalOpen: (open: boolean) => void;
+  
   isAssignModalOpen: boolean;
   setIsAssignModalOpen: (open: boolean) => void;
   
-  // Current task states
+  // New complete modal
+  isCompleteModalOpen: boolean;
+  setIsCompleteModalOpen: (open: boolean) => void;
+  
+  // View and state management
+  viewMode: 'list' | 'kanban';
+  setViewMode: (mode: 'list' | 'kanban') => void;
+  
+  showInsights: boolean;
+  setShowInsights: (show: boolean) => void;
+  
+  // Task state
   editingTask: Task | null;
   setEditingTask: (task: Task | null) => void;
+  
   dependenciesTask: Task | null;
   setDependenciesTask: (task: Task | null) => void;
+  
   assigningTask: Task | null;
   setAssigningTask: (task: Task | null) => void;
   
-  // View states
-  viewMode: 'list' | 'kanban';
-  setViewMode: (mode: 'list' | 'kanban') => void;
-  showInsights: boolean;
-  setShowInsights: (show: boolean) => void;
+  completingTask: Task | null;
+  setCompletingTask: (task: Task | null) => void;
+  
+  // History view
+  showHistory: boolean;
+  setShowHistory: (show: boolean) => void;
 }
 
-const TasksContext = createContext<TasksContextValue | undefined>(undefined);
+const TasksContext = createContext<TasksContextType | undefined>(undefined);
+
+export const useTasksContext = () => {
+  const context = useContext(TasksContext);
+  if (!context) {
+    throw new Error('useTasksContext must be used within a TasksProvider');
+  }
+  return context;
+};
 
 interface TasksProviderProps {
   children: ReactNode;
@@ -40,17 +64,21 @@ export const TasksProvider = ({ children }: TasksProviderProps) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDependenciesModalOpen, setIsDependenciesModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  
-  // Current task states
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [dependenciesTask, setDependenciesTask] = useState<Task | null>(null);
-  const [assigningTask, setAssigningTask] = useState<Task | null>(null);
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
   
   // View states
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [showInsights, setShowInsights] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  
+  // Task states
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [dependenciesTask, setDependenciesTask] = useState<Task | null>(null);
+  const [assigningTask, setAssigningTask] = useState<Task | null>(null);
+  const [completingTask, setCompletingTask] = useState<Task | null>(null);
 
-  const value: TasksContextValue = {
+  const value: TasksContextType = {
+    // Modal states
     isCreateTaskOpen,
     setIsCreateTaskOpen,
     isEditModalOpen,
@@ -59,16 +87,26 @@ export const TasksProvider = ({ children }: TasksProviderProps) => {
     setIsDependenciesModalOpen,
     isAssignModalOpen,
     setIsAssignModalOpen,
+    isCompleteModalOpen,
+    setIsCompleteModalOpen,
+    
+    // View states
+    viewMode,
+    setViewMode,
+    showInsights,
+    setShowInsights,
+    showHistory,
+    setShowHistory,
+    
+    // Task states
     editingTask,
     setEditingTask,
     dependenciesTask,
     setDependenciesTask,
     assigningTask,
     setAssigningTask,
-    viewMode,
-    setViewMode,
-    showInsights,
-    setShowInsights,
+    completingTask,
+    setCompletingTask,
   };
 
   return (
@@ -76,12 +114,4 @@ export const TasksProvider = ({ children }: TasksProviderProps) => {
       {children}
     </TasksContext.Provider>
   );
-};
-
-export const useTasksContext = () => {
-  const context = useContext(TasksContext);
-  if (context === undefined) {
-    throw new Error('useTasksContext must be used within a TasksProvider');
-  }
-  return context;
 };

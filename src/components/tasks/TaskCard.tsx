@@ -14,7 +14,10 @@ import {
   Settings,
   Users,
   GitBranch,
-  Trash2
+  Trash2,
+  CheckCircle,
+  Archive,
+  FileText
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Task } from '@/hooks/useTasks';
@@ -32,6 +35,8 @@ interface TaskCardProps {
   onEditTask: (task: Task) => void;
   onManageDependencies: (task: Task) => void;
   onAssignTask: (task: Task) => void;
+  onCompleteTask: (task: Task) => void;
+  onArchiveTask: (taskId: string) => void;
   onCreateSubtask: (parentTaskId: string, title: string) => void;
 }
 
@@ -41,6 +46,8 @@ const TaskCard = memo(({
   onEditTask, 
   onManageDependencies,
   onAssignTask,
+  onCompleteTask,
+  onArchiveTask,
   onCreateSubtask 
 }: TaskCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -65,22 +72,45 @@ const TaskCard = memo(({
     onAssignTask(task);
   }, [onAssignTask, task]);
 
+  const handleCompleteClick = useCallback(() => {
+    onCompleteTask(task);
+  }, [onCompleteTask, task]);
+
+  const handleArchiveClick = useCallback(() => {
+    onArchiveTask(task.id);
+  }, [onArchiveTask, task.id]);
+
   const handleCreateSubtaskClick = useCallback((title: string) => {
     onCreateSubtask(task.id, title);
   }, [onCreateSubtask, task.id]);
 
   const completedSubtasks = subtasks.filter(st => st.status === 'completed').length;
   const totalSubtasks = subtasks.length;
+  const isCompleted = task.status === 'completed';
 
   return (
     <>
-      <Card className="w-full shadow-sm hover:shadow-md transition-shadow border border-gray-200">
+      <Card className={`w-full shadow-sm hover:shadow-md transition-shadow border ${isCompleted ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-lg text-gray-900 truncate">{task.title}</h3>
+              <h3 className={`font-semibold text-lg truncate ${isCompleted ? 'text-green-800' : 'text-gray-900'}`}>
+                {task.title}
+                {isCompleted && <CheckCircle className="inline-block h-4 w-4 ml-2 text-green-600" />}
+              </h3>
               {task.description && (
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{task.description}</p>
+                <p className={`text-sm mt-1 line-clamp-2 ${isCompleted ? 'text-green-700' : 'text-gray-600'}`}>
+                  {task.description}
+                </p>
+              )}
+              {task.completion_notes && (
+                <div className="mt-2 p-2 bg-green-100 rounded-md border border-green-200">
+                  <div className="flex items-center gap-1 mb-1">
+                    <FileText className="h-3 w-3 text-green-600" />
+                    <span className="text-xs font-medium text-green-800">Notas de finalización:</span>
+                  </div>
+                  <p className="text-sm text-green-700">{task.completion_notes}</p>
+                </div>
               )}
             </div>
             
@@ -92,6 +122,15 @@ const TaskCard = memo(({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
+                  {!isCompleted && (
+                    <>
+                      <DropdownMenuItem onClick={handleCompleteClick}>
+                        <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                        Completar tarea
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem onClick={handleEditClick}>
                     <Settings className="h-4 w-4 mr-2" />
                     Editar tarea
@@ -104,6 +143,15 @@ const TaskCard = memo(({
                     <Users className="h-4 w-4 mr-2" />
                     Asignar
                   </DropdownMenuItem>
+                  {isCompleted && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleArchiveClick}>
+                        <Archive className="h-4 w-4 mr-2" />
+                        Archivar
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={() => setShowDeleteDialog(true)}
@@ -188,15 +236,17 @@ const TaskCard = memo(({
               </CollapsibleContent>
             </Collapsible>
           ) : (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => handleCreateSubtaskClick('Nueva subtarea')}
-              className="w-full flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Añadir subtarea
-            </Button>
+            !isCompleted && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleCreateSubtaskClick('Nueva subtarea')}
+                className="w-full flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Añadir subtarea
+              </Button>
+            )
           )}
         </CardContent>
       </Card>

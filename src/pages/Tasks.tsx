@@ -12,6 +12,7 @@ import ProductivityTimer from '@/components/AI/ProductivityTimer';
 import TasksHeader from '@/components/tasks/TasksHeader';
 import TaskViewControls from '@/components/tasks/TaskViewControls';
 import TaskList from '@/components/tasks/TaskList';
+import TaskHistory from '@/components/tasks/TaskHistory';
 import DailyPlannerPreview from '@/components/AI/DailyPlannerPreview';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
@@ -26,11 +27,34 @@ const TasksContent = () => {
     setViewMode,
     showInsights,
     setShowInsights,
+    showHistory,
     setIsCreateTaskOpen,
   } = useTasksContext();
   
   const { filters, setFilters, filteredTasks, availableTags } = useTaskFilters(mainTasks, getSubtasksForTask);
-  const { handleEditTask, handleManageDependencies, handleAssignTask, handleCreateSubtask } = useTaskHandlers();
+  const { 
+    handleEditTask, 
+    handleManageDependencies, 
+    handleAssignTask, 
+    handleCompleteTask,
+    handleArchiveTask,
+    handleCreateSubtask 
+  } = useTaskHandlers();
+
+  // Si estamos en la vista de histórico, mostrar el componente de histórico
+  if (showHistory) {
+    return (
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        <TasksHeader
+          showInsights={showInsights}
+          onToggleInsights={() => setShowInsights(!showInsights)}
+          onCreateTask={() => setIsCreateTaskOpen(true)}
+        />
+        <TaskHistory />
+        <TaskModals />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
@@ -85,6 +109,8 @@ const TasksContent = () => {
               onEditTask={handleEditTask}
               onManageDependencies={handleManageDependencies}
               onAssignTask={handleAssignTask}
+              onCompleteTask={handleCompleteTask}
+              onArchiveTask={handleArchiveTask}
               onCreateSubtask={handleCreateSubtask}
             />
           )}

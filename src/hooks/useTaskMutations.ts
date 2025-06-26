@@ -93,6 +93,103 @@ export const useTaskMutations = () => {
     },
   });
 
+  const completeTaskMutation = useMutation({
+    mutationFn: async ({ taskId, completionNotes }: { taskId: string; completionNotes: string }) => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          completion_notes: completionNotes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] });
+      toast({
+        title: "Tarea completada",
+        description: "La tarea se ha completado exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al completar tarea",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const archiveTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update({
+          is_archived: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['archived-tasks', user?.id] });
+      toast({
+        title: "Tarea archivada",
+        description: "La tarea se ha archivado exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al archivar tarea",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const unarchiveTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update({
+          is_archived: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['archived-tasks', user?.id] });
+      toast({
+        title: "Tarea desarchivada",
+        description: "La tarea se ha restaurado exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al desarchivar tarea",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
       // Primero eliminar todas las microtareas (task_level = 3) de las subtareas de esta tarea
@@ -134,6 +231,7 @@ export const useTaskMutations = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['archived-tasks', user?.id] });
       toast({
         title: "Tarea eliminada",
         description: "La tarea se ha eliminado exitosamente.",
@@ -163,10 +261,16 @@ export const useTaskMutations = () => {
   return {
     createTask: createTaskMutation.mutate,
     updateTask: updateTaskMutation.mutate,
+    completeTask: completeTaskMutation.mutate,
+    archiveTask: archiveTaskMutation.mutate,
+    unarchiveTask: unarchiveTaskMutation.mutate,
     deleteTask: deleteTaskMutation.mutate,
     createMicrotask,
     isCreatingTask: createTaskMutation.isPending,
     isUpdatingTask: updateTaskMutation.isPending,
+    isCompletingTask: completeTaskMutation.isPending,
+    isArchivingTask: archiveTaskMutation.isPending,
+    isUnarchivingTask: unarchiveTaskMutation.isPending,
     isDeletingTask: deleteTaskMutation.isPending,
   };
 };

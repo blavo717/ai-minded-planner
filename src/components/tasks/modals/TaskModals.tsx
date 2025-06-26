@@ -6,6 +6,7 @@ import CreateTaskModal from '@/components/modals/CreateTaskModal';
 import EditTaskModal from '@/components/tasks/EditTaskModal';
 import ManageDependenciesModal from '@/components/tasks/ManageDependenciesModal';
 import AssignTaskModal from '@/components/modals/AssignTaskModal';
+import CompleteTaskModal from './CompleteTaskModal';
 import { useTasksContext } from '../providers/TasksProvider';
 
 // Create a compatible profile type for CreateTaskModal
@@ -28,12 +29,16 @@ const TaskModals = () => {
     setIsDependenciesModalOpen,
     isAssignModalOpen,
     setIsAssignModalOpen,
+    isCompleteModalOpen,
+    setIsCompleteModalOpen,
     editingTask,
     setEditingTask,
     dependenciesTask,
     setDependenciesTask,
     assigningTask,
     setAssigningTask,
+    completingTask,
+    setCompletingTask,
   } = useTasksContext();
 
   // Filter and transform profiles to ensure full_name exists
@@ -89,6 +94,18 @@ const TaskModals = () => {
           taskId={assigningTask.id}
           taskTitle={assigningTask.title}
           profiles={profiles}
+        />
+      )}
+
+      {completingTask && (
+        <CompleteTaskModal
+          isOpen={isCompleteModalOpen}
+          onClose={() => {
+            setIsCompleteModalOpen(false);
+            setCompletingTask(null);
+          }}
+          taskId={completingTask.id}
+          taskTitle={completingTask.title}
         />
       )}
     </>

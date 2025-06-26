@@ -621,11 +621,13 @@ export type Database = {
           communication_notes: string | null
           communication_type: string | null
           completed_at: string | null
+          completion_notes: string | null
           created_at: string
           description: string | null
           due_date: string | null
           estimated_duration: number | null
           id: string
+          is_archived: boolean
           last_communication_at: string | null
           last_worked_at: string | null
           needs_followup: boolean | null
@@ -645,11 +647,13 @@ export type Database = {
           communication_notes?: string | null
           communication_type?: string | null
           completed_at?: string | null
+          completion_notes?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           estimated_duration?: number | null
           id?: string
+          is_archived?: boolean
           last_communication_at?: string | null
           last_worked_at?: string | null
           needs_followup?: boolean | null
@@ -669,11 +673,13 @@ export type Database = {
           communication_notes?: string | null
           communication_type?: string | null
           completed_at?: string | null
+          completion_notes?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           estimated_duration?: number | null
           id?: string
+          is_archived?: boolean
           last_communication_at?: string | null
           last_worked_at?: string | null
           needs_followup?: boolean | null

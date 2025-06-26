@@ -10,6 +10,8 @@ interface TaskListProps {
   onEditTask: (task: Task) => void;
   onManageDependencies: (task: Task) => void;
   onAssignTask: (task: Task) => void;
+  onCompleteTask: (task: Task) => void;
+  onArchiveTask: (taskId: string) => void;
   onCreateSubtask: (parentTaskId: string, title: string) => void;
 }
 
@@ -19,6 +21,8 @@ const TaskList = ({
   onEditTask, 
   onManageDependencies,
   onAssignTask,
+  onCompleteTask,
+  onArchiveTask,
   onCreateSubtask 
 }: TaskListProps) => {
   if (tasks.length === 0) {
@@ -45,6 +49,8 @@ const TaskList = ({
             onEditTask={onEditTask}
             onManageDependencies={onManageDependencies}
             onAssignTask={onAssignTask}
+            onCompleteTask={onCompleteTask}
+            onArchiveTask={onArchiveTask}
             onCreateSubtask={onCreateSubtask}
           />
         );

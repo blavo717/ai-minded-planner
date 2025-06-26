@@ -11,6 +11,8 @@ export interface Task {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   due_date?: string;
   completed_at?: string;
+  completion_notes?: string;
+  is_archived?: boolean;
   created_at: string;
   updated_at: string;
   project_id?: string;
@@ -55,6 +57,8 @@ export interface UpdateTaskData {
   actual_duration?: number;
   tags?: string[];
   completed_at?: string;
+  completion_notes?: string;
+  is_archived?: boolean;
   last_worked_at?: string;
   last_communication_at?: string;
   communication_type?: 'email' | 'phone' | 'meeting' | 'whatsapp' | 'chat' | 'video_call' | 'in_person' | 'other';
@@ -74,6 +78,7 @@ export const useTasks = () => {
         .from('tasks')
         .select('*')
         .eq('user_id', user.id)
+        .eq('is_archived', false) // Solo mostrar tareas no archivadas por defecto
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -82,7 +87,25 @@ export const useTasks = () => {
     enabled: !!user,
   });
 
-  // Separar por niveles de jerarquía
+  const { data: archivedTasks = [], isLoading: archivedLoading } = useQuery({
+    queryKey: ['archived-tasks', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_archived', true)
+        .order('completed_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Task[];
+    },
+    enabled: !!user,
+  });
+
+  // Separar por niveles de jerarquía (solo tareas activas)
   const mainTasks = tasks.filter(task => task.task_level === 1);
   const subtasks = tasks.filter(task => task.task_level === 2);
   const microtasks = tasks.filter(task => task.task_level === 3);
@@ -132,6 +155,7 @@ export const useTasks = () => {
 
   return {
     tasks,
+    archivedTasks,
     mainTasks,
     subtasks,
     microtasks,
@@ -142,6 +166,7 @@ export const useTasks = () => {
     getTasksWithoutRecentActivity,
     getTaskHierarchy,
     isLoading: tasksLoading,
+    isLoadingArchived: archivedLoading,
     error: tasksError,
   };
 };
