@@ -21,7 +21,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 const TaskSessionLogger = () => {
   const { user } = useAuth();
-  const { data: tasks } = useTasks();
+  const { tasks } = useTasks();
   const { toast } = useToast();
   const [isLogging, setIsLogging] = useState(false);
   
