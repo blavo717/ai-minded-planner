@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,9 @@ const AIAssistantPanel = () => {
     markAsRead,
     markAllAsRead,
     clearChat,
-    getBadgeInfo
+    getBadgeInfo,
+    currentStrategy,
+    badgeUpdateTrigger
   } = useAIAssistant();
 
   const { triggerTaskAnalysis } = useSmartMessaging();
@@ -50,27 +51,33 @@ const AIAssistantPanel = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Forzar re-render del badge con un estado local
-  const [badgeUpdateKey, setBadgeUpdateKey] = useState(0);
+  // FORZAR RE-RENDER DEL BADGE CON ESTADO LOCAL
+  const [badgeRenderKey, setBadgeRenderKey] = useState(0);
 
-  // Debug: estado actual del componente
+  // DEBUGGING MASIVO del componente
   console.log('🎯 AIAssistantPanel render:', {
     isOpen,
     messagesCount: messages.length,
     isInitialized,
     connectionStatus,
     isMinimized,
-    badgeUpdateKey
+    badgeRenderKey,
+    strategy: currentStrategy,
+    badgeUpdateTrigger
   });
 
-  // Actualizar badge cuando cambien los mensajes
+  // ACTUALIZAR BADGE cuando cambien los mensajes o el trigger
   useEffect(() => {
-    console.log('📊 Messages changed, updating badge key:', messages.length);
-    setBadgeUpdateKey(prev => prev + 1);
-  }, [messages]);
+    console.log('📊 Messages or badge trigger changed, updating badge render key');
+    setBadgeRenderKey(prev => prev + 1);
+  }, [messages.length, badgeUpdateTrigger]);
 
   const badgeInfo = getBadgeInfo();
-  console.log('🏷️ Current badge info from AIAssistantPanel:', badgeInfo);
+  console.log('🏷️ Current badge info from AIAssistantPanel:', {
+    ...badgeInfo,
+    strategy: currentStrategy,
+    renderKey: badgeRenderKey
+  });
 
   // Auto-scroll al final cuando hay nuevos mensajes
   useEffect(() => {
@@ -98,7 +105,7 @@ const AIAssistantPanel = () => {
     }
     
     const message = inputMessage.trim();
-    console.log('🚀 Sending message from panel:', message.substring(0, 50) + '...');
+    console.log(`🚀 Sending message from panel: "${message.substring(0, 50)}..." via ${currentStrategy}`);
     setInputMessage('');
     
     // Añadir contexto de página actual
@@ -106,7 +113,8 @@ const AIAssistantPanel = () => {
       currentPage: window.location.pathname,
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
-      hasActiveConfig: !!activeConfiguration
+      hasActiveConfig: !!activeConfiguration,
+      strategy: currentStrategy
     };
     
     await sendMessage(message, contextData);
@@ -120,7 +128,7 @@ const AIAssistantPanel = () => {
   };
 
   const handleOpenChat = () => {
-    console.log('🎯 Opening chat panel');
+    console.log(`🎯 Opening chat panel (strategy: ${currentStrategy})`);
     setIsOpen(true);
     setIsMinimized(false);
     
@@ -159,9 +167,13 @@ const AIAssistantPanel = () => {
     }
   };
 
-  // Botón flotante cuando el chat está cerrado
+  // BOTÓN FLOTANTE con badge mejorado
   if (!isOpen) {
-    console.log('🎯 Rendering floating button with badge:', badgeInfo);
+    console.log('🎯 Rendering floating button with badge:', {
+      ...badgeInfo,
+      renderKey: badgeRenderKey,
+      strategy: currentStrategy
+    });
     
     return (
       <div className="fixed bottom-6 right-6 z-50">
@@ -170,10 +182,11 @@ const AIAssistantPanel = () => {
           className="relative h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 animate-fade-in"
           size="sm"
           data-testid="ai-assistant-button"
+          data-strategy={currentStrategy}
         >
           <MessageCircle className="h-6 w-6 text-white" />
           <NotificationBadge 
-            key={`${badgeUpdateKey}-${badgeInfo.count}-${badgeInfo.hasUrgent}-${badgeInfo.hasHigh}`} // Forzar re-render completo
+            key={`badge-${badgeRenderKey}-${badgeInfo.count}-${badgeInfo.hasUrgent}-${badgeInfo.hasHigh}-${currentStrategy}`}
             count={badgeInfo.count}
             hasUrgent={badgeInfo.hasUrgent}
             hasHigh={badgeInfo.hasHigh}
@@ -188,13 +201,16 @@ const AIAssistantPanel = () => {
   return (
     <div className="fixed bottom-6 right-6 z-50 animate-fade-in" data-testid="ai-assistant-panel">
       <Card className="w-96 h-[500px] shadow-2xl border-2 border-gray-200 bg-white">
-        {/* Header */}
+        {/* Header con información de debugging */}
         <CardHeader className="pb-2 border-b bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {getConnectionIcon()}
               <div className="flex flex-col">
-                <span className="font-semibold">{getConnectionStatus()}</span>
+                <span className="font-semibold">Asistente IA</span>
+                <span className="text-xs text-blue-100">
+                  {currentStrategy === 'localStorage' ? '🧪 Modo Test' : '🔄 Producción'} | {messages.length} msgs
+                </span>
                 {!activeConfiguration && (
                   <span className="text-xs text-blue-100">⚙️ Config LLM requerida</span>
                 )}
@@ -243,6 +259,11 @@ const AIAssistantPanel = () => {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="text-sm">
                   <strong>Configuración requerida:</strong> Ve a Configuración → LLM para configurar tu API key de OpenRouter.
+                  {currentStrategy === 'localStorage' && (
+                    <div className="mt-1 text-xs text-blue-600">
+                      🧪 Modo Test: Los mensajes se guardan en localStorage
+                    </div>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
@@ -253,6 +274,7 @@ const AIAssistantPanel = () => {
                 <div className="text-center py-8 text-gray-500">
                   <Loader2 className="h-8 w-8 mx-auto mb-4 text-gray-300 animate-spin" />
                   <p className="text-sm">Cargando mensajes...</p>
+                  <p className="text-xs mt-1 text-blue-600">Estrategia: {currentStrategy}</p>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
@@ -260,19 +282,25 @@ const AIAssistantPanel = () => {
                   <p className="text-sm">¡Hola! Soy tu asistente de productividad.</p>
                   <p className="text-xs mt-2">Pregúntame sobre tus tareas, necesidades de planificación o cualquier cosa relacionada con tu productividad.</p>
                   
+                  {currentStrategy === 'localStorage' && (
+                    <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
+                      🧪 Modo Test: Los mensajes se guardan localmente
+                    </div>
+                  )}
+                  
                   <div className="mt-4 space-y-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={triggerTaskAnalysis}
                       className="text-xs"
-                      disabled={!activeConfiguration}
+                      disabled={!activeConfiguration && currentStrategy !== 'localStorage'}
                       data-testid="analyze-tasks-button"
                     >
                       Analizar mis tareas
                     </Button>
                     
-                    {!activeConfiguration && (
+                    {!activeConfiguration && currentStrategy !== 'localStorage' && (
                       <p className="text-xs text-red-600">
                         Configura LLM primero para usar funciones IA
                       </p>
@@ -305,20 +333,25 @@ const AIAssistantPanel = () => {
               )}
             </ScrollArea>
 
-            {/* Input Area */}
+            {/* Input Area con información de debugging */}
             <div className="border-t p-4 bg-gray-50">
               {messages.length > 0 && (
                 <div className="flex justify-between items-center mb-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={markAllAsRead}
-                    className="text-xs h-6"
-                    disabled={badgeInfo.count === 0}
-                    data-testid="mark-all-read-button"
-                  >
-                    Marcar todo como leído
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={markAllAsRead}
+                      className="text-xs h-6"
+                      disabled={badgeInfo.count === 0}
+                      data-testid="mark-all-read-button"
+                    >
+                      Marcar todo como leído
+                    </Button>
+                    {currentStrategy === 'localStorage' && (
+                      <span className="text-xs text-blue-600">🧪 Test</span>
+                    )}
+                  </div>
                   
                   <Button
                     variant="ghost"
@@ -338,16 +371,27 @@ const AIAssistantPanel = () => {
                   ref={inputRef}
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder={activeConfiguration ? "Escribe tu mensaje..." : "Configura LLM primero..."}
-                  disabled={isLoading || !activeConfiguration || !isInitialized}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder={
+                    currentStrategy === 'localStorage' 
+                      ? "Escribe tu mensaje (modo test)..." 
+                      : activeConfiguration 
+                        ? "Escribe tu mensaje..." 
+                        : "Configura LLM primero..."
+                  }
+                  disabled={isLoading || (!activeConfiguration && currentStrategy !== 'localStorage') || !isInitialized}
                   className="flex-1"
                   data-testid="message-input"
                 />
                 
                 <Button
                   onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isLoading || !activeConfiguration || !isInitialized}
+                  disabled={!inputMessage.trim() || isLoading || (!activeConfiguration && currentStrategy !== 'localStorage') || !isInitialized}
                   size="sm"
                   className="px-3"
                   data-testid="send-button"
@@ -359,6 +403,12 @@ const AIAssistantPanel = () => {
               {connectionStatus === 'error' && (
                 <p className="text-xs text-red-600 mt-2" data-testid="connection-error">
                   ❌ Error de conexión. Verifica tu configuración LLM.
+                </p>
+              )}
+              
+              {currentStrategy === 'localStorage' && (
+                <p className="text-xs text-blue-600 mt-1">
+                  🧪 Modo Test: Mensajes guardados localmente | Badge: {badgeInfo.count}
                 </p>
               )}
             </div>

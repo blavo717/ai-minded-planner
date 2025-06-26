@@ -9,8 +9,14 @@ interface NotificationBadgeProps {
 }
 
 const NotificationBadge = ({ count, hasUrgent, hasHigh, className = '' }: NotificationBadgeProps) => {
-  // Debug logging
-  console.log('🏷️ NotificationBadge render:', { count, hasUrgent, hasHigh });
+  // DEBUGGING MASIVO para el badge
+  console.log('🏷️ NotificationBadge render:', { 
+    count, 
+    hasUrgent, 
+    hasHigh,
+    timestamp: Date.now(),
+    key: `${count}-${hasUrgent}-${hasHigh}`
+  });
   
   if (count === 0) {
     console.log('🏷️ NotificationBadge: count is 0, not rendering');
@@ -19,24 +25,29 @@ const NotificationBadge = ({ count, hasUrgent, hasHigh, className = '' }: Notifi
 
   const getBadgeStyles = () => {
     if (hasUrgent) {
-      console.log('🏷️ NotificationBadge: using urgent styles');
-      return 'bg-red-500 text-white animate-pulse border-2 border-red-300';
+      console.log('🏷️ NotificationBadge: using urgent styles (red + animation)');
+      return 'bg-red-500 text-white animate-pulse border-2 border-red-300 shadow-lg shadow-red-200';
     }
     if (hasHigh) {
-      console.log('🏷️ NotificationBadge: using high priority styles');
-      return 'bg-orange-500 text-white border-2 border-orange-300';
+      console.log('🏷️ NotificationBadge: using high priority styles (orange)');
+      return 'bg-orange-500 text-white border-2 border-orange-300 shadow-lg shadow-orange-200';
     }
-    console.log('🏷️ NotificationBadge: using default styles');
-    return 'bg-blue-500 text-white border-2 border-blue-300';
+    console.log('🏷️ NotificationBadge: using default styles (blue)');
+    return 'bg-blue-500 text-white border-2 border-blue-300 shadow-lg shadow-blue-200';
   };
 
   const displayCount = count > 99 ? '99+' : count.toString();
   console.log('🏷️ NotificationBadge: displaying count:', displayCount);
 
+  // FORZAR RE-RENDER CON KEY ÚNICA
+  const uniqueKey = `badge-${count}-${hasUrgent ? 'urgent' : ''}-${hasHigh ? 'high' : ''}-${Date.now()}`;
+  
   return (
     <div 
+      key={uniqueKey}
       className={`
         absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold
+        transition-all duration-200 transform hover:scale-110
         ${getBadgeStyles()}
         ${className}
       `}
@@ -44,6 +55,7 @@ const NotificationBadge = ({ count, hasUrgent, hasHigh, className = '' }: Notifi
       data-count={count}
       data-has-urgent={hasUrgent}
       data-has-high={hasHigh}
+      data-unique-key={uniqueKey}
     >
       {displayCount}
     </div>

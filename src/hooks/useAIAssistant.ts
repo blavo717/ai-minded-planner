@@ -1,8 +1,7 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLLMService } from '@/hooks/useLLMService';
-import { useAIMessagesPersistence } from '@/hooks/useAIMessagesPersistence';
+import { useAIMessagesUnified } from '@/hooks/useAIMessagesUnified';
 import { generateValidUUID } from '@/utils/uuid';
 
 export interface ChatMessage {
@@ -26,74 +25,46 @@ export const useAIAssistant = () => {
   const { user } = useAuth();
   const { makeLLMRequest, isLoading: isLLMLoading } = useLLMService();
   const { 
-    loadMessages, 
-    saveMessage, 
-    updateMessage, 
-    markAllAsRead: markAllAsReadInDB, 
-    clearChat: clearChatInDB,
+    messages,
     isLoading: isPersistenceLoading,
     isInitialized: isPersistenceInitialized,
-    setIsInitialized: setPersistenceInitialized
-  } = useAIMessagesPersistence();
+    saveMessage,
+    updateMessage,
+    markAllAsRead: markAllAsReadUnified,
+    clearChat: clearChatUnified,
+    forceUpdateRef,
+    currentStrategy
+  } = useAIMessagesUnified();
   
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'idle'>('idle');
-  const [isInitialized, setIsInitialized] = useState(false);
-  const forceUpdateRef = useRef(0);
+  const badgeUpdateTrigger = useRef(0);
 
-  // Debug: logging del estado actual
+  // DEBUGGING MASIVO
   console.log('🎯 useAIAssistant state:', {
     user: user?.id || 'none',
     messagesCount: messages.length,
-    isInitialized,
-    isPersistenceInitialized,
+    isInitialized: isPersistenceInitialized,
     connectionStatus,
-    isOpen
+    isOpen,
+    strategy: currentStrategy,
+    forceUpdateRef,
+    badgeUpdateTrigger: badgeUpdateTrigger.current
   });
 
-  // Forzar re-render para badge
-  const forceUpdate = useCallback(() => {
-    forceUpdateRef.current += 1;
-    console.log('🔄 Forcing component re-render:', forceUpdateRef.current);
+  // Forzar actualización del badge cuando cambien los mensajes
+  const triggerBadgeUpdate = useCallback(() => {
+    badgeUpdateTrigger.current += 1;
+    console.log('🏷️ Badge update triggered:', badgeUpdateTrigger.current);
   }, []);
 
-  // Cargar mensajes al inicio con debugging robusto
   useEffect(() => {
-    if (user && !isInitialized) {
-      console.log('🚀 Initializing AI Assistant for user:', user.id);
-      console.log('📊 Current state:', { 
-        messagesCount: messages.length, 
-        isPersistenceLoading,
-        isPersistenceInitialized 
-      });
-      
-      loadMessages().then(loadedMessages => {
-        console.log(`✅ Successfully loaded ${loadedMessages.length} messages from persistence`);
-        console.log('📝 Sample messages:', loadedMessages.slice(0, 2).map(m => ({
-          id: m.id,
-          type: m.type,
-          isRead: m.isRead,
-          contentPreview: m.content.substring(0, 50)
-        })));
-        
-        setMessages(loadedMessages);
-        setIsInitialized(true);
-        setPersistenceInitialized(true);
-        
-        // Forzar actualización del badge
-        forceUpdate();
-      }).catch(error => {
-        console.error('❌ Failed to load messages during initialization:', error);
-        setIsInitialized(true); // Inicializar de todos modos
-        setPersistenceInitialized(true);
-      });
-    }
-  }, [user, loadMessages, isInitialized, setPersistenceInitialized, forceUpdate]);
+    console.log('📊 Messages changed, triggering badge update. New count:', messages.length);
+    triggerBadgeUpdate();
+  }, [messages, triggerBadgeUpdate]);
 
   const addMessage = useCallback(async (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
-    // Generar UUID válido usando la nueva utilidad
     const messageId = generateValidUUID();
     const newMessage: ChatMessage = {
       ...message,
@@ -106,91 +77,55 @@ export const useAIAssistant = () => {
       type: newMessage.type,
       contentPreview: newMessage.content.substring(0, 50) + '...',
       isRead: newMessage.isRead,
-      priority: newMessage.priority
+      priority: newMessage.priority,
+      strategy: currentStrategy
     });
     
-    // Actualizar estado local inmediatamente
-    setMessages(prev => {
-      const updated = [...prev, newMessage];
-      console.log(`📊 Messages updated: ${prev.length} -> ${updated.length}`);
-      forceUpdate(); // Forzar re-render para badge
-      return updated;
-    });
-
-    // Guardar en Supabase en background con manejo de errores robusto
     try {
       await saveMessage(newMessage);
-      console.log('✅ Message successfully persisted to Supabase');
+      console.log('✅ Message successfully persisted');
+      triggerBadgeUpdate();
     } catch (error) {
-      console.error('❌ CRITICAL: Failed to save message to Supabase:', error);
-      console.error('❌ Message data:', newMessage);
-      
-      // Marcar el mensaje con error en el estado local
-      setMessages(prev => prev.map(msg => 
-        msg.id === messageId 
-          ? { ...msg, error: true }
-          : msg
-      ));
+      console.error('❌ Failed to save message:', error);
+      // En caso de error, al menos añadir localmente para UX
+      throw error;
     }
 
     return messageId;
-  }, [saveMessage, forceUpdate]);
+  }, [saveMessage, currentStrategy, triggerBadgeUpdate]);
 
   const markAsRead = useCallback(async (messageId: string) => {
-    console.log(`👁️ Marking message as read: ${messageId}`);
+    console.log(`👁️ Marking message as read: ${messageId} via ${currentStrategy}`);
     
-    // Actualizar estado local inmediatamente
-    setMessages(prev => {
-      const updated = prev.map(msg => 
-        msg.id === messageId ? { ...msg, isRead: true } : msg
-      );
-      console.log('📊 Message marked as read locally');
-      forceUpdate(); // Forzar re-render para badge
-      return updated;
-    });
-
-    // Actualizar en Supabase en background
     try {
       await updateMessage(messageId, { isRead: true });
-      console.log('✅ Message read status updated in Supabase');
+      console.log('✅ Message marked as read successfully');
+      triggerBadgeUpdate();
     } catch (error) {
-      console.error('❌ Failed to mark message as read in Supabase:', error);
-      
-      // Revertir cambio local si falló la persistencia
-      setMessages(prev => prev.map(msg => 
-        msg.id === messageId ? { ...msg, isRead: false } : msg
-      ));
+      console.error('❌ Failed to mark message as read:', error);
     }
-  }, [updateMessage, forceUpdate]);
+  }, [updateMessage, currentStrategy, triggerBadgeUpdate]);
 
   const markAllAsRead = useCallback(async () => {
     const unreadCount = messages.filter(msg => !msg.isRead && msg.type !== 'user').length;
-    console.log(`👁️ Marking all ${unreadCount} messages as read`);
+    console.log(`👁️ Marking all ${unreadCount} messages as read via ${currentStrategy}`);
     
     if (unreadCount === 0) {
       console.log('✅ No unread messages to mark');
       return;
     }
     
-    // Actualizar estado local inmediatamente
-    setMessages(prev => {
-      const updated = prev.map(msg => ({ ...msg, isRead: true }));
-      forceUpdate(); // Forzar re-render para badge
-      return updated;
-    });
-
-    // Actualizar en Supabase en background
     try {
-      await markAllAsReadInDB();
-      console.log('✅ All messages marked as read in Supabase');
+      await markAllAsReadUnified();
+      console.log('✅ All messages marked as read successfully');
+      triggerBadgeUpdate();
     } catch (error) {
-      console.error('❌ Failed to mark all as read in Supabase:', error);
+      console.error('❌ Failed to mark all as read:', error);
     }
-  }, [messages, markAllAsReadInDB, forceUpdate]);
+  }, [messages, markAllAsReadUnified, currentStrategy, triggerBadgeUpdate]);
 
   const sendMessage = useCallback(async (content: string, contextData?: any) => {
-    console.log(`🚀 Sending message: "${content.substring(0, 100)}..."`);
-    console.log('📊 Context data:', contextData);
+    console.log(`🚀 Sending message: "${content.substring(0, 100)}..." via ${currentStrategy}`);
     
     // Añadir mensaje del usuario
     await addMessage({
@@ -265,10 +200,10 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       setIsTyping(false);
       setTimeout(() => setConnectionStatus('idle'), 3000);
     }
-  }, [addMessage, makeLLMRequest, messages]);
+  }, [addMessage, makeLLMRequest, messages, currentStrategy]);
 
   const addNotification = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium', contextData?: any) => {
-    console.log(`🔔 Adding notification: ${priority} - "${content.substring(0, 50)}..."`);
+    console.log(`🔔 Adding notification: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
     return await addMessage({
       type: 'notification',
       content,
@@ -276,10 +211,10 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       priority,
       contextData
     });
-  }, [addMessage]);
+  }, [addMessage, currentStrategy]);
 
   const addSuggestion = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'low', contextData?: any) => {
-    console.log(`💡 Adding suggestion: ${priority} - "${content.substring(0, 50)}..."`);
+    console.log(`💡 Adding suggestion: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
     return await addMessage({
       type: 'suggestion',
       content,
@@ -287,7 +222,7 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       priority,
       contextData
     });
-  }, [addMessage]);
+  }, [addMessage, currentStrategy]);
 
   const getBadgeInfo = useCallback((): NotificationBadge => {
     const unreadMessages = messages.filter(msg => !msg.isRead && msg.type !== 'user');
@@ -298,32 +233,29 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       hasHigh: unreadMessages.some(msg => msg.priority === 'high')
     };
     
-    console.log(`🏷️ Badge info calculated:`, {
+    console.log(`🏷️ Badge info calculated (trigger: ${badgeUpdateTrigger.current}):`, {
       total: messages.length,
       unread: badge.count,
       urgent: badge.hasUrgent,
       high: badge.hasHigh,
-      forceUpdateRef: forceUpdateRef.current
+      forceUpdateRef,
+      strategy: currentStrategy
     });
     
     return badge;
-  }, [messages, forceUpdateRef.current]); // Incluir forceUpdateRef para triggear recalculos
+  }, [messages, badgeUpdateTrigger.current, forceUpdateRef, currentStrategy]);
 
   const clearChat = useCallback(async () => {
-    console.log('🗑️ Clearing chat history - local and remote');
+    console.log(`🗑️ Clearing chat history via ${currentStrategy}`);
     
-    // Limpiar estado local
-    setMessages([]);
-    forceUpdate();
-
-    // Limpiar en Supabase
     try {
-      await clearChatInDB();
-      console.log('✅ Chat cleared in Supabase');
+      await clearChatUnified();
+      console.log('✅ Chat cleared successfully');
+      triggerBadgeUpdate();
     } catch (error) {
-      console.error('❌ Failed to clear chat in Supabase:', error);
+      console.error('❌ Failed to clear chat:', error);
     }
-  }, [clearChatInDB, forceUpdate]);
+  }, [clearChatUnified, currentStrategy, triggerBadgeUpdate]);
 
   return {
     // Estado
@@ -332,7 +264,7 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     isTyping,
     isLoading: isLLMLoading || isPersistenceLoading,
     connectionStatus,
-    isInitialized,
+    isInitialized: isPersistenceInitialized,
     
     // Acciones
     setIsOpen,
@@ -347,5 +279,9 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     // Utilidades
     getBadgeInfo,
     unreadCount: getBadgeInfo().count,
+    
+    // Debug info
+    currentStrategy,
+    badgeUpdateTrigger: badgeUpdateTrigger.current
   };
 };
