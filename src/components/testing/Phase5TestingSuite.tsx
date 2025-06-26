@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,9 +39,9 @@ interface TestSuiteResults {
   totalDuration: number;
 }
 
-// FASE 6: Función de espera con validación REAL contra BD
+// FASE 6: Función de espera con validación REAL contra BD - CORREGIDA PARA ASYNC
 const waitForCondition = async (
-  condition: () => boolean,
+  condition: () => Promise<boolean>,
   timeout: number = 5000,
   pollInterval: number = 250,
   description: string = 'condition'
@@ -51,10 +52,15 @@ const waitForCondition = async (
   console.log(`⏳ FASE 6 - Waiting for ${description} (timeout: ${timeout}ms, interval: ${pollInterval}ms)`);
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    if (condition()) {
-      const elapsed = Date.now() - startTime;
-      console.log(`✅ FASE 6 - ${description} met after ${elapsed}ms (attempt ${attempt}/${maxAttempts})`);
-      return true;
+    try {
+      const result = await condition();
+      if (result) {
+        const elapsed = Date.now() - startTime;
+        console.log(`✅ FASE 6 - ${description} met after ${elapsed}ms (attempt ${attempt}/${maxAttempts})`);
+        return true;
+      }
+    } catch (error) {
+      console.warn(`⚠️ FASE 6 - Condition check failed on attempt ${attempt}:`, error);
     }
     
     if (attempt < maxAttempts) {
@@ -184,16 +190,16 @@ const Phase5TestingSuite = () => {
     console.log(`🧪 FASE 6 - Running test: ${testCase.name}`);
     
     try {
-      let result: { success: boolean; details: string; validationDetails?: string };
+      let success = false;
+      let details = '';
+      let validationDetails = '';
 
       switch (testCase.name) {
         case 'initialization-check':
           // FASE 6: Verificar inicialización básica
-          result = {
-            success: isInitialized && messages !== undefined,
-            details: `Initialized: ${isInitialized}, Strategy: ${currentStrategy}, Messages: ${messages?.length || 0}`,
-            validationDetails: `Sistema correctamente inicializado con estrategia ${currentStrategy}`
-          };
+          success = isInitialized && messages !== undefined;
+          details = `Initialized: ${isInitialized}, Strategy: ${currentStrategy}, Messages: ${messages?.length || 0}`;
+          validationDetails = `Sistema correctamente inicializado con estrategia ${currentStrategy}`;
           break;
 
         case 'message-creation-basic':
@@ -218,11 +224,9 @@ const Phase5TestingSuite = () => {
             'message creation validation'
           );
           
-          result = {
-            success: messageCreated && !!userMessageId,
-            details: `Messages: ${initialCount} → ${messages.length}, ID: ${userMessageId}`,
-            validationDetails: 'Mensaje creado y validado contra BD'
-          };
+          success = messageCreated && !!userMessageId;
+          details = `Messages: ${initialCount} → ${messages.length}, ID: ${userMessageId}`;
+          validationDetails = 'Mensaje creado y validado contra BD';
           break;
 
         case 'notification-badge-real':
@@ -252,11 +256,9 @@ const Phase5TestingSuite = () => {
           
           const notificationBadgeInfo = getBadgeInfo;
           
-          result = { 
-            success: badgeUpdated, 
-            details: `Badge: ${initialBadgeState.count} → ${notificationBadgeInfo.count}, High: ${notificationBadgeInfo.hasHigh}`,
-            validationDetails: `Notificación persistida y badge validado, ID: ${testNotificationId}`
-          };
+          success = badgeUpdated;
+          details = `Badge: ${initialBadgeState.count} → ${notificationBadgeInfo.count}, High: ${notificationBadgeInfo.hasHigh}`;
+          validationDetails = `Notificación persistida y badge validado, ID: ${testNotificationId}`;
           break;
 
         case 'message-persistence':
@@ -282,11 +284,9 @@ const Phase5TestingSuite = () => {
           
           const afterPersistence = messages.length;
           
-          result = {
-            success: persistenceVerified,
-            details: `Messages: ${beforePersistence} → ${afterPersistence}, Suggestion ID: ${suggestionId}`,
-            validationDetails: 'Mensaje persistido y validado en BD real'
-          };
+          success = persistenceVerified;
+          details = `Messages: ${beforePersistence} → ${afterPersistence}, Suggestion ID: ${suggestionId}`;
+          validationDetails = 'Mensaje persistido y validado en BD real';
           break;
 
         case 'priority-system':
@@ -316,11 +316,9 @@ const Phase5TestingSuite = () => {
           
           const prioritiesBadgeInfo = getBadgeInfo;
           
-          result = { 
-            success: prioritiesUpdated, 
-            details: `Urgent: ${prioritiesBadgeInfo.hasUrgent}, High: ${prioritiesBadgeInfo.hasHigh}, Count: ${prioritiesBadgeInfo.count}`,
-            validationDetails: 'Sistema de prioridades persistido y validado en BD'
-          };
+          success = prioritiesUpdated;
+          details = `Urgent: ${prioritiesBadgeInfo.hasUrgent}, High: ${prioritiesBadgeInfo.hasHigh}, Count: ${prioritiesBadgeInfo.count}`;
+          validationDetails = 'Sistema de prioridades persistido y validado en BD';
           break;
 
         case 'bulk-operations':
@@ -350,11 +348,9 @@ const Phase5TestingSuite = () => {
           
           const afterBulk = messages.filter(m => !m.isRead).length;
           
-          result = {
-            success: bulkCompleted,
-            details: `Unread: ${beforeBulk} → ${afterBulk}, Total: ${totalBulk}`,
-            validationDetails: 'Operación bulk persistida y validada en BD'
-          };
+          success = bulkCompleted;
+          details = `Unread: ${beforeBulk} → ${afterBulk}, Total: ${totalBulk}`;
+          validationDetails = 'Operación bulk persistida y validada en BD';
           break;
 
         case 'cleanup-verification':
@@ -374,29 +370,25 @@ const Phase5TestingSuite = () => {
             'cleanup verification'
           );
           
-          result = {
-            success: cleanupCompleted,
-            details: `Messages: ${preCleanup} → ${messages.length}`,
-            validationDetails: 'Limpieza completada y validada en BD'
-          };
+          success = cleanupCompleted;
+          details = `Messages: ${preCleanup} → ${messages.length}`;
+          validationDetails = 'Limpieza completada y validada en BD';
           break;
 
         default:
-          result = {
-            success: false,
-            details: `Unknown test case: ${testCase.name}`,
-            validationDetails: 'Test case no implementado'
-          };
+          success = false;
+          details = `Unknown test case: ${testCase.name}`;
+          validationDetails = 'Test case no implementado';
       }
 
       const duration = Date.now() - startTime;
-      console.log(`✅ FASE 6 - Test ${testCase.name} completed in ${duration}ms:`, result);
+      console.log(`✅ FASE 6 - Test ${testCase.name} completed in ${duration}ms:`, { success, details });
 
       return {
         testName: testCase.name,
-        success: result.success,
-        details: result.details,
-        validationDetails: result.validationDetails,
+        success,
+        details,
+        validationDetails,
         duration,
         timestamp: new Date()
       };
