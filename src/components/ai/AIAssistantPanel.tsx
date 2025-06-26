@@ -51,8 +51,9 @@ const AIAssistantPanel = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // FORZAR RE-RENDER DEL BADGE CON ESTADO LOCAL
+  // FIX: FORZAR RE-RENDER DEL BADGE CON ESTADO LOCAL MEJORADO
   const [badgeRenderKey, setBadgeRenderKey] = useState(0);
+  const [lastBadgeInfo, setLastBadgeInfo] = useState({ count: 0, hasUrgent: false, hasHigh: false });
 
   // DEBUGGING MASIVO del componente
   console.log('🎯 AIAssistantPanel render:', {
@@ -66,11 +67,31 @@ const AIAssistantPanel = () => {
     badgeUpdateTrigger
   });
 
-  // ACTUALIZAR BADGE cuando cambien los mensajes o el trigger
+  // FIX: ACTUALIZAR BADGE CUANDO CAMBIEN LOS MENSAJES O EL TRIGGER
   useEffect(() => {
     console.log('📊 Messages or badge trigger changed, updating badge render key');
-    setBadgeRenderKey(prev => prev + 1);
-  }, [messages.length, badgeUpdateTrigger]);
+    
+    const currentBadgeInfo = getBadgeInfo();
+    const hasChanged = 
+      lastBadgeInfo.count !== currentBadgeInfo.count ||
+      lastBadgeInfo.hasUrgent !== currentBadgeInfo.hasUrgent ||
+      lastBadgeInfo.hasHigh !== currentBadgeInfo.hasHigh;
+    
+    if (hasChanged) {
+      console.log('🏷️ Badge info changed:', {
+        old: lastBadgeInfo,
+        new: currentBadgeInfo
+      });
+      
+      setLastBadgeInfo(currentBadgeInfo);
+      setBadgeRenderKey(prev => prev + 1);
+      
+      // FORZAR ACTUALIZACIÓN ADICIONAL
+      setTimeout(() => {
+        setBadgeRenderKey(prev => prev + 1);
+      }, 100);
+    }
+  }, [messages.length, badgeUpdateTrigger, getBadgeInfo]);
 
   const badgeInfo = getBadgeInfo();
   console.log('🏷️ Current badge info from AIAssistantPanel:', {
@@ -167,7 +188,7 @@ const AIAssistantPanel = () => {
     }
   };
 
-  // BOTÓN FLOTANTE con badge mejorado
+  // FIX: BOTÓN FLOTANTE CON BADGE MEJORADO Y FORZADO
   if (!isOpen) {
     console.log('🎯 Rendering floating button with badge:', {
       ...badgeInfo,
@@ -183,10 +204,13 @@ const AIAssistantPanel = () => {
           size="sm"
           data-testid="ai-assistant-button"
           data-strategy={currentStrategy}
+          data-badge-count={badgeInfo.count}
+          data-badge-urgent={badgeInfo.hasUrgent}
+          data-badge-high={badgeInfo.hasHigh}
         >
           <MessageCircle className="h-6 w-6 text-white" />
           <NotificationBadge 
-            key={`badge-${badgeRenderKey}-${badgeInfo.count}-${badgeInfo.hasUrgent}-${badgeInfo.hasHigh}-${currentStrategy}`}
+            key={`badge-${badgeRenderKey}-${badgeInfo.count}-${badgeInfo.hasUrgent}-${badgeInfo.hasHigh}-${currentStrategy}-${Date.now()}`}
             count={badgeInfo.count}
             hasUrgent={badgeInfo.hasUrgent}
             hasHigh={badgeInfo.hasHigh}
@@ -222,7 +246,7 @@ const AIAssistantPanel = () => {
                 )}
               </div>
               {badgeInfo.count > 0 && (
-                <Badge className="bg-white text-blue-600 text-xs">
+                <Badge className="bg-white text-blue-600 text-xs" data-testid="header-badge">
                   {badgeInfo.count} nuevos
                 </Badge>
               )}
@@ -407,8 +431,8 @@ const AIAssistantPanel = () => {
               )}
               
               {currentStrategy === 'localStorage' && (
-                <p className="text-xs text-blue-600 mt-1">
-                  🧪 Modo Test: Mensajes guardados localmente | Badge: {badgeInfo.count}
+                <p className="text-xs text-blue-600 mt-1" data-testid="test-mode-indicator">
+                  🧪 Modo Test: Mensajes guardados localmente | Badge: {badgeInfo.count} | Render: {badgeRenderKey}
                 </p>
               )}
             </div>
