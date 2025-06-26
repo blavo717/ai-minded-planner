@@ -15,10 +15,10 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const { user, signOut } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex w-full">
       <Sidebar />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col ml-64">
         {/* Top Header */}
         <header className="bg-card shadow-sm border-b border-border">
           <div className="flex justify-between items-center h-16 px-6">
@@ -49,9 +49,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
-          <div className="p-6">
-            {children}
-          </div>
+          {children}
         </main>
         
         <AIAssistantPanelSimple />

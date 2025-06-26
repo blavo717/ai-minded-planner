@@ -33,67 +33,65 @@ const TasksContent = () => {
   const { handleEditTask, handleManageDependencies, handleAssignTask, handleCreateSubtask } = useTaskHandlers();
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        <TasksHeader
-          showInsights={showInsights}
-          onToggleInsights={() => setShowInsights(!showInsights)}
-          onCreateTask={() => setIsCreateTaskOpen(true)}
-        />
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      <TasksHeader
+        showInsights={showInsights}
+        onToggleInsights={() => setShowInsights(!showInsights)}
+        onCreateTask={() => setIsCreateTaskOpen(true)}
+      />
 
-        {showInsights && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div className="lg:col-span-2">
-              <div className="grid grid-cols-1 gap-6">
-                <ProductivityInsights />
-                <DailyPlannerPreview />
-              </div>
-            </div>
-            <div>
-              <ProductivityTimer />
+      {showInsights && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 gap-6">
+              <ProductivityInsights />
+              <DailyPlannerPreview />
             </div>
           </div>
-        )}
+          <div>
+            <ProductivityTimer />
+          </div>
+        </div>
+      )}
 
-        <div className="space-y-6">
-          <AdvancedFilters
-            projects={projects}
-            profiles={profiles}
-            availableTags={availableTags}
-            filters={filters}
-            onFiltersChange={setFilters}
-          />
+      <div className="space-y-6">
+        <AdvancedFilters
+          projects={projects}
+          profiles={profiles}
+          availableTags={availableTags}
+          filters={filters}
+          onFiltersChange={setFilters}
+        />
 
-          <TaskViewControls
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            taskCount={filteredTasks.length}
-          />
+        <TaskViewControls
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          taskCount={filteredTasks.length}
+        />
 
-          <div className="min-h-96">
-            {viewMode === 'kanban' ? (
-              <div className="w-full overflow-x-auto">
-                <KanbanBoard
-                  tasks={filteredTasks}
-                  getSubtasksForTask={getSubtasksForTask}
-                  onEditTask={handleEditTask}
-                />
-              </div>
-            ) : (
-              <TaskList
+        <div className="min-h-96">
+          {viewMode === 'kanban' ? (
+            <div className="w-full overflow-x-auto">
+              <KanbanBoard
                 tasks={filteredTasks}
                 getSubtasksForTask={getSubtasksForTask}
                 onEditTask={handleEditTask}
-                onManageDependencies={handleManageDependencies}
-                onAssignTask={handleAssignTask}
-                onCreateSubtask={handleCreateSubtask}
               />
-            )}
-          </div>
+            </div>
+          ) : (
+            <TaskList
+              tasks={filteredTasks}
+              getSubtasksForTask={getSubtasksForTask}
+              onEditTask={handleEditTask}
+              onManageDependencies={handleManageDependencies}
+              onAssignTask={handleAssignTask}
+              onCreateSubtask={handleCreateSubtask}
+            />
+          )}
         </div>
-
-        <TaskModals />
       </div>
+
+      <TaskModals />
     </div>
   );
 };
