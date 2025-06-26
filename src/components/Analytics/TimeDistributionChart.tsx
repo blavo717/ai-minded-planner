@@ -6,7 +6,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Clock, AlertCircle, PlayCircle } from 'lucide-react';
+import { Clock, AlertCircle, PlayCircle, CheckCircle, Target } from 'lucide-react';
 
 interface TimeDistributionChartProps {
   period: 'week' | 'month' | 'quarter' | 'year';
@@ -47,21 +47,20 @@ const TimeDistributionChart = ({ period }: TimeDistributionChartProps) => {
     );
   }
 
-  // Solo mostrar datos reales - sin generar datos ficticios
   if (!timeData || timeData.length === 0) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Distribución del Tiempo</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Horas trabajadas por día
+            Visualiza cómo distribuyes tu tiempo de trabajo
           </p>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No hay sesiones de trabajo registradas</h3>
+              <h3 className="text-lg font-medium mb-2">No hay datos de tiempo registrados</h3>
               <p className="text-muted-foreground mb-4">
                 Para ver la distribución de tu tiempo, necesitas registrar sesiones de trabajo.
               </p>
@@ -82,65 +81,133 @@ const TimeDistributionChart = ({ period }: TimeDistributionChartProps) => {
     );
   }
 
+  // Preparar datos del gráfico
   const chartData = timeData.map(item => {
     const workHours = Number((item.work_time / 60).toFixed(1));
     return {
       ...item,
       date_formatted: format(parseISO(item.date), 'dd MMM', { locale: es }),
       work_hours: isNaN(workHours) ? 0 : workHours,
+      tasks_completed: item.tasks_completed || 0,
     };
-  }).filter(item => item.work_hours > 0); // Filtrar días sin trabajo real
+  });
+
+  // Separar datos con tiempo de trabajo vs solo tareas completadas
+  const daysWithWorkTime = chartData.filter(item => item.work_hours > 0);
+  const daysWithOnlyTasks = chartData.filter(item => item.work_hours === 0 && item.tasks_completed > 0);
 
   const chartConfig = {
     work_hours: {
       label: 'Horas Trabajadas',
       color: 'hsl(var(--chart-2))',
     },
+    tasks_completed: {
+      label: 'Tareas Completadas',
+      color: 'hsl(var(--chart-1))',
+    },
   };
+
+  // Si solo hay tareas sin tiempo registrado
+  if (daysWithWorkTime.length === 0 && daysWithOnlyTasks.length > 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Distribución de Tareas Completadas</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Tareas completadas por día (registra sesiones de trabajo para ver tiempo)
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <ChartContainer config={chartConfig} className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={daysWithOnlyTasks}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="date_formatted" 
+                    tick={{ fontSize: 12 }}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12 }}
+                    tickLine={false}
+                    label={{ value: 'Tareas', angle: -90, position: 'insideLeft' }}
+                  />
+                  <ChartTooltip 
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-background border rounded-lg p-3 shadow-lg">
+                            <p className="font-medium">{label}</p>
+                            <p className="text-sm">
+                              <span className="inline-block w-3 h-3 rounded bg-chart-1 mr-2"></span>
+                              {payload[0].value} tareas completadas
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar
+                    dataKey="tasks_completed"
+                    fill="var(--color-tasks_completed)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Target className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-blue-900">Mejora tus métricas</h4>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Registra sesiones de trabajo para ver distribución de tiempo, 
+                    calcular eficiencia y obtener insights más profundos sobre tu productividad.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Distribución del Tiempo</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Horas trabajadas por día (solo días con sesiones registradas)
+          Horas trabajadas por día
         </p>
       </CardHeader>
       <CardContent>
-        {chartData.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                No hay sesiones de trabajo registradas en este período
-              </p>
-            </div>
-          </div>
-        ) : (
-          <ChartContainer config={chartConfig} className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="date_formatted" 
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  label={{ value: 'Horas', angle: -90, position: 'insideLeft' }}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar
-                  dataKey="work_hours"
-                  fill="var(--color-work_hours)"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        )}
+        <ChartContainer config={chartConfig} className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={daysWithWorkTime}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="date_formatted" 
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+              />
+              <YAxis 
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+                label={{ value: 'Horas', angle: -90, position: 'insideLeft' }}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Bar
+                dataKey="work_hours"
+                fill="var(--color-work_hours)"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartContainer>
       </CardContent>
     </Card>
   );

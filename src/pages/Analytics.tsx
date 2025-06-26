@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, BarChart3, TrendingUp, Clock, Target, Download } from 'lucide-react';
+import { Calendar, BarChart3, TrendingUp, Clock, Target, Download, Timer } from 'lucide-react';
 import ProductivityOverview from '@/components/Analytics/ProductivityOverview';
 import TaskCompletionChart from '@/components/Analytics/TaskCompletionChart';
 import TimeDistributionChart from '@/components/Analytics/TimeDistributionChart';
@@ -13,6 +13,7 @@ import ProductivityHeatmap from '@/components/Analytics/ProductivityHeatmap';
 import ReportGenerator from '@/components/Analytics/ReportGenerator';
 import WorkPatternsAnalysis from '@/components/Analytics/WorkPatternsAnalysis';
 import TimeMetricsDashboard from '@/components/Analytics/TimeMetricsDashboard';
+import TaskSessionLogger from '@/components/Analytics/TaskSessionLogger';
 import { useAnalytics } from '@/hooks/useAnalytics';
 
 const Analytics = () => {
@@ -76,8 +77,7 @@ const Analytics = () => {
 
       {/* Main Content */}
       <Tabs defaultValue="overview" className="space-y-6">
-        {/* Reducido a 5 tabs principales, removiendo "Config" */}
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Resumen
@@ -85,6 +85,10 @@ const Analytics = () => {
           <TabsTrigger value="time" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Tiempo
+          </TabsTrigger>
+          <TabsTrigger value="sessions" className="flex items-center gap-2">
+            <Timer className="h-4 w-4" />
+            Sesiones
           </TabsTrigger>
           <TabsTrigger value="patterns" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -111,6 +115,10 @@ const Analytics = () => {
         <TabsContent value="time" className="space-y-6">
           <TimeMetricsDashboard period={selectedPeriod} />
           <ProductivityHeatmap period={selectedPeriod} />
+        </TabsContent>
+
+        <TabsContent value="sessions" className="space-y-6">
+          <TaskSessionLogger />
         </TabsContent>
 
         <TabsContent value="patterns" className="space-y-6">

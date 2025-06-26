@@ -13,6 +13,7 @@ export interface ProductivityMetrics {
   productivity: number;
   trend: 'up' | 'down' | 'stable';
   previousPeriodComparison: number;
+  hasSessionData: boolean;
 }
 
 export interface TimeDistribution {
@@ -71,13 +72,27 @@ export const useAnalytics = () => {
             break;
         }
 
-        // Obtener tareas del período actual
-        const { data: currentTasks } = await supabase
+        // Obtener TODAS las tareas del usuario (no filtrar por fecha de creación)
+        const { data: allTasks } = await supabase
           .from('tasks')
           .select('*')
-          .eq('user_id', user.id)
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', now.toISOString());
+          .eq('user_id', user.id);
+
+        // Filtrar tareas completadas por fecha de completado (no de creación)
+        const completedTasksInPeriod = (allTasks || []).filter(task => 
+          task.status === 'completed' && 
+          task.completed_at &&
+          new Date(task.completed_at) >= startDate &&
+          new Date(task.completed_at) <= now
+        );
+
+        // Obtener tareas del período anterior para comparación
+        const completedTasksPreviousPeriod = (allTasks || []).filter(task =>
+          task.status === 'completed' && 
+          task.completed_at &&
+          new Date(task.completed_at) >= previousStartDate &&
+          new Date(task.completed_at) < startDate
+        );
 
         // Obtener sesiones del período actual
         const { data: currentSessions } = await supabase
@@ -87,28 +102,20 @@ export const useAnalytics = () => {
           .gte('started_at', startDate.toISOString())
           .lte('started_at', now.toISOString());
 
-        // Obtener tareas del período anterior para comparación
-        const { data: previousTasks } = await supabase
-          .from('tasks')
-          .select('*')
-          .eq('user_id', user.id)
-          .gte('created_at', previousStartDate.toISOString())
-          .lt('created_at', startDate.toISOString());
-
-        // Usar solo datos reales, sin generar datos ficticios
-        const tasks = currentTasks || [];
         const sessions = currentSessions || [];
-        const prevTasks = previousTasks || [];
+        const completedTasks = completedTasksInPeriod.length;
+        const totalTasksInSystem = (allTasks || []).length;
+        
+        // Métricas básicas (siempre disponibles)
+        const completionRate = totalTasksInSystem > 0 ? (completedTasks / totalTasksInSystem) * 100 : 0;
 
-        const completedTasks = tasks.filter(t => t.status === 'completed').length;
-        const totalTasks = tasks.length;
-        const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-
+        // Métricas avanzadas (requieren sesiones)
+        const hasSessionData = sessions.length > 0;
         const totalWorkTime = sessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
-        const averageTaskTime = completedTasks > 0 ? totalWorkTime / completedTasks : 0;
+        const averageTaskTime = completedTasks > 0 && hasSessionData ? totalWorkTime / completedTasks : 0;
 
         // Calcular eficiencia solo con datos reales
-        const tasksWithEstimate = tasks.filter(t => 
+        const tasksWithEstimate = completedTasksInPeriod.filter(t => 
           t.estimated_duration && 
           t.actual_duration && 
           t.actual_duration > 0 &&
@@ -117,7 +124,7 @@ export const useAnalytics = () => {
         const efficiency = tasksWithEstimate.length > 0 
           ? Math.min(tasksWithEstimate.reduce((sum, t) => 
               sum + (t.estimated_duration! / t.actual_duration!), 0) / tasksWithEstimate.length * 100, 200)
-          : 0; // 0 cuando no hay datos, no 100
+          : 0;
 
         // Calcular productividad promedio de sesiones reales
         const productivitySessions = sessions.filter(s => s.productivity_score && s.productivity_score > 0);
@@ -126,21 +133,19 @@ export const useAnalytics = () => {
           : 0;
 
         // Comparar con período anterior
-        const previousCompletedTasks = prevTasks.filter(t => t.status === 'completed').length;
-        const previousCompletionRate = prevTasks.length > 0 
-          ? (previousCompletedTasks / prevTasks.length) * 100 
-          : 0;
+        const previousCompletedTasks = completedTasksPreviousPeriod.length;
+        const previousCompletionRate = previousCompletedTasks;
 
-        const previousPeriodComparison = previousCompletionRate > 0 
-          ? ((completionRate - previousCompletionRate) / previousCompletionRate) * 100 
-          : 0;
+        const previousPeriodComparison = previousCompletedTasks > 0 
+          ? ((completedTasks - previousCompletedTasks) / previousCompletedTasks) * 100 
+          : completedTasks > 0 ? 100 : 0;
 
         let trend: 'up' | 'down' | 'stable' = 'stable';
-        if (previousPeriodComparison > 5) trend = 'up';
-        else if (previousPeriodComparison < -5) trend = 'down';
+        if (previousPeriodComparison > 10) trend = 'up';
+        else if (previousPeriodComparison < -10) trend = 'down';
 
         return {
-          totalTasks,
+          totalTasks: totalTasksInSystem,
           completedTasks,
           completionRate: isNaN(completionRate) ? 0 : completionRate,
           totalWorkTime: isNaN(totalWorkTime) ? 0 : totalWorkTime,
@@ -149,6 +154,7 @@ export const useAnalytics = () => {
           productivity: isNaN(productivity) ? 0 : productivity,
           trend,
           previousPeriodComparison: isNaN(previousPeriodComparison) ? 0 : previousPeriodComparison,
+          hasSessionData,
         };
       },
       enabled: !!user,
@@ -186,19 +192,45 @@ export const useAnalytics = () => {
           .gte('started_at', startDate.toISOString())
           .lte('started_at', now.toISOString());
 
-        const { data: tasks } = await supabase
+        // Obtener tareas completadas en el período
+        const { data: allTasks } = await supabase
           .from('tasks')
           .select('*')
-          .eq('user_id', user.id)
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', now.toISOString());
+          .eq('user_id', user.id);
 
-        // Solo usar datos reales - no generar datos ficticios
+        const completedTasksInPeriod = (allTasks || []).filter(task => 
+          task.status === 'completed' && 
+          task.completed_at &&
+          new Date(task.completed_at) >= startDate &&
+          new Date(task.completed_at) <= now
+        );
+
+        // Si no hay sesiones pero hay tareas completadas, crear distribución básica
         if (!sessions || sessions.length === 0) {
+          if (completedTasksInPeriod.length > 0) {
+            const dailyData: Record<string, TimeDistribution> = {};
+            
+            completedTasksInPeriod.forEach(task => {
+              if (task.completed_at) {
+                const date = format(new Date(task.completed_at), 'yyyy-MM-dd');
+                if (!dailyData[date]) {
+                  dailyData[date] = {
+                    date,
+                    work_time: 0,
+                    tasks_completed: 0,
+                    productivity_score: 0
+                  };
+                }
+                dailyData[date].tasks_completed += 1;
+              }
+            });
+
+            return Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date));
+          }
           return [];
         }
 
-        // Agrupar por día usando solo datos reales
+        // Agrupar por día usando datos de sesiones y tareas
         const dailyData: Record<string, TimeDistribution> = {};
 
         sessions.forEach(session => {
@@ -217,16 +249,20 @@ export const useAnalytics = () => {
           }
         });
 
-        if (tasks) {
-          tasks.forEach(task => {
-            if (task.status === 'completed' && task.completed_at) {
-              const date = format(new Date(task.completed_at), 'yyyy-MM-dd');
-              if (dailyData[date]) {
-                dailyData[date].tasks_completed += 1;
-              }
+        completedTasksInPeriod.forEach(task => {
+          if (task.completed_at) {
+            const date = format(new Date(task.completed_at), 'yyyy-MM-dd');
+            if (!dailyData[date]) {
+              dailyData[date] = {
+                date,
+                work_time: 0,
+                tasks_completed: 0,
+                productivity_score: 0
+              };
             }
-          });
-        }
+            dailyData[date].tasks_completed += 1;
+          }
+        });
 
         // Calcular productividad promedio por día
         Object.values(dailyData).forEach(day => {
@@ -274,11 +310,10 @@ export const useAnalytics = () => {
           .select('*')
           .eq('user_id', user.id);
 
-        const { data: tasks } = await supabase
+        const { data: allTasks } = await supabase
           .from('tasks')
           .select('*')
-          .eq('user_id', user.id)
-          .gte('created_at', startDate.toISOString());
+          .eq('user_id', user.id);
 
         const { data: sessions } = await supabase
           .from('task_sessions')
@@ -291,14 +326,22 @@ export const useAnalytics = () => {
         }
 
         return projects.map(project => {
-          const projectTasks = tasks?.filter(t => t.project_id === project.id) || [];
-          const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
+          const projectTasks = (allTasks || []).filter(t => t.project_id === project.id);
+          
+          // Filtrar tareas completadas por fecha de completado
+          const completedTasks = projectTasks.filter(t => 
+            t.status === 'completed' && 
+            t.completed_at &&
+            new Date(t.completed_at) >= startDate &&
+            new Date(t.completed_at) <= now
+          ).length;
+          
           const totalTasks = projectTasks.length;
 
-          const projectSessions = sessions?.filter(s => {
+          const projectSessions = (sessions || []).filter(s => {
             const task = projectTasks.find(t => t.id === s.task_id);
             return task?.project_id === project.id;
-          }) || [];
+          });
 
           const totalTime = projectSessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
           const tasksWithDuration = projectTasks.filter(t => 
@@ -356,11 +399,17 @@ export const useAnalytics = () => {
           .eq('user_id', user.id)
           .gte('started_at', startDate.toISOString());
 
-        const { data: tasks } = await supabase
+        const { data: allTasks } = await supabase
           .from('tasks')
           .select('*')
-          .eq('user_id', user.id)
-          .gte('completed_at', startDate.toISOString());
+          .eq('user_id', user.id);
+
+        const completedTasksInPeriod = (allTasks || []).filter(task => 
+          task.status === 'completed' && 
+          task.completed_at &&
+          new Date(task.completed_at) >= startDate &&
+          new Date(task.completed_at) <= now
+        );
 
         // Solo usar datos reales - no generar patrones ficticios
         if (!sessions || sessions.length === 0) {
@@ -391,20 +440,18 @@ export const useAnalytics = () => {
           }
         });
 
-        if (tasks) {
-          tasks.forEach(task => {
-            if (task.status === 'completed' && task.completed_at) {
-              const date = new Date(task.completed_at);
-              const hour = date.getHours();
-              const dayOfWeek = date.getDay();
-              const key = `${hour}-${dayOfWeek}`;
+        completedTasksInPeriod.forEach(task => {
+          if (task.completed_at) {
+            const date = new Date(task.completed_at);
+            const hour = date.getHours();
+            const dayOfWeek = date.getDay();
+            const key = `${hour}-${dayOfWeek}`;
 
-              if (patterns[key]) {
-                patterns[key].tasks_completed += 1;
-              }
+            if (patterns[key]) {
+              patterns[key].tasks_completed += 1;
             }
-          });
-        }
+          }
+        });
 
         return Object.values(patterns).map(pattern => ({
           ...pattern,
