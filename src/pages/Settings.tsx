@@ -24,7 +24,6 @@ import { useLLMConfigurations } from '@/hooks/useLLMConfigurations';
 import LLMConfigurationForm from '@/components/LLM/LLMConfigurationForm';
 import LLMConfigurationList from '@/components/LLM/LLMConfigurationList';
 import AIConfigurationPanel from '@/components/ai/AIConfigurationPanel';
-import SimpleChatTest from '@/components/testing/SimpleChatTest';
 
 const formSchema = z.object({
   full_name: z.string().min(2, {
@@ -101,11 +100,10 @@ const Settings = () => {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile">Perfil</TabsTrigger>
           <TabsTrigger value="llm">LLM</TabsTrigger>
           <TabsTrigger value="ai">IA</TabsTrigger>
-          <TabsTrigger value="testing">Testing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -187,20 +185,6 @@ const Settings = () => {
 
         <TabsContent value="ai" className="space-y-6">
           <AIConfigurationPanel />
-        </TabsContent>
-
-        <TabsContent value="testing" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tests del Sistema</CardTitle>
-              <CardDescription>
-                Ejecuta tests para verificar el funcionamiento del asistente IA simplificado
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SimpleChatTest />
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
