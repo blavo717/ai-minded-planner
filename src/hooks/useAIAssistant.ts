@@ -1,5 +1,4 @@
-
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLLMService } from '@/hooks/useLLMService';
 import { useAIMessagesUnified } from '@/hooks/useAIMessagesUnified';
@@ -41,9 +40,8 @@ export const useAIAssistant = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'idle'>('idle');
   const badgeUpdateTrigger = useRef(0);
-  const lastBadgeState = useRef<NotificationBadge>({ count: 0, hasUrgent: false, hasHigh: false });
 
-  // DEBUGGING MASIVO
+  // FASE 5: DEBUGGING DIRIGIDO
   console.log('🎯 useAIAssistant state:', {
     user: user?.id || 'none',
     messagesCount: messages.length,
@@ -55,39 +53,41 @@ export const useAIAssistant = () => {
     badgeUpdateTrigger: badgeUpdateTrigger.current
   });
 
-  // FORZAR ACTUALIZACIÓN BADGE MEJORADO
+  // FASE 2: SIMPLIFICAR FORCE UPDATES - Un solo trigger sin setTimeout doble
   const triggerBadgeUpdate = useCallback(() => {
     badgeUpdateTrigger.current += 1;
-    console.log('🏷️ Badge update triggered:', badgeUpdateTrigger.current);
-    
-    // FORZAR RE-RENDER ADICIONAL
-    setTimeout(() => {
-      badgeUpdateTrigger.current += 1;
-      console.log('🏷️ Badge secondary update triggered:', badgeUpdateTrigger.current);
-    }, 100);
+    console.log('🏷️ Badge update triggered (simplified):', badgeUpdateTrigger.current);
   }, []);
+
+  // FASE 4: MEJORAR BADGE RENDERING - Usar useMemo para estabilizar
+  const getBadgeInfo = useMemo((): NotificationBadge => {
+    const unreadMessages = messages.filter(msg => !msg.isRead && msg.type !== 'user');
+    
+    const badge = {
+      count: unreadMessages.length,
+      hasUrgent: unreadMessages.some(msg => msg.priority === 'urgent'),
+      hasHigh: unreadMessages.some(msg => msg.priority === 'high')
+    };
+    
+    console.log(`🏷️ Badge info calculated (memoized):`, {
+      total: messages.length,
+      unread: badge.count,
+      urgent: badge.hasUrgent,
+      high: badge.hasHigh,
+      strategy: currentStrategy,
+      triggerRef: badgeUpdateTrigger.current
+    });
+    
+    return badge;
+  }, [messages, currentStrategy, badgeUpdateTrigger.current]);
 
   // DETECTAR CAMBIOS EN MENSAJES Y ACTUALIZAR BADGE
   useEffect(() => {
     console.log('📊 Messages changed, triggering badge update. New count:', messages.length);
-    
-    const newBadgeState = getBadgeInfo();
-    const hasChanged = 
-      lastBadgeState.current.count !== newBadgeState.count ||
-      lastBadgeState.current.hasUrgent !== newBadgeState.hasUrgent ||
-      lastBadgeState.current.hasHigh !== newBadgeState.hasHigh;
-    
-    if (hasChanged) {
-      console.log('🏷️ Badge state changed:', {
-        old: lastBadgeState.current,
-        new: newBadgeState
-      });
-      lastBadgeState.current = newBadgeState;
-      triggerBadgeUpdate();
-    }
+    triggerBadgeUpdate();
   }, [messages, triggerBadgeUpdate]);
 
-  // FUNCIÓN addMessage MEJORADA CON RETORNO CORRECTO
+  // FUNCIÓN addMessage MEJORADA
   const addMessage = useCallback(async (message: Omit<ChatMessage, 'id' | 'timestamp'>): Promise<string> => {
     const messageId = generateValidUUID();
     const newMessage: ChatMessage = {
@@ -109,9 +109,6 @@ export const useAIAssistant = () => {
       await saveMessage(newMessage);
       console.log('✅ Message successfully persisted');
       triggerBadgeUpdate();
-      
-      // ESPERAR UN POCO PARA ASEGURAR SINCRONIZACIÓN
-      await new Promise(resolve => setTimeout(resolve, 50));
       
       console.log(`✅ addMessage returning ID: ${messageId}`);
       return messageId;
@@ -229,7 +226,7 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     }
   }, [addMessage, makeLLMRequest, messages, currentStrategy]);
 
-  // FIX: addNotification AHORA RETORNA PROMISE<string> CORRECTAMENTE
+  // ARREGLAR addNotification Y addSuggestion PARA RETORNAR ID CORRECTAMENTE
   const addNotification = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium', contextData?: any): Promise<string> => {
     console.log(`🔔 Adding notification: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
     const messageId = await addMessage({
@@ -244,7 +241,6 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     return messageId;
   }, [addMessage, currentStrategy]);
 
-  // FIX: addSuggestion AHORA RETORNA PROMISE<string> CORRECTAMENTE
   const addSuggestion = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'low', contextData?: any): Promise<string> => {
     console.log(`💡 Adding suggestion: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
     const messageId = await addMessage({
@@ -258,29 +254,6 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     console.log(`✅ addSuggestion returning ID: ${messageId}`);
     return messageId;
   }, [addMessage, currentStrategy]);
-
-  // FIX: getBadgeInfo MEJORADO CON SINCRONIZACIÓN
-  const getBadgeInfo = useCallback((): NotificationBadge => {
-    const unreadMessages = messages.filter(msg => !msg.isRead && msg.type !== 'user');
-    
-    const badge = {
-      count: unreadMessages.length,
-      hasUrgent: unreadMessages.some(msg => msg.priority === 'urgent'),
-      hasHigh: unreadMessages.some(msg => msg.priority === 'high')
-    };
-    
-    console.log(`🏷️ Badge info calculated (trigger: ${badgeUpdateTrigger.current}):`, {
-      total: messages.length,
-      unread: badge.count,
-      urgent: badge.hasUrgent,
-      high: badge.hasHigh,
-      forceUpdateRef,
-      strategy: currentStrategy,
-      unreadMessages: unreadMessages.map(m => ({ id: m.id, type: m.type, priority: m.priority }))
-    });
-    
-    return badge;
-  }, [messages, badgeUpdateTrigger.current, forceUpdateRef, currentStrategy]);
 
   const clearChat = useCallback(async () => {
     console.log(`🗑️ Clearing chat history via ${currentStrategy}`);
@@ -314,8 +287,8 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     clearChat,
     
     // Utilidades
-    getBadgeInfo,
-    unreadCount: getBadgeInfo().count,
+    getBadgeInfo: () => getBadgeInfo, // FASE 4: Retornar función que accede al valor memoizado
+    unreadCount: getBadgeInfo.count,
     
     // Debug info
     currentStrategy,

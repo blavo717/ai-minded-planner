@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,56 +51,30 @@ const AIAssistantPanel = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // FIX: FORZAR RE-RENDER DEL BADGE CON ESTADO LOCAL MEJORADO
-  const [badgeRenderKey, setBadgeRenderKey] = useState(0);
-  const [lastBadgeInfo, setLastBadgeInfo] = useState({ count: 0, hasUrgent: false, hasHigh: false });
-
-  // DEBUGGING MASIVO del componente
+  // FASE 5: DEBUGGING DIRIGIDO
   console.log('🎯 AIAssistantPanel render:', {
     isOpen,
     messagesCount: messages.length,
     isInitialized,
     connectionStatus,
     isMinimized,
-    badgeRenderKey,
     strategy: currentStrategy,
     badgeUpdateTrigger
   });
 
-  // FIX: ACTUALIZAR BADGE CUANDO CAMBIEN LOS MENSAJES O EL TRIGGER
-  useEffect(() => {
-    console.log('📊 Messages or badge trigger changed, updating badge render key');
-    
-    const currentBadgeInfo = getBadgeInfo();
-    const hasChanged = 
-      lastBadgeInfo.count !== currentBadgeInfo.count ||
-      lastBadgeInfo.hasUrgent !== currentBadgeInfo.hasUrgent ||
-      lastBadgeInfo.hasHigh !== currentBadgeInfo.hasHigh;
-    
-    if (hasChanged) {
-      console.log('🏷️ Badge info changed:', {
-        old: lastBadgeInfo,
-        new: currentBadgeInfo
-      });
-      
-      setLastBadgeInfo(currentBadgeInfo);
-      setBadgeRenderKey(prev => prev + 1);
-      
-      // FORZAR ACTUALIZACIÓN ADICIONAL
-      setTimeout(() => {
-        setBadgeRenderKey(prev => prev + 1);
-      }, 100);
-    }
-  }, [messages.length, badgeUpdateTrigger, getBadgeInfo]);
+  // FASE 4: MEJORAR BADGE RENDERING - Usar useMemo para estabilizar badgeInfo
+  const badgeInfo = useMemo(() => {
+    const info = getBadgeInfo();
+    console.log('🏷️ Badge info memoized in AIAssistantPanel:', {
+      ...info,
+      strategy: currentStrategy,
+      trigger: badgeUpdateTrigger
+    });
+    return info;
+  }, [getBadgeInfo, currentStrategy, badgeUpdateTrigger]);
 
-  const badgeInfo = getBadgeInfo();
-  console.log('🏷️ Current badge info from AIAssistantPanel:', {
-    ...badgeInfo,
-    strategy: currentStrategy,
-    renderKey: badgeRenderKey
-  });
+  // useEffect hooks for auto-scroll and focus
 
-  // Auto-scroll al final cuando hay nuevos mensajes
   useEffect(() => {
     if (messagesEndRef.current) {
       console.log('📜 Auto-scrolling to end of messages');
@@ -108,7 +82,6 @@ const AIAssistantPanel = () => {
     }
   }, [messages, isTyping]);
 
-  // Focus en input cuando se abre el chat
   useEffect(() => {
     if (isOpen && !isMinimized && inputRef.current) {
       console.log('🎯 Focusing input field');
@@ -129,7 +102,6 @@ const AIAssistantPanel = () => {
     console.log(`🚀 Sending message from panel: "${message.substring(0, 50)}..." via ${currentStrategy}`);
     setInputMessage('');
     
-    // Añadir contexto de página actual
     const contextData = {
       currentPage: window.location.pathname,
       timestamp: new Date().toISOString(),
@@ -153,7 +125,6 @@ const AIAssistantPanel = () => {
     setIsOpen(true);
     setIsMinimized(false);
     
-    // Marcar todos los mensajes como leídos cuando se abre el chat
     if (badgeInfo.count > 0) {
       console.log(`👁️ Marking ${badgeInfo.count} messages as read on chat open`);
       setTimeout(() => markAllAsRead(), 500);
@@ -188,11 +159,10 @@ const AIAssistantPanel = () => {
     }
   };
 
-  // FIX: BOTÓN FLOTANTE CON BADGE MEJORADO Y FORZADO
+  // FASE 4: BOTÓN FLOTANTE CON BADGE ESTABLE - Eliminar Date.now() de la key
   if (!isOpen) {
     console.log('🎯 Rendering floating button with badge:', {
       ...badgeInfo,
-      renderKey: badgeRenderKey,
       strategy: currentStrategy
     });
     
@@ -210,7 +180,7 @@ const AIAssistantPanel = () => {
         >
           <MessageCircle className="h-6 w-6 text-white" />
           <NotificationBadge 
-            key={`badge-${badgeRenderKey}-${badgeInfo.count}-${badgeInfo.hasUrgent}-${badgeInfo.hasHigh}-${currentStrategy}-${Date.now()}`}
+            key={`badge-${badgeInfo.count}-${badgeInfo.hasUrgent}-${badgeInfo.hasHigh}-${currentStrategy}`}
             count={badgeInfo.count}
             hasUrgent={badgeInfo.hasUrgent}
             hasHigh={badgeInfo.hasHigh}
@@ -357,7 +327,7 @@ const AIAssistantPanel = () => {
               )}
             </ScrollArea>
 
-            {/* Input Area con información de debugging */}
+            {/* Input Area */}
             <div className="border-t p-4 bg-gray-50">
               {messages.length > 0 && (
                 <div className="flex justify-between items-center mb-3">
@@ -395,12 +365,7 @@ const AIAssistantPanel = () => {
                   ref={inputRef}
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
+                  onKeyPress={handleKeyPress}
                   placeholder={
                     currentStrategy === 'localStorage' 
                       ? "Escribe tu mensaje (modo test)..." 
@@ -432,7 +397,7 @@ const AIAssistantPanel = () => {
               
               {currentStrategy === 'localStorage' && (
                 <p className="text-xs text-blue-600 mt-1" data-testid="test-mode-indicator">
-                  🧪 Modo Test: Mensajes guardados localmente | Badge: {badgeInfo.count} | Render: {badgeRenderKey}
+                  🧪 Modo Test: Mensajes guardados localmente | Badge: {badgeInfo.count}
                 </p>
               )}
             </div>

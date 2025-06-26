@@ -29,27 +29,34 @@ export const useAIMessagesUnified = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const forceUpdateRef = useRef(0);
   const memoryStore = useRef<ChatMessage[]>([]);
+  const processingRef = useRef(false);
 
-  // DEBUGGING MASIVO
+  // FASE 5: DEBUGGING DIRIGIDO
   console.log('🎯 useAIMessagesUnified state:', {
     user: user?.id || 'none',
     messagesCount: messages.length,
     isInitialized,
     strategy: getStrategy(),
     isSupabaseLoading,
-    forceUpdateRef: forceUpdateRef.current
+    forceUpdateRef: forceUpdateRef.current,
+    processing: processingRef.current
   });
 
-  // FIX: FORZAR RE-RENDER MEJORADO
+  // FASE 2: SIMPLIFICAR FORCE UPDATES - Eliminar doble setTimeout
   const forceUpdate = useCallback(() => {
-    forceUpdateRef.current += 1;
-    console.log('🔄 Forcing unified messages re-render:', forceUpdateRef.current);
+    if (processingRef.current) {
+      console.log('⚠️ Force update skipped - already processing');
+      return;
+    }
     
-    // TRIGGER ADICIONAL PARA ASEGURAR ACTUALIZACIÓN
+    processingRef.current = true;
+    forceUpdateRef.current += 1;
+    console.log('🔄 Single force update triggered:', forceUpdateRef.current);
+    
+    // Debounce para evitar renders excesivos
     setTimeout(() => {
-      forceUpdateRef.current += 1;
-      console.log('🔄 Secondary force update:', forceUpdateRef.current);
-    }, 50);
+      processingRef.current = false;
+    }, 100);
   }, []);
 
   // Cargar mensajes según la estrategia
@@ -89,7 +96,7 @@ export const useAIMessagesUnified = () => {
     }
   }, [getStrategy, loadFromSupabase, loadFromLocalStorage, forceUpdate]);
 
-  // FIX: GUARDAR MENSAJE CON SINCRONIZACIÓN MEJORADA
+  // FASE 1: ARREGLAR PERSISTENCIA - Eliminar loadMessages después de saveMessage en Supabase
   const saveMessage = useCallback(async (message: ChatMessage): Promise<void> => {
     const strategy = getStrategy();
     console.log(`💾 Saving message via ${strategy}:`, {
@@ -102,8 +109,9 @@ export const useAIMessagesUnified = () => {
       switch (strategy) {
         case 'supabase':
           await saveToSupabase(message);
-          // Recargar mensajes para asegurar sincronización
-          await loadMessages();
+          // FASE 1: Actualizar estado local directamente - NO recargar
+          setMessages(prev => [...prev, message]);
+          console.log(`✅ Message saved to Supabase and local state updated`);
           break;
           
         case 'localStorage':
@@ -121,14 +129,11 @@ export const useAIMessagesUnified = () => {
       console.log(`✅ Message saved successfully via ${strategy}`);
       forceUpdate();
       
-      // ESPERAR UN POCO PARA ASEGURAR PROPAGACIÓN
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
     } catch (error) {
       console.error(`❌ Error saving message via ${strategy}:`, error);
       throw error;
     }
-  }, [getStrategy, saveToSupabase, saveToLocalStorage, messages, forceUpdate, loadMessages]);
+  }, [getStrategy, saveToSupabase, saveToLocalStorage, messages, forceUpdate]);
 
   // Actualizar mensaje
   const updateMessage = useCallback(async (messageId: string, updates: Partial<ChatMessage>): Promise<void> => {
@@ -139,8 +144,11 @@ export const useAIMessagesUnified = () => {
       switch (strategy) {
         case 'supabase':
           await updateInSupabase(messageId, updates);
-          // Recargar mensajes para asegurar sincronización
-          await loadMessages();
+          // FASE 1: Actualizar estado local directamente - NO recargar
+          setMessages(prev => prev.map(msg => 
+            msg.id === messageId ? { ...msg, ...updates } : msg
+          ));
+          console.log(`✅ Message updated in Supabase and local state`);
           break;
           
         case 'localStorage':
@@ -166,7 +174,7 @@ export const useAIMessagesUnified = () => {
       console.error(`❌ Error updating message via ${strategy}:`, error);
       throw error;
     }
-  }, [getStrategy, updateInSupabase, saveToLocalStorage, messages, forceUpdate, loadMessages]);
+  }, [getStrategy, updateInSupabase, saveToLocalStorage, messages, forceUpdate]);
 
   // Marcar todos como leídos
   const markAllAsRead = useCallback(async (): Promise<void> => {
@@ -177,8 +185,9 @@ export const useAIMessagesUnified = () => {
       switch (strategy) {
         case 'supabase':
           await markAllAsReadInSupabase();
-          // Recargar mensajes para asegurar sincronización
-          await loadMessages();
+          // FASE 1: Actualizar estado local directamente - NO recargar
+          setMessages(prev => prev.map(msg => ({ ...msg, isRead: true })));
+          console.log(`✅ All messages marked as read in Supabase and local state`);
           break;
           
         case 'localStorage':
@@ -200,7 +209,7 @@ export const useAIMessagesUnified = () => {
       console.error(`❌ Error marking all as read via ${strategy}:`, error);
       throw error;
     }
-  }, [getStrategy, markAllAsReadInSupabase, saveToLocalStorage, messages, forceUpdate, loadMessages]);
+  }, [getStrategy, markAllAsReadInSupabase, saveToLocalStorage, messages, forceUpdate]);
 
   // Limpiar chat
   const clearChat = useCallback(async (): Promise<void> => {
@@ -242,7 +251,7 @@ export const useAIMessagesUnified = () => {
         console.log('✅ Unified messages system initialized');
       }).catch(error => {
         console.error('❌ Failed to initialize messages:', error);
-        setIsInitialized(true); // Inicializar de todos modos
+        setIsInitialized(true);
       });
     }
   }, [loadMessages, isInitialized]);

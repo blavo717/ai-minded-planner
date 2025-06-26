@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback } from 'react';
 import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useTasks } from '@/hooks/useTasks';
@@ -9,7 +8,7 @@ export const useSmartMessaging = () => {
   const { mainTasks, getTasksNeedingFollowup, getTasksWithoutRecentActivity } = useTasks();
   const { monitoringData } = useAITaskMonitor();
 
-  // DEBUGGING MASIVO
+  // FASE 5: DEBUGGING DIRIGIDO
   console.log('🎯 useSmartMessaging state:', {
     isAIInitialized,
     taskCount: mainTasks.length,
@@ -18,7 +17,21 @@ export const useSmartMessaging = () => {
     strategy: currentStrategy
   });
 
-  // FIX: HACER SMART MESSAGING MÁS PREDECIBLE PARA TESTS
+  // FASE 3: OPTIMIZAR SMART MESSAGING - Intervalos diferentes para tests vs producción
+  const getIntervalTiming = useCallback(() => {
+    if (currentStrategy === 'localStorage') {
+      return {
+        initialDelay: 1000,  // 1 segundo para tests
+        intervalTime: 3000   // 3 segundos para tests
+      };
+    } else {
+      return {
+        initialDelay: 5000,   // 5 segundos para producción
+        intervalTime: 30000   // 30 segundos para producción
+      };
+    }
+  }, [currentStrategy]);
+
   const checkFollowupTasks = useCallback(async (): Promise<boolean> => {
     console.log('🔍 checkFollowupTasks: Starting analysis...');
     
@@ -27,7 +40,6 @@ export const useSmartMessaging = () => {
       return false;
     }
     
-    // LÓGICA MÁS PERMISIVA Y PREDECIBLE PARA TESTS
     const pendingTasks = mainTasks.filter(task => 
       task.status === 'pending' || task.status === 'in_progress'
     );
@@ -37,12 +49,10 @@ export const useSmartMessaging = () => {
     console.log('📊 checkFollowupTasks stats:', {
       pendingCount: pendingTasks.length,
       followupCount: followupTasks.length,
-      strategy: currentStrategy,
-      pendingTasks: pendingTasks.map(t => ({ id: t.id, title: t.title, status: t.status })),
-      followupTasks: followupTasks.map(t => ({ id: t.id, title: t.title, needs_followup: t.needs_followup }))
+      strategy: currentStrategy
     });
     
-    // MODO TESTING: Siempre generar al menos una notificación si hay tareas
+    // FASE 3: MODO TESTING - Forzar generación para tests
     if (currentStrategy === 'localStorage' && pendingTasks.length > 0) {
       console.log(`📋 TEST MODE: Creating followup notification for ${pendingTasks.length} pending tasks`);
       
@@ -60,26 +70,10 @@ export const useSmartMessaging = () => {
       }
     }
     
-    // PRODUCCIÓN: Lógica normal pero más permisiva
-    if (pendingTasks.length > 0 && followupTasks.length === 0) {
-      console.log(`📋 Creating general followup for ${pendingTasks.length} pending tasks`);
-      
-      try {
-        await addNotification(
-          `🔔 Tienes ${pendingTasks.length} tareas activas que podrían necesitar atención: ${pendingTasks.slice(0, 2).map(t => t.title).join(', ')}`,
-          'medium',
-          { type: 'general_followup', tasks: pendingTasks }
-        );
-        return true;
-      } catch (error) {
-        console.error('❌ Error creating general followup:', error);
-        return false;
-      }
-    }
-    
+    // PRODUCCIÓN: Lógica normal
     if (followupTasks.length > 0) {
       const taskTitles = followupTasks.slice(0, 3).map(t => t.title).join(', ');
-      console.log(`📋 Found ${followupTasks.length} tasks needing followup:`, followupTasks.map(t => t.title));
+      console.log(`📋 Found ${followupTasks.length} tasks needing followup`);
       
       try {
         await addNotification(
@@ -98,7 +92,6 @@ export const useSmartMessaging = () => {
     return false;
   }, [getTasksNeedingFollowup, addNotification, mainTasks, isAIInitialized, currentStrategy]);
 
-  // FIX: HACER DETECCIÓN DE TAREAS INACTIVAS MÁS PREDECIBLE
   const checkInactiveTasks = useCallback(async (): Promise<boolean> => {
     console.log('🔍 checkInactiveTasks: Starting analysis...');
     
@@ -107,7 +100,7 @@ export const useSmartMessaging = () => {
       return false;
     }
     
-    // MODO TESTING: Siempre generar una sugerencia si hay tareas
+    // FASE 3: MODO TESTING - Forzar generación para tests
     if (currentStrategy === 'localStorage' && mainTasks.length > 0) {
       console.log('💡 TEST MODE: Creating productivity suggestion');
       
@@ -131,17 +124,12 @@ export const useSmartMessaging = () => {
     console.log('📊 checkInactiveTasks stats:', {
       inactiveCount: inactiveTasks.length,
       totalTasks: mainTasks.length,
-      strategy: currentStrategy,
-      inactiveTasks: inactiveTasks.map(t => ({ 
-        id: t.id, 
-        title: t.title, 
-        last_worked_at: t.last_worked_at 
-      }))
+      strategy: currentStrategy
     });
     
     if (inactiveTasks.length > 0) {
       const taskTitles = inactiveTasks.slice(0, 2).map(t => t.title).join(', ');
-      console.log(`📋 Found ${inactiveTasks.length} inactive tasks:`, inactiveTasks.map(t => t.title));
+      console.log(`📋 Found ${inactiveTasks.length} inactive tasks`);
       
       try {
         await addSuggestion(
@@ -156,28 +144,10 @@ export const useSmartMessaging = () => {
       }
     }
     
-    // Si no hay tareas inactivas específicas, crear sugerencia general si hay tareas
-    if (mainTasks.length > 0) {
-      console.log('💡 Creating general productivity suggestion');
-      
-      try {
-        await addSuggestion(
-          `💡 Tienes ${mainTasks.length} tareas en tu lista. ¿Te ayudo a priorizarlas o planificar tu día?`,
-          'low',
-          { type: 'general_productivity', taskCount: mainTasks.length }
-        );
-        return true;
-      } catch (error) {
-        console.error('❌ Error creating general suggestion:', error);
-        return false;
-      }
-    }
-    
     console.log('✅ checkInactiveTasks: No inactive tasks found');
     return false;
   }, [getTasksWithoutRecentActivity, addSuggestion, mainTasks, isAIInitialized, currentStrategy]);
 
-  // Detectar patrones de productividad (más robusto)
   const checkProductivityPatterns = useCallback(async (): Promise<boolean> => {
     console.log('🔍 checkProductivityPatterns: Starting analysis...');
     
@@ -201,7 +171,6 @@ export const useSmartMessaging = () => {
         if (analysisData.insights && Array.isArray(analysisData.insights)) {
           console.log(`💡 Found ${analysisData.insights.length} insights`);
           
-          // Buscar insights de alta prioridad
           const highPriorityInsights = analysisData.insights.filter((insight: any) => 
             insight.priority >= 2 && insight.insight_type !== 'general'
           );
@@ -222,28 +191,9 @@ export const useSmartMessaging = () => {
           }
           
           return highPriorityInsights.length > 0;
-        } else {
-          console.log('📊 No insights array found in analysis data');
         }
       } catch (error) {
         console.error('❌ Error parsing analysis data:', error);
-      }
-    }
-    
-    // Si hay datos de monitoreo pero no insights, crear sugerencia general
-    if (monitoringData.length > 0) {
-      console.log('📊 Creating general analysis suggestion');
-      
-      try {
-        await addSuggestion(
-          `📊 He detectado actividad en tus tareas. ¿Quieres que analice tus patrones de productividad?`,
-          'low',
-          { type: 'general_analysis', dataCount: monitoringData.length }
-        );
-        return true;
-      } catch (error) {
-        console.error('❌ Error creating general analysis suggestion:', error);
-        return false;
       }
     }
     
@@ -251,7 +201,6 @@ export const useSmartMessaging = () => {
     return false;
   }, [monitoringData, addSuggestion, isAIInitialized]);
 
-  // FIX: DETECTAR DEADLINES PRÓXIMOS CON MANEJO DE ERRORES
   const checkUpcomingDeadlines = useCallback(async (): Promise<boolean> => {
     console.log('🔍 checkUpcomingDeadlines: Starting analysis...');
     
@@ -278,17 +227,9 @@ export const useSmartMessaging = () => {
       return dueDate > tomorrow && dueDate <= nextWeek;
     });
     
-    // Tareas sin deadline pero importantes
-    const highPriorityTasks = mainTasks.filter(task => 
-      task.priority === 'high' && task.status !== 'completed' && !task.due_date
-    );
-    
     console.log('📊 checkUpcomingDeadlines stats:', {
       urgentCount: urgentTasks.length,
-      soonCount: soonTasks.length,
-      highPriorityCount: highPriorityTasks.length,
-      urgentTasks: urgentTasks.map(t => ({ id: t.id, title: t.title, due_date: t.due_date })),
-      soonTasks: soonTasks.map(t => ({ id: t.id, title: t.title, due_date: t.due_date }))
+      soonCount: soonTasks.length
     });
     
     let notificationsAdded = false;
@@ -321,20 +262,6 @@ export const useSmartMessaging = () => {
       }
     }
     
-    if (highPriorityTasks.length > 0 && !notificationsAdded) {
-      console.log('🔥 Adding high priority tasks suggestion');
-      try {
-        await addSuggestion(
-          `🔥 Tienes ${highPriorityTasks.length} tareas de alta prioridad sin fecha límite. ¿Las revisamos?`,
-          'high',
-          { type: 'high_priority_no_deadline', tasks: highPriorityTasks }
-        );
-        notificationsAdded = true;
-      } catch (error) {
-        console.error('❌ Error creating high priority suggestion:', error);
-      }
-    }
-    
     if (!notificationsAdded) {
       console.log('✅ checkUpcomingDeadlines: No urgent or upcoming deadlines found');
     }
@@ -342,7 +269,7 @@ export const useSmartMessaging = () => {
     return notificationsAdded;
   }, [mainTasks, addNotification, addSuggestion, isAIInitialized]);
 
-  // FIX: EJECUTAR CHEQUEOS CON LÓGICA PREDECIBLE Y MANEJO DE ERRORES
+  // FASE 3: EJECUTAR CHEQUEOS CON INTERVALOS OPTIMIZADOS
   useEffect(() => {
     if (!isAIInitialized) {
       console.log('⏳ Smart messaging waiting for AI initialization...');
@@ -350,24 +277,13 @@ export const useSmartMessaging = () => {
     }
     
     console.log('🔄 Setting up smart messaging intervals...');
-    console.log('📊 Current data state:', {
-      taskCount: mainTasks.length,
-      monitoringDataCount: monitoringData.length,
-      isAIInitialized,
-      strategy: currentStrategy
-    });
     
-    // Para tests, ejecutar inmediatamente y de forma más agresiva
-    const initialDelay = currentStrategy === 'localStorage' ? 500 : 2000;
-    const intervalTime = currentStrategy === 'localStorage' ? 1500 : 5 * 60 * 1000;
+    const { initialDelay, intervalTime } = getIntervalTiming();
+    
+    console.log(`⏰ Using intervals: initial=${initialDelay}ms, recurring=${intervalTime}ms for strategy=${currentStrategy}`);
     
     const runChecks = async () => {
       console.log('🚀 Running smart messaging checks...');
-      console.log('📊 Data available for analysis:', {
-        tasks: mainTasks.length,
-        monitoringData: monitoringData.length,
-        strategy: currentStrategy
-      });
       
       try {
         const results = {
@@ -388,9 +304,9 @@ export const useSmartMessaging = () => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [checkFollowupTasks, checkInactiveTasks, isAIInitialized, currentStrategy, mainTasks.length, monitoringData.length]);
+  }, [checkFollowupTasks, checkInactiveTasks, isAIInitialized, currentStrategy, getIntervalTiming, mainTasks.length, monitoringData.length]);
 
-  // FIX: TRIGGER MANUAL MÁS PREDECIBLE PARA TESTS
+  // TRIGGER MANUAL MEJORADO
   const triggerTaskAnalysis = useCallback(async () => {
     console.log('🎯 Manual task analysis triggered');
     
@@ -406,7 +322,7 @@ export const useSmartMessaging = () => {
       };
       console.log('📊 Manual analysis results:', results);
       
-      // SIEMPRE generar una respuesta para testing, especialmente en localStorage
+      // SIEMPRE generar una respuesta para testing
       if (!results.followup && !results.inactive) {
         const message = currentStrategy === 'localStorage' 
           ? '✅ [TEST] Análisis completado: Sistema funcionando correctamente en modo test.'
