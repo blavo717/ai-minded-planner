@@ -167,7 +167,7 @@ const ReportGenerator = () => {
                     <div className="text-right">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">
-                          {report.metrics.completedTasks} tareas
+                          {report.metrics.tasksCompleted} tareas
                         </Badge>
                         <Badge variant="outline">
                           {report.metrics.productivity.toFixed(1)}/5
