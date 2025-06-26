@@ -9,7 +9,6 @@ import Tasks from "./pages/Tasks";
 import Projects from "./pages/Projects";
 import Contacts from "./pages/Contacts";
 import Settings from "./pages/Settings";
-import TestingHub from "./pages/TestingHub";
 import Auth from "./pages/Auth";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -36,7 +35,6 @@ const App = () => (
                       <Route path="/tasks" element={<Tasks />} />
                       <Route path="/projects" element={<Projects />} />
                       <Route path="/contacts" element={<Contacts />} />
-                      <Route path="/testing" element={<TestingHub />} />
                       <Route path="/settings" element={<Settings />} />
                     </Routes>
                   </MainLayout>

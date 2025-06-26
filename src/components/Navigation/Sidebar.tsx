@@ -7,7 +7,6 @@ import {
   FolderOpen, 
   Users, 
   Settings,
-  FileCheck,
   Brain
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,7 +16,6 @@ const navigation = [
   { name: 'Tareas', href: '/tasks', icon: CheckSquare },
   { name: 'Proyectos', href: '/projects', icon: FolderOpen },
   { name: 'Contactos', href: '/contacts', icon: Users },
-  { name: 'Testing Hub', href: '/testing', icon: FileCheck },
   { name: 'Configuración', href: '/settings', icon: Settings },
 ];
 
@@ -29,7 +27,7 @@ const Sidebar = () => {
       <div className="flex h-16 items-center px-6 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <Brain className="h-8 w-8 text-blue-600" />
-          <span className="text-xl font-bold text-gray-900">ProductivIA</span>
+          <span className="text-xl font-bold text-gray-900">AI Planner</span>
         </div>
       </div>
       
@@ -55,17 +53,6 @@ const Sidebar = () => {
           );
         })}
       </nav>
-      
-      <div className="p-4 border-t border-gray-200">
-        <div className="bg-blue-50 p-3 rounded-lg">
-          <div className="text-xs font-medium text-blue-700 mb-1">
-            Modo Simplificado Activo
-          </div>
-          <div className="text-xs text-blue-600">
-            Chat básico | Testing optimizado
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
