@@ -23,11 +23,11 @@ const Sidebar = () => {
   const location = useLocation();
 
   return (
-    <div className="flex h-screen w-64 flex-col fixed left-0 top-0 z-40 bg-white border-r border-gray-200">
-      <div className="flex h-16 items-center px-6 border-b border-gray-200">
+    <div className="flex h-screen w-64 flex-col fixed left-0 top-0 z-40 bg-card border-r border-border">
+      <div className="flex h-16 items-center px-6 border-b border-border">
         <div className="flex items-center gap-2">
-          <Brain className="h-8 w-8 text-blue-600" />
-          <span className="text-xl font-bold text-gray-900">AI Planner</span>
+          <Brain className="h-8 w-8 text-primary" />
+          <span className="text-xl font-bold text-foreground">AI Planner</span>
         </div>
       </div>
       
@@ -43,8 +43,8 @@ const Sidebar = () => {
               className={cn(
                 "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
                 isActive
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
               <IconComponent className="h-5 w-5" />

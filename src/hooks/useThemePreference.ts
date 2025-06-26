@@ -15,14 +15,21 @@ interface UserPreference {
 
 export const useThemePreference = () => {
   const { user } = useAuth();
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
+
+  console.log('useThemePreference - User:', user?.id, 'Current theme:', theme);
 
   // Consultar preferencias del usuario
   const { data: preferences, isLoading } = useQuery({
     queryKey: ['userPreferences', user?.id],
     queryFn: async () => {
-      if (!user) return null;
+      if (!user) {
+        console.log('useThemePreference - No user, skipping query');
+        return null;
+      }
+      
+      console.log('useThemePreference - Fetching preferences for user:', user.id);
       
       const { data, error } = await supabase
         .from('user_preferences')
@@ -35,24 +42,30 @@ export const useThemePreference = () => {
         return null;
       }
       
+      console.log('useThemePreference - Fetched preferences:', data);
       return data as UserPreference | null;
     },
     enabled: !!user,
   });
 
-  // Aplicar tema guardado al cargar
+  // Aplicar tema guardado al cargar (solo una vez cuando se obtienen las preferencias)
   useEffect(() => {
-    if (preferences?.theme && !isLoading) {
+    if (preferences?.theme && !isLoading && preferences.theme !== theme) {
+      console.log('useThemePreference - Applying saved theme:', preferences.theme);
       setTheme(preferences.theme);
     }
-  }, [preferences, isLoading, setTheme]);
+  }, [preferences?.theme, isLoading]); // Removí setTheme y theme de las dependencias para evitar loops
 
   // Mutación para actualizar preferencias
   const updateThemePreferenceMutation = useMutation({
     mutationFn: async (newTheme: string) => {
-      if (!user) throw new Error('Usuario no autenticado');
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
 
-      // Intentar actualizar primero
+      console.log('useThemePreference - Updating theme in DB:', newTheme, 'for user:', user.id);
+
+      // Verificar si ya existe una preferencia
       const { data: existingData, error: selectError } = await supabase
         .from('user_preferences')
         .select('id')
@@ -61,10 +74,12 @@ export const useThemePreference = () => {
 
       if (selectError) {
         console.error('Error checking existing preferences:', selectError);
+        throw selectError;
       }
 
       if (existingData) {
         // Actualizar preferencia existente
+        console.log('useThemePreference - Updating existing preference');
         const { data, error } = await supabase
           .from('user_preferences')
           .update({ theme: newTheme })
@@ -73,9 +88,11 @@ export const useThemePreference = () => {
           .single();
 
         if (error) throw error;
+        console.log('useThemePreference - Updated preference:', data);
         return data;
       } else {
         // Crear nueva preferencia
+        console.log('useThemePreference - Creating new preference');
         const { data, error } = await supabase
           .from('user_preferences')
           .insert({ user_id: user.id, theme: newTheme })
@@ -83,10 +100,12 @@ export const useThemePreference = () => {
           .single();
 
         if (error) throw error;
+        console.log('useThemePreference - Created preference:', data);
         return data;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('useThemePreference - Successfully updated theme preference:', data);
       queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.id] });
     },
     onError: (error) => {
