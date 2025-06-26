@@ -1,0 +1,131 @@
+
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Calendar, BarChart3, TrendingUp, Clock, Target, Download } from 'lucide-react';
+import ProductivityOverview from '@/components/Analytics/ProductivityOverview';
+import TaskCompletionChart from '@/components/Analytics/TaskCompletionChart';
+import TimeDistributionChart from '@/components/Analytics/TimeDistributionChart';
+import ProjectPerformanceChart from '@/components/Analytics/ProjectPerformanceChart';
+import ProductivityHeatmap from '@/components/Analytics/ProductivityHeatmap';
+import ReportGenerator from '@/components/Analytics/ReportGenerator';
+import WorkPatternsAnalysis from '@/components/Analytics/WorkPatternsAnalysis';
+import TimeMetricsDashboard from '@/components/Analytics/TimeMetricsDashboard';
+import { useAnalytics } from '@/hooks/useAnalytics';
+
+const Analytics = () => {
+  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
+  const { isLoading } = useAnalytics();
+
+  const periodOptions = [
+    { value: 'week', label: 'Última semana' },
+    { value: 'month', label: 'Último mes' },
+    { value: 'quarter', label: 'Último trimestre' },
+    { value: 'year', label: 'Último año' },
+  ];
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="h-16 bg-muted rounded animate-pulse" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
+          <p className="text-muted-foreground">
+            Análisis detallado de tu productividad y patrones de trabajo
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {periodOptions.map((option) => (
+              <Button
+                key={option.value}
+                variant={selectedPeriod === option.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedPeriod(option.value as any)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+          
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Exportar
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Resumen
+          </TabsTrigger>
+          <TabsTrigger value="time" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Tiempo
+          </TabsTrigger>
+          <TabsTrigger value="patterns" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Patrones
+          </TabsTrigger>
+          <TabsTrigger value="projects" className="flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            Proyectos
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Reportes
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <ProductivityOverview period={selectedPeriod} />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <TaskCompletionChart period={selectedPeriod} />
+            <TimeDistributionChart period={selectedPeriod} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="time" className="space-y-6">
+          <TimeMetricsDashboard period={selectedPeriod} />
+          <ProductivityHeatmap period={selectedPeriod} />
+        </TabsContent>
+
+        <TabsContent value="patterns" className="space-y-6">
+          <WorkPatternsAnalysis period={selectedPeriod} />
+        </TabsContent>
+
+        <TabsContent value="projects" className="space-y-6">
+          <ProjectPerformanceChart period={selectedPeriod} />
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-6">
+          <ReportGenerator />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default Analytics;

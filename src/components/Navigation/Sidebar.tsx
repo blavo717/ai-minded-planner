@@ -7,7 +7,8 @@ import {
   FolderOpen, 
   Users, 
   Settings,
-  Brain
+  Brain,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +16,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Tareas', href: '/tasks', icon: CheckSquare },
   { name: 'Proyectos', href: '/projects', icon: FolderOpen },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Contactos', href: '/contacts', icon: Users },
   { name: 'Configuración', href: '/settings', icon: Settings },
 ];
