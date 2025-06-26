@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLLMService } from '@/hooks/useLLMService';
@@ -35,14 +36,16 @@ export const useAIAssistant = () => {
     validatePersistence,
     syncWithDB,
     forceFullReset,
-    currentStrategy
+    currentStrategy,
+    setForcedMemoryStrategy,
+    clearForcedStrategy
   } = useAIMessagesUnified();
   
   const [isOpen, setIsOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'idle'>('idle');
 
-  console.log('🎯 FASE 13 - useAIAssistant state:', {
+  console.log('🧪 FASE 14 - useAIAssistant MINIMALIST:', {
     user: user?.id || 'none',
     messagesCount: messages.length,
     isInitialized: isPersistenceInitialized,
@@ -50,7 +53,7 @@ export const useAIAssistant = () => {
     isLoading: isPersistenceLoading
   });
 
-  // FASE 13: Badge system SIMPLIFICADO
+  // FASE 14: Badge system ULTRA-SIMPLE
   const getBadgeInfo = useMemo((): NotificationBadge => {
     const unreadMessages = messages.filter(msg => !msg.isRead && msg.type !== 'user');
     
@@ -60,18 +63,17 @@ export const useAIAssistant = () => {
       hasHigh: unreadMessages.some(msg => msg.priority === 'high')
     };
     
-    console.log(`🏷️ FASE 13: Badge info:`, {
+    console.log(`🧪 FASE 14: Badge ultra-simple:`, {
       total: messages.length,
       unread: badge.count,
       urgent: badge.hasUrgent,
-      high: badge.hasHigh,
-      strategy: currentStrategy
+      high: badge.hasHigh
     });
     
     return badge;
-  }, [messages, currentStrategy]);
+  }, [messages]);
 
-  // FASE 13: addMessage SIMPLIFICADO - timeouts realistas
+  // FASE 14: addMessage ULTRA-SIMPLE - timeouts mínimos
   const addMessage = useCallback(async (message: Omit<ChatMessage, 'id' | 'timestamp'>): Promise<string> => {
     const messageId = generateValidUUID();
     const newMessage: ChatMessage = {
@@ -80,57 +82,58 @@ export const useAIAssistant = () => {
       timestamp: new Date(),
     };
     
-    console.log(`➕ FASE 13: Adding message:`, {
+    console.log(`🧪 FASE 14: Adding message ultra-simple:`, {
       id: newMessage.id,
       type: newMessage.type,
-      contentPreview: newMessage.content.substring(0, 50) + '...',
+      contentPreview: newMessage.content.substring(0, 30) + '...',
       strategy: currentStrategy
     });
     
     try {
       await saveMessage(newMessage);
-      console.log(`✅ FASE 13: Message added successfully, ID: ${messageId}`);
+      console.log(`✅ FASE 14: Message added, ID: ${messageId}`);
       return messageId;
     } catch (error) {
-      console.error('❌ FASE 13: Error adding message:', error);
+      console.error('❌ FASE 14: Error adding message:', error);
       throw error;
     }
   }, [saveMessage, currentStrategy]);
 
-  // FASE 13: markAsRead SIMPLIFICADO
+  // FASE 14: markAsRead ULTRA-SIMPLE
   const markAsRead = useCallback(async (messageId: string) => {
-    console.log(`👁️ FASE 13: Marking message as read: ${messageId} via ${currentStrategy}`);
+    console.log(`🧪 FASE 14: Marking as read ultra-simple: ${messageId}`);
     
     try {
       await updateMessage(messageId, { isRead: true });
-      console.log('✅ FASE 13: Message marked as read successfully');
+      console.log('✅ FASE 14: Message marked as read');
     } catch (error) {
-      console.error('❌ FASE 13: Error marking message as read:', error);
+      console.error('❌ FASE 14: Error marking as read:', error);
       throw error;
     }
-  }, [updateMessage, currentStrategy]);
+  }, [updateMessage]);
 
-  // FASE 13: markAllAsRead SIMPLIFICADO
+  // FASE 14: markAllAsRead ULTRA-SIMPLE
   const markAllAsRead = useCallback(async () => {
     const unreadCount = messages.filter(msg => !msg.isRead && msg.type !== 'user').length;
-    console.log(`👁️ FASE 13: Marking all ${unreadCount} messages as read via ${currentStrategy}`);
+    console.log(`🧪 FASE 14: Marking all ${unreadCount} as read ultra-simple`);
     
     if (unreadCount === 0) {
-      console.log('✅ FASE 13: No unread messages to mark');
+      console.log('✅ FASE 14: No unread messages');
       return;
     }
     
     try {
       await markAllAsReadUnified();
-      console.log('✅ FASE 13: All messages marked as read successfully');
+      console.log('✅ FASE 14: All marked as read');
     } catch (error) {
-      console.error('❌ FASE 13: Error marking all as read:', error);
+      console.error('❌ FASE 14: Error marking all as read:', error);
       throw error;
     }
-  }, [messages, markAllAsReadUnified, currentStrategy]);
+  }, [messages, markAllAsReadUnified]);
 
+  // FASE 14: sendMessage ULTRA-SIMPLE
   const sendMessage = useCallback(async (content: string, contextData?: any) => {
-    console.log(`🚀 Sending message: "${content.substring(0, 100)}..." via ${currentStrategy}`);
+    console.log(`🧪 FASE 14: Sending message ultra-simple: "${content.substring(0, 50)}..."`);
     
     // Añadir mensaje del usuario
     await addMessage({
@@ -154,7 +157,7 @@ ${messages.slice(-5).map(msg => `${msg.type}: ${msg.content}`).join('\n')}
 
 Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tareas específicas, usa el contexto proporcionado.`;
 
-      console.log('🔄 Making LLM request with context...');
+      console.log('🧪 FASE 14: Making LLM request...');
       
       const response = await makeLLMRequest({
         systemPrompt,
@@ -162,10 +165,9 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
         functionName: 'ai-assistant-chat'
       });
 
-      console.log('✅ LLM response received:', {
+      console.log('✅ FASE 14: LLM response received:', {
         contentLength: response.content.length,
-        model: response.model_used,
-        usage: response.usage
+        model: response.model_used
       });
       
       setConnectionStatus('connected');
@@ -178,7 +180,7 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       });
 
     } catch (error) {
-      console.error('❌ Error sending message:', error);
+      console.error('❌ FASE 14: Error sending message:', error);
       setConnectionStatus('error');
       
       let errorMessage = 'Lo siento, hubo un error al procesar tu mensaje.';
@@ -202,13 +204,13 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       });
     } finally {
       setIsTyping(false);
-      setTimeout(() => setConnectionStatus('idle'), 3000);
+      setTimeout(() => setConnectionStatus('idle'), 1000); // Timeout mínimo
     }
-  }, [addMessage, makeLLMRequest, messages, currentStrategy]);
+  }, [addMessage, makeLLMRequest, messages]);
 
-  // FASE 13: addNotification SIMPLIFICADO
+  // FASE 14: addNotification ULTRA-SIMPLE
   const addNotification = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium', contextData?: any): Promise<string> => {
-    console.log(`🔔 FASE 13: Adding notification: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
+    console.log(`🧪 FASE 14: Adding notification ultra-simple: ${priority} - "${content.substring(0, 30)}..."`);
     
     const messageId = await addMessage({
       type: 'notification',
@@ -218,13 +220,13 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       contextData
     });
     
-    console.log(`✅ FASE 13: Notification added successfully, ID: ${messageId}`);
+    console.log(`✅ FASE 14: Notification added, ID: ${messageId}`);
     return messageId;
-  }, [addMessage, currentStrategy]);
+  }, [addMessage]);
 
-  // FASE 13: addSuggestion SIMPLIFICADO
+  // FASE 14: addSuggestion ULTRA-SIMPLE
   const addSuggestion = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'low', contextData?: any): Promise<string> => {
-    console.log(`💡 FASE 13: Adding suggestion: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
+    console.log(`🧪 FASE 14: Adding suggestion ultra-simple: ${priority} - "${content.substring(0, 30)}..."`);
     
     const messageId = await addMessage({
       type: 'suggestion',
@@ -234,22 +236,22 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       contextData
     });
     
-    console.log(`✅ FASE 13: Suggestion added successfully, ID: ${messageId}`);
+    console.log(`✅ FASE 14: Suggestion added, ID: ${messageId}`);
     return messageId;
-  }, [addMessage, currentStrategy]);
+  }, [addMessage]);
 
-  // FASE 13: clearChat SIMPLIFICADO
+  // FASE 14: clearChat ULTRA-SIMPLE
   const clearChat = useCallback(async () => {
-    console.log(`🗑️ FASE 13: Clearing chat history via ${currentStrategy}`);
+    console.log(`🧪 FASE 14: Clearing chat ultra-simple`);
     
     try {
       await clearChatUnified();
-      console.log('✅ FASE 13: Chat cleared successfully');
+      console.log('✅ FASE 14: Chat cleared');
     } catch (error) {
-      console.error('❌ FASE 13: Error clearing chat:', error);
+      console.error('❌ FASE 14: Error clearing chat:', error);
       throw error;
     }
-  }, [clearChatUnified, currentStrategy]);
+  }, [clearChatUnified]);
 
   return {
     // Estado
@@ -270,14 +272,18 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     markAllAsRead,
     clearChat,
     
-    // FASE 13: getBadgeInfo como valor directo
+    // FASE 14: getBadgeInfo como valor directo
     getBadgeInfo,
     unreadCount: getBadgeInfo.count,
     
-    // FASE 13: Funciones de sincronización simplificadas
+    // FASE 14: Funciones ultra-simples
     validatePersistence,
     syncWithDB,
     forceFullReset,
+    
+    // FASE 14: Control de estrategia para testing
+    setForcedMemoryStrategy,
+    clearForcedStrategy,
     
     // Debug info
     currentStrategy
