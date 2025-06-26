@@ -232,11 +232,12 @@ const Phase5TestingSuite = () => {
           
           const notificationBadgeInfo = getBadgeInfo;
           
-          return { 
+          result = { 
             success: badgeUpdated, 
             details: `Badge: ${initialBadgeState.count} → ${notificationBadgeInfo.count}, High: ${notificationBadgeInfo.hasHigh}`,
             validationDetails: `Notificación creada con ID: ${testNotificationId}`
           };
+          break;
 
         case 'message-persistence':
           // FASE 4: Test de persistencia real
@@ -284,11 +285,12 @@ const Phase5TestingSuite = () => {
           
           const prioritiesBadgeInfo = getBadgeInfo;
           
-          return { 
+          result = { 
             success: prioritiesUpdated, 
             details: `Urgent: ${prioritiesBadgeInfo.hasUrgent}, High: ${prioritiesBadgeInfo.hasHigh}, Count: ${prioritiesBadgeInfo.count}`,
             validationDetails: 'Sistema de prioridades funcionando correctamente'
           };
+          break;
 
         case 'bulk-operations':
           // FASE 4: Test de operaciones en lote
