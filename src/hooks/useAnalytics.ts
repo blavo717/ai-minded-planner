@@ -343,27 +343,39 @@ export const useAnalytics = () => {
             return task?.project_id === project.id;
           });
 
+          // Asegurar que total_time nunca sea null/undefined
           const totalTime = projectSessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
+          
           const tasksWithDuration = projectTasks.filter(t => 
             t.estimated_duration && 
             t.actual_duration && 
             t.actual_duration > 0 &&
             t.estimated_duration > 0
           );
-          const efficiency = tasksWithDuration.length > 0
-            ? Math.min(tasksWithDuration.reduce((sum, t) => 
-                sum + (t.estimated_duration! / t.actual_duration!), 0) / tasksWithDuration.length * 100, 200)
-            : 0;
+          
+          // Calcular eficiencia con validación
+          let efficiency = 0;
+          if (tasksWithDuration.length > 0) {
+            const efficiencySum = tasksWithDuration.reduce((sum, t) => 
+              sum + (t.estimated_duration! / t.actual_duration!), 0);
+            efficiency = Math.min((efficiencySum / tasksWithDuration.length) * 100, 200);
+          }
+
+          // Calcular completion_rate con validación
+          const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
           return {
             project_id: project.id,
             project_name: project.name,
             tasks_completed: completedTasks,
-            total_time: totalTime,
+            total_time: totalTime, // Asegurar que sea un número
             efficiency: isNaN(efficiency) ? 0 : efficiency,
-            completion_rate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
+            completion_rate: isNaN(completionRate) ? 0 : completionRate,
           };
-        });
+        }).filter(project => 
+          // Filtrar proyectos que tengan al menos algún dato relevante
+          project.tasks_completed > 0 || project.total_time > 0 || project.completion_rate > 0
+        );
       },
       enabled: !!user,
     });
