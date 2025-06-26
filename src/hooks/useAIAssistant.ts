@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLLMService } from '@/hooks/useLLMService';
@@ -39,15 +40,9 @@ export const useAIAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'idle'>('idle');
-  const badgeUpdateTrigger = useRef(0);
 
-  // CORRECCIÓN 1: Simplificar badge trigger sin setTimeout
-  const triggerBadgeUpdate = useCallback(() => {
-    badgeUpdateTrigger.current += 1;
-    console.log('🏷️ Badge update triggered (corrected):', badgeUpdateTrigger.current);
-  }, []);
-
-  // CORRECCIÓN 4: Usar useMemo ESTABLE para badge info
+  // FASE 4: Simplificar badge system - eliminar badgeUpdateTrigger, usar solo messages
+  // FASE 1: getBadgeInfo como valor computado, no función
   const getBadgeInfo = useMemo((): NotificationBadge => {
     const unreadMessages = messages.filter(msg => !msg.isRead && msg.type !== 'user');
     
@@ -57,25 +52,19 @@ export const useAIAssistant = () => {
       hasHigh: unreadMessages.some(msg => msg.priority === 'high')
     };
     
-    console.log(`🏷️ Badge info STABLE (memoized):`, {
+    console.log(`🏷️ Badge info COMPUTED (FASE 4 - simplified):`, {
       total: messages.length,
       unread: badge.count,
       urgent: badge.hasUrgent,
       high: badge.hasHigh,
       strategy: currentStrategy,
-      triggerRef: badgeUpdateTrigger.current
+      messagesHash: messages.length + '-' + unreadMessages.length
     });
     
     return badge;
-  }, [messages, currentStrategy, badgeUpdateTrigger.current]);
+  }, [messages, currentStrategy]); // FASE 4: Solo dependencias esenciales
 
-  // DETECTAR CAMBIOS EN MENSAJES Y ACTUALIZAR BADGE
-  useEffect(() => {
-    console.log('📊 Messages changed, triggering badge update. New count:', messages.length);
-    triggerBadgeUpdate();
-  }, [messages, triggerBadgeUpdate]);
-
-  // FUNCIÓN addMessage CON ASYNC/AWAIT CORRECTO
+  // FASE 1 & 2: addMessage con async/await correcto y timeout realista
   const addMessage = useCallback(async (message: Omit<ChatMessage, 'id' | 'timestamp'>): Promise<string> => {
     const messageId = generateValidUUID();
     const newMessage: ChatMessage = {
@@ -84,7 +73,7 @@ export const useAIAssistant = () => {
       timestamp: new Date(),
     };
     
-    console.log(`➕ Adding message with UUID:`, {
+    console.log(`➕ Adding message (FASE 1-2 corrected):`, {
       id: newMessage.id,
       type: newMessage.type,
       contentPreview: newMessage.content.substring(0, 50) + '...',
@@ -97,10 +86,8 @@ export const useAIAssistant = () => {
       await saveMessage(newMessage);
       console.log('✅ Message successfully persisted');
       
-      // CORRECCIÓN 4: Pequeño delay para asegurar persistencia
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      triggerBadgeUpdate();
+      // FASE 2: Timeout realista para asegurar persistencia
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       console.log(`✅ addMessage returning ID: ${messageId}`);
       return messageId;
@@ -108,20 +95,20 @@ export const useAIAssistant = () => {
       console.error('❌ Failed to save message:', error);
       throw error;
     }
-  }, [saveMessage, currentStrategy, triggerBadgeUpdate]);
+  }, [saveMessage, currentStrategy]);
 
   const markAsRead = useCallback(async (messageId: string) => {
     console.log(`👁️ Marking message as read: ${messageId} via ${currentStrategy}`);
     
     try {
       await updateMessage(messageId, { isRead: true });
-      await new Promise(resolve => setTimeout(resolve, 50)); // Small delay
+      // FASE 2: Timeout realista
+      await new Promise(resolve => setTimeout(resolve, 100));
       console.log('✅ Message marked as read successfully');
-      triggerBadgeUpdate();
     } catch (error) {
       console.error('❌ Failed to mark message as read:', error);
     }
-  }, [updateMessage, currentStrategy, triggerBadgeUpdate]);
+  }, [updateMessage, currentStrategy]);
 
   const markAllAsRead = useCallback(async () => {
     const unreadCount = messages.filter(msg => !msg.isRead && msg.type !== 'user').length;
@@ -134,13 +121,13 @@ export const useAIAssistant = () => {
     
     try {
       await markAllAsReadUnified();
-      await new Promise(resolve => setTimeout(resolve, 100)); // Longer delay for bulk operation
+      // FASE 2: Timeout más largo para operaciones bulk
+      await new Promise(resolve => setTimeout(resolve, 200));
       console.log('✅ All messages marked as read successfully');
-      triggerBadgeUpdate();
     } catch (error) {
       console.error('❌ Failed to mark all as read:', error);
     }
-  }, [messages, markAllAsReadUnified, currentStrategy, triggerBadgeUpdate]);
+  }, [messages, markAllAsReadUnified, currentStrategy]);
 
   const sendMessage = useCallback(async (content: string, contextData?: any) => {
     console.log(`🚀 Sending message: "${content.substring(0, 100)}..." via ${currentStrategy}`);
@@ -220,9 +207,9 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     }
   }, [addMessage, makeLLMRequest, messages, currentStrategy]);
 
-  // CORRECCIÓN 4: addNotification Y addSuggestion CON ASYNC/AWAIT CORRECTO
+  // FASE 1 & 2: addNotification y addSuggestion con async/await correcto
   const addNotification = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium', contextData?: any): Promise<string> => {
-    console.log(`🔔 Adding notification: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
+    console.log(`🔔 Adding notification (FASE 1-2): ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
     const messageId = await addMessage({
       type: 'notification',
       content,
@@ -231,15 +218,15 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       contextData
     });
     
-    // CORRECCIÓN 4: Delay adicional para operaciones críticas
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // FASE 2: Delay adicional para operaciones críticas
+    await new Promise(resolve => setTimeout(resolve, 150));
     
     console.log(`✅ addNotification returning ID: ${messageId}`);
     return messageId;
   }, [addMessage, currentStrategy]);
 
   const addSuggestion = useCallback(async (content: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'low', contextData?: any): Promise<string> => {
-    console.log(`💡 Adding suggestion: ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
+    console.log(`💡 Adding suggestion (FASE 1-2): ${priority} - "${content.substring(0, 50)}..." via ${currentStrategy}`);
     const messageId = await addMessage({
       type: 'suggestion',
       content,
@@ -248,8 +235,8 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
       contextData
     });
     
-    // CORRECCIÓN 4: Delay adicional para operaciones críticas
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // FASE 2: Delay adicional para operaciones críticas
+    await new Promise(resolve => setTimeout(resolve, 150));
     
     console.log(`✅ addSuggestion returning ID: ${messageId}`);
     return messageId;
@@ -260,13 +247,13 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     
     try {
       await clearChatUnified();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // FASE 2: Timeout realista
+      await new Promise(resolve => setTimeout(resolve, 200));
       console.log('✅ Chat cleared successfully');
-      triggerBadgeUpdate();
     } catch (error) {
       console.error('❌ Failed to clear chat:', error);
     }
-  }, [clearChatUnified, currentStrategy, triggerBadgeUpdate]);
+  }, [clearChatUnified, currentStrategy]);
 
   return {
     // Estado
@@ -287,12 +274,11 @@ Responde de manera concisa, útil y amigable. Si el usuario pregunta sobre tarea
     markAllAsRead,
     clearChat,
     
-    // CORRECCIÓN 1: Retornar directamente el objeto badge (NO función)
+    // FASE 1 & 4: getBadgeInfo como valor directo (no función)
     getBadgeInfo,
     unreadCount: getBadgeInfo.count,
     
     // Debug info
-    currentStrategy,
-    badgeUpdateTrigger: badgeUpdateTrigger.current
+    currentStrategy
   };
 };

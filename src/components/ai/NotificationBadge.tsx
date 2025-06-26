@@ -9,12 +9,12 @@ interface NotificationBadgeProps {
 }
 
 const NotificationBadge = ({ count, hasUrgent, hasHigh, className = '' }: NotificationBadgeProps) => {
-  // CORRECCIÓN 5: Debugging optimizado
-  console.log('🏷️ NotificationBadge render (CORRECTED):', { 
+  // FASE 4: Badge system simplificado - solo basado en props
+  console.log('🏷️ NotificationBadge render (FASE 4 - simplified):', { 
     count, 
     hasUrgent, 
     hasHigh,
-    key: `${count}-${hasUrgent}-${hasHigh}`
+    timestamp: Date.now()
   });
   
   if (count === 0) {
@@ -38,8 +38,8 @@ const NotificationBadge = ({ count, hasUrgent, hasHigh, className = '' }: Notifi
   const displayCount = count > 99 ? '99+' : count.toString();
   console.log('🏷️ NotificationBadge: displaying count:', displayCount);
 
-  // CORRECCIÓN 4: Clave ESTABLE sin Date.now()
-  const stableKey = `badge-${count}-${hasUrgent ? 'urgent' : ''}-${hasHigh ? 'high' : ''}`;
+  // FASE 4: Clave estable basada solo en props relevantes
+  const stableKey = `badge-${count}-${hasUrgent ? 'urgent' : hasHigh ? 'high' : 'normal'}`;
   
   return (
     <div 

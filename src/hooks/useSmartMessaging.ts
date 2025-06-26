@@ -1,38 +1,39 @@
+
 import { useEffect, useCallback } from 'react';
 import { useAIAssistant } from '@/hooks/useAIAssistant';
 import { useTasks } from '@/hooks/useTasks';
 import { useAITaskMonitor } from '@/hooks/useAITaskMonitor';
+
+// FASE 3: Variable global para pausar smart messaging
+declare global {
+  var SMART_MESSAGING_PAUSED: boolean;
+}
 
 export const useSmartMessaging = () => {
   const { addNotification, addSuggestion, isInitialized: isAIInitialized, currentStrategy } = useAIAssistant();
   const { mainTasks, getTasksNeedingFollowup, getTasksWithoutRecentActivity } = useTasks();
   const { monitoringData } = useAITaskMonitor();
 
-  // CORRECCIÓN 2: Timing sincronizado para tests
+  // FASE 2: Timing optimizado para producción real
   const getIntervalTiming = useCallback(() => {
-    const isTestingMode = currentStrategy === 'localStorage' || 
-                         (typeof window !== 'undefined' && window.location.hostname === 'localhost');
-    
-    if (isTestingMode) {
-      return {
-        initialDelay: 500,   // 0.5 segundos para tests
-        intervalTime: 2000,  // 2 segundos para tests - MÁS RÁPIDO
-        testTimeout: 8000    // 8 segundos timeout para tests
-      };
-    } else {
-      return {
-        initialDelay: 5000,   // 5 segundos para producción
-        intervalTime: 30000,  // 30 segundos para producción
-        testTimeout: 60000    // 60 segundos timeout para producción
-      };
-    }
-  }, [currentStrategy]);
+    return {
+      initialDelay: 5000,   // 5 segundos para producción
+      intervalTime: 30000,  // 30 segundos para producción
+      testTimeout: 60000    // 60 segundos timeout para producción
+    };
+  }, []);
 
   const checkFollowupTasks = useCallback(async (): Promise<boolean> => {
     console.log('🔍 checkFollowupTasks: Starting analysis...');
     
     if (!isAIInitialized) {
       console.log('⏳ checkFollowupTasks: AI not initialized yet, skipping');
+      return false;
+    }
+    
+    // FASE 3: Verificar si está pausado
+    if (typeof window !== 'undefined' && (window as any).SMART_MESSAGING_PAUSED) {
+      console.log('⏸️ checkFollowupTasks: Smart messaging paused');
       return false;
     }
     
@@ -48,32 +49,6 @@ export const useSmartMessaging = () => {
       strategy: currentStrategy
     });
     
-    // CORRECCIÓN 2: MODO TESTING - Forzar generación más agresiva para tests
-    const isTestingMode = currentStrategy === 'localStorage' || 
-                         (typeof window !== 'undefined' && window.location.hostname === 'localhost');
-    
-    if (isTestingMode && pendingTasks.length > 0) {
-      console.log(`📋 TEST MODE: Creating followup notification for ${pendingTasks.length} pending tasks`);
-      
-      try {
-        const notificationId = await addNotification(
-          `🔔 [TEST] Tienes ${pendingTasks.length} tareas activas que necesitan atención: ${pendingTasks.slice(0, 2).map(t => t.title).join(', ')}`,
-          'high',
-          { type: 'test_followup', tasks: pendingTasks, testMode: true }
-        );
-        
-        // CORRECCIÓN 4: Delay adicional para tests
-        await new Promise(resolve => setTimeout(resolve, 150));
-        
-        console.log('✅ Test notification created with ID:', notificationId);
-        return true;
-      } catch (error) {
-        console.error('❌ Error creating test notification:', error);
-        return false;
-      }
-    }
-    
-    // PRODUCCIÓN: Lógica normal
     if (followupTasks.length > 0) {
       const taskTitles = followupTasks.slice(0, 3).map(t => t.title).join(', ');
       console.log(`📋 Found ${followupTasks.length} tasks needing followup`);
@@ -85,7 +60,8 @@ export const useSmartMessaging = () => {
           { type: 'followup', tasks: followupTasks }
         );
         
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // FASE 2: Delay realista para persistencia
+        await new Promise(resolve => setTimeout(resolve, 500));
         return true;
       } catch (error) {
         console.error('❌ Error creating followup notification:', error);
@@ -105,32 +81,12 @@ export const useSmartMessaging = () => {
       return false;
     }
     
-    const isTestingMode = currentStrategy === 'localStorage' || 
-                         (typeof window !== 'undefined' && window.location.hostname === 'localhost');
-    
-    // CORRECCIÓN 2: MODO TESTING - Forzar generación más agresiva
-    if (isTestingMode && mainTasks.length > 0) {
-      console.log('💡 TEST MODE: Creating productivity suggestion');
-      
-      try {
-        const suggestionId = await addSuggestion(
-          `💡 [TEST] Tienes ${mainTasks.length} tareas en tu lista. ¿Te ayudo a priorizarlas o planificar tu día?`,
-          'medium',
-          { type: 'test_productivity', taskCount: mainTasks.length, testMode: true }
-        );
-        
-        // CORRECCIÓN 4: Delay adicional para tests
-        await new Promise(resolve => setTimeout(resolve, 150));
-        
-        console.log('✅ Test suggestion created with ID:', suggestionId);
-        return true;
-      } catch (error) {
-        console.error('❌ Error creating test suggestion:', error);
-        return false;
-      }
+    // FASE 3: Verificar si está pausado
+    if (typeof window !== 'undefined' && (window as any).SMART_MESSAGING_PAUSED) {
+      console.log('⏸️ checkInactiveTasks: Smart messaging paused');
+      return false;
     }
     
-    // PRODUCCIÓN: Lógica normal
     const inactiveTasks = getTasksWithoutRecentActivity(3);
     
     console.log('📊 checkInactiveTasks stats:', {
@@ -150,7 +106,8 @@ export const useSmartMessaging = () => {
           { type: 'inactive', tasks: inactiveTasks }
         );
         
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // FASE 2: Delay realista para persistencia
+        await new Promise(resolve => setTimeout(resolve, 500));
         return true;
       } catch (error) {
         console.error('❌ Error creating inactive suggestion:', error);
@@ -167,6 +124,12 @@ export const useSmartMessaging = () => {
     
     if (!isAIInitialized) {
       console.log('⏳ checkProductivityPatterns: AI not initialized yet, skipping');
+      return false;
+    }
+    
+    // FASE 3: Verificar si está pausado
+    if (typeof window !== 'undefined' && (window as any).SMART_MESSAGING_PAUSED) {
+      console.log('⏸️ checkProductivityPatterns: Smart messaging paused');
       return false;
     }
     
@@ -199,6 +162,9 @@ export const useSmartMessaging = () => {
                 insight.priority >= 3 ? 'high' : 'medium',
                 { type: 'productivity_insight', insight }
               );
+              
+              // FASE 2: Delay entre insights
+              await new Promise(resolve => setTimeout(resolve, 200));
             } catch (error) {
               console.error('❌ Error creating productivity insight:', error);
             }
@@ -220,6 +186,12 @@ export const useSmartMessaging = () => {
     
     if (!isAIInitialized) {
       console.log('⏳ checkUpcomingDeadlines: AI not initialized yet, skipping');
+      return false;
+    }
+    
+    // FASE 3: Verificar si está pausado
+    if (typeof window !== 'undefined' && (window as any).SMART_MESSAGING_PAUSED) {
+      console.log('⏸️ checkUpcomingDeadlines: Smart messaging paused');
       return false;
     }
     
@@ -257,6 +229,9 @@ export const useSmartMessaging = () => {
           { type: 'urgent_deadline', tasks: urgentTasks }
         );
         notificationsAdded = true;
+        
+        // FASE 2: Delay entre notificaciones
+        await new Promise(resolve => setTimeout(resolve, 300));
       } catch (error) {
         console.error('❌ Error creating urgent deadline notification:', error);
       }
@@ -271,6 +246,9 @@ export const useSmartMessaging = () => {
           { type: 'upcoming_deadline', tasks: soonTasks }
         );
         notificationsAdded = true;
+        
+        // FASE 2: Delay final
+        await new Promise(resolve => setTimeout(resolve, 300));
       } catch (error) {
         console.error('❌ Error creating upcoming deadline suggestion:', error);
       }
@@ -283,26 +261,33 @@ export const useSmartMessaging = () => {
     return notificationsAdded;
   }, [mainTasks, addNotification, addSuggestion, isAIInitialized]);
 
-  // CORRECCIÓN 2: EJECUTAR CHEQUEOS CON INTERVALOS OPTIMIZADOS PARA TESTS
+  // FASE 3: Setup intervals con verificación de pausa
   useEffect(() => {
     if (!isAIInitialized) {
       console.log('⏳ Smart messaging waiting for AI initialization...');
       return;
     }
     
-    console.log('🔄 Setting up smart messaging intervals...');
+    console.log('🔄 Setting up smart messaging intervals (production mode)...');
     
-    const { initialDelay, intervalTime, testTimeout } = getIntervalTiming();
+    const { initialDelay, intervalTime } = getIntervalTiming();
     
-    console.log(`⏰ Using intervals: initial=${initialDelay}ms, recurring=${intervalTime}ms, timeout=${testTimeout}ms for strategy=${currentStrategy}`);
+    console.log(`⏰ Using production intervals: initial=${initialDelay}ms, recurring=${intervalTime}ms`);
     
     const runChecks = async () => {
+      // FASE 3: Verificar pausa antes de ejecutar
+      if (typeof window !== 'undefined' && (window as any).SMART_MESSAGING_PAUSED) {
+        console.log('⏸️ Smart messaging checks paused, skipping');
+        return;
+      }
+      
       console.log('🚀 Running smart messaging checks...');
       
       try {
         const results = {
           followup: await checkFollowupTasks(),
-          inactive: await checkInactiveTasks()
+          inactive: await checkInactiveTasks(),
+          deadlines: await checkUpcomingDeadlines()
         };
         console.log('📊 Check results:', results);
       } catch (error) {
@@ -318,11 +303,11 @@ export const useSmartMessaging = () => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [checkFollowupTasks, checkInactiveTasks, isAIInitialized, currentStrategy, getIntervalTiming, mainTasks.length, monitoringData.length]);
+  }, [checkFollowupTasks, checkInactiveTasks, checkUpcomingDeadlines, isAIInitialized, getIntervalTiming]);
 
-  // CORRECCIÓN 4: TRIGGER MANUAL MEJORADO CON ASYNC/AWAIT
+  // FASE 3: Trigger manual determinista
   const triggerTaskAnalysis = useCallback(async () => {
-    console.log('🎯 Manual task analysis triggered');
+    console.log('🎯 Manual task analysis triggered (deterministic mode)');
     
     if (!isAIInitialized) {
       console.log('❌ Cannot trigger analysis: AI not initialized');
@@ -330,34 +315,53 @@ export const useSmartMessaging = () => {
     }
     
     try {
+      // FASE 3: Pausar automático temporalmente para evitar duplicados
+      const wasAlreadyPaused = typeof window !== 'undefined' && (window as any).SMART_MESSAGING_PAUSED;
+      if (!wasAlreadyPaused && typeof window !== 'undefined') {
+        (window as any).SMART_MESSAGING_PAUSED = true;
+      }
+      
       const results = {
         followup: await checkFollowupTasks(),
-        inactive: await checkInactiveTasks()
+        inactive: await checkInactiveTasks(),
+        deadlines: await checkUpcomingDeadlines()
       };
+      
       console.log('📊 Manual analysis results:', results);
       
-      // CORRECCIÓN 4: Delay antes de generar respuesta final
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // FASE 2: Delay antes de generar respuesta final
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // SIEMPRE generar una respuesta para testing
-      if (!results.followup && !results.inactive) {
-        const message = currentStrategy === 'localStorage' 
-          ? '✅ [TEST] Análisis completado: Sistema funcionando correctamente en modo test.'
-          : '✅ Análisis completado: Tus tareas están al día. ¡Buen trabajo manteniéndote organizado!';
+      // Generar respuesta de confirmación
+      if (!results.followup && !results.inactive && !results.deadlines) {
+        const message = '✅ Análisis completado: Tus tareas están al día. ¡Buen trabajo manteniéndote organizado!';
           
         await addSuggestion(
           message,
           'low',
-          { type: 'analysis_complete', timestamp: new Date().toISOString(), testMode: currentStrategy === 'localStorage' }
+          { type: 'analysis_complete', timestamp: new Date().toISOString(), manual: true }
         );
         
-        // CORRECCIÓN 4: Delay final para tests
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // FASE 2: Delay final
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
+      
+      // Reactivar automático si no estaba pausado previamente
+      if (!wasAlreadyPaused && typeof window !== 'undefined') {
+        setTimeout(() => {
+          (window as any).SMART_MESSAGING_PAUSED = false;
+        }, 2000); // 2 segundos de gracia
+      }
+      
     } catch (error) {
       console.error('❌ Error in manual task analysis:', error);
+      
+      // Asegurar reactivación en caso de error
+      if (typeof window !== 'undefined') {
+        (window as any).SMART_MESSAGING_PAUSED = false;
+      }
     }
-  }, [checkFollowupTasks, checkInactiveTasks, addSuggestion, isAIInitialized, currentStrategy]);
+  }, [checkFollowupTasks, checkInactiveTasks, checkUpcomingDeadlines, addSuggestion, isAIInitialized]);
 
   const triggerProductivityAnalysis = useCallback(async () => {
     console.log('🎯 Manual productivity analysis triggered');
@@ -368,22 +372,43 @@ export const useSmartMessaging = () => {
     }
     
     try {
-      const message = currentStrategy === 'localStorage' 
-        ? '📊 [TEST] Análisis de productividad: Sistema funcionando en modo test. Datos simulados disponibles.'
-        : '📊 Análisis de productividad: No hay insights nuevos disponibles. Ejecuta un análisis AI desde el panel de testing para generar datos.';
+      // FASE 3: Pausar temporalmente para evitar duplicados
+      const wasAlreadyPaused = typeof window !== 'undefined' && (window as any).SMART_MESSAGING_PAUSED;
+      if (!wasAlreadyPaused && typeof window !== 'undefined') {
+        (window as any).SMART_MESSAGING_PAUSED = true;
+      }
       
-      await addSuggestion(
-        message,
-        'medium',
-        { type: 'productivity_analysis', timestamp: new Date().toISOString(), testMode: currentStrategy === 'localStorage' }
-      );
+      const hasPatterns = await checkProductivityPatterns();
       
-      // CORRECCIÓN 4: Delay para tests
-      await new Promise(resolve => setTimeout(resolve, 100));
+      if (!hasPatterns) {
+        const message = '📊 Análisis de productividad: No hay insights nuevos disponibles. Ejecuta un análisis AI desde el panel de testing para generar datos.';
+        
+        await addSuggestion(
+          message,
+          'medium',
+          { type: 'productivity_analysis', timestamp: new Date().toISOString(), manual: true }
+        );
+        
+        // FASE 2: Delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // Reactivar automático si no estaba pausado previamente
+      if (!wasAlreadyPaused && typeof window !== 'undefined') {
+        setTimeout(() => {
+          (window as any).SMART_MESSAGING_PAUSED = false;
+        }, 2000);
+      }
+      
     } catch (error) {
       console.error('❌ Error in productivity analysis:', error);
+      
+      // Asegurar reactivación en caso de error
+      if (typeof window !== 'undefined') {
+        (window as any).SMART_MESSAGING_PAUSED = false;
+      }
     }
-  }, [addSuggestion, isAIInitialized, currentStrategy]);
+  }, [checkProductivityPatterns, addSuggestion, isAIInitialized]);
 
   return {
     triggerTaskAnalysis,

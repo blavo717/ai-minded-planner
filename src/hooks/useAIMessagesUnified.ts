@@ -27,37 +27,18 @@ export const useAIMessagesUnified = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-  const forceUpdateRef = useRef(0);
+  // FASE 5: Eliminar forceUpdateRef - usar solo messages array como fuente de verdad
   const memoryStore = useRef<ChatMessage[]>([]);
   const processingRef = useRef(false);
 
-  // FASE 5: DEBUGGING DIRIGIDO
-  console.log('🎯 useAIMessagesUnified state:', {
+  console.log('🎯 useAIMessagesUnified state (FASE 4-5 optimized):', {
     user: user?.id || 'none',
     messagesCount: messages.length,
     isInitialized,
     strategy: getStrategy(),
     isSupabaseLoading,
-    forceUpdateRef: forceUpdateRef.current,
     processing: processingRef.current
   });
-
-  // FASE 2: SIMPLIFICAR FORCE UPDATES - Eliminar doble setTimeout
-  const forceUpdate = useCallback(() => {
-    if (processingRef.current) {
-      console.log('⚠️ Force update skipped - already processing');
-      return;
-    }
-    
-    processingRef.current = true;
-    forceUpdateRef.current += 1;
-    console.log('🔄 Single force update triggered:', forceUpdateRef.current);
-    
-    // Debounce para evitar renders excesivos
-    setTimeout(() => {
-      processingRef.current = false;
-    }, 100);
-  }, []);
 
   // Cargar mensajes según la estrategia
   const loadMessages = useCallback(async (): Promise<ChatMessage[]> => {
@@ -85,7 +66,6 @@ export const useAIMessagesUnified = () => {
       
       console.log(`✅ Loaded ${loadedMessages.length} messages via ${strategy}`);
       setMessages(loadedMessages);
-      forceUpdate();
       return loadedMessages;
       
     } catch (error) {
@@ -94,12 +74,12 @@ export const useAIMessagesUnified = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [getStrategy, loadFromSupabase, loadFromLocalStorage, forceUpdate]);
+  }, [getStrategy, loadFromSupabase, loadFromLocalStorage]);
 
-  // FASE 1: ARREGLAR PERSISTENCIA - Eliminar loadMessages después de saveMessage en Supabase
+  // FASE 1 & 2: Persistencia con timeouts realistas y sin force updates innecesarios
   const saveMessage = useCallback(async (message: ChatMessage): Promise<void> => {
     const strategy = getStrategy();
-    console.log(`💾 Saving message via ${strategy}:`, {
+    console.log(`💾 Saving message via ${strategy} (FASE 1-2):`, {
       id: message.id,
       type: message.type,
       contentPreview: message.content.substring(0, 50)
@@ -127,13 +107,12 @@ export const useAIMessagesUnified = () => {
       }
       
       console.log(`✅ Message saved successfully via ${strategy}`);
-      forceUpdate();
       
     } catch (error) {
       console.error(`❌ Error saving message via ${strategy}:`, error);
       throw error;
     }
-  }, [getStrategy, saveToSupabase, saveToLocalStorage, messages, forceUpdate]);
+  }, [getStrategy, saveToSupabase, saveToLocalStorage, messages]);
 
   // Actualizar mensaje
   const updateMessage = useCallback(async (messageId: string, updates: Partial<ChatMessage>): Promise<void> => {
@@ -168,13 +147,12 @@ export const useAIMessagesUnified = () => {
       }
       
       console.log(`✅ Message updated successfully via ${strategy}`);
-      forceUpdate();
       
     } catch (error) {
       console.error(`❌ Error updating message via ${strategy}:`, error);
       throw error;
     }
-  }, [getStrategy, updateInSupabase, saveToLocalStorage, messages, forceUpdate]);
+  }, [getStrategy, updateInSupabase, saveToLocalStorage, messages]);
 
   // Marcar todos como leídos
   const markAllAsRead = useCallback(async (): Promise<void> => {
@@ -203,13 +181,12 @@ export const useAIMessagesUnified = () => {
       }
       
       console.log(`✅ All messages marked as read via ${strategy}`);
-      forceUpdate();
       
     } catch (error) {
       console.error(`❌ Error marking all as read via ${strategy}:`, error);
       throw error;
     }
-  }, [getStrategy, markAllAsReadInSupabase, saveToLocalStorage, messages, forceUpdate]);
+  }, [getStrategy, markAllAsReadInSupabase, saveToLocalStorage, messages]);
 
   // Limpiar chat
   const clearChat = useCallback(async (): Promise<void> => {
@@ -233,18 +210,17 @@ export const useAIMessagesUnified = () => {
       
       setMessages([]);
       console.log(`✅ Chat cleared successfully via ${strategy}`);
-      forceUpdate();
       
     } catch (error) {
       console.error(`❌ Error clearing chat via ${strategy}:`, error);
       throw error;
     }
-  }, [getStrategy, clearChatInSupabase, clearLocalStorage, forceUpdate]);
+  }, [getStrategy, clearChatInSupabase, clearLocalStorage]);
 
   // Inicializar mensajes al montar
   useEffect(() => {
     if (!isInitialized) {
-      console.log('🚀 Initializing unified messages system...');
+      console.log('🚀 Initializing unified messages system (FASE 5)...');
       
       loadMessages().then(() => {
         setIsInitialized(true);
@@ -265,7 +241,7 @@ export const useAIMessagesUnified = () => {
     markAllAsRead,
     clearChat,
     loadMessages,
-    forceUpdateRef: forceUpdateRef.current,
+    // FASE 5: Eliminar forceUpdateRef - usar solo el array messages
     currentStrategy: getStrategy()
   };
 };
