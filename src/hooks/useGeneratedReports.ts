@@ -41,7 +41,12 @@ export const useGeneratedReports = () => {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        return data || [];
+        
+        // Type assertion to ensure proper typing
+        return (data || []).map(report => ({
+          ...report,
+          report_type: report.report_type as 'weekly' | 'monthly'
+        })) as GeneratedReport[];
       },
       enabled: !!user,
     });
@@ -93,10 +98,14 @@ export const useGeneratedReports = () => {
         ? tasksWithEstimate.reduce((sum, t) => sum + (t.estimated_duration! / Math.max(t.actual_duration!, 1)), 0) / tasksWithEstimate.length * 100
         : 100;
 
+      // Serialize dates as strings for JSON storage
       const reportData = {
         tasks: completedTasks,
         sessions: sessions || [],
-        period: { start: startDate, end: endDate },
+        period: { 
+          start: startDate.toISOString(), 
+          end: endDate.toISOString() 
+        },
         insights: [
           `Completaste ${completedTasks.length} tareas en este período`,
           `Tu productividad promedio fue de ${avgProductivity.toFixed(1)}/5`,
@@ -125,7 +134,12 @@ export const useGeneratedReports = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      
+      // Type assertion for the returned data
+      return {
+        ...data,
+        report_type: data.report_type as 'weekly' | 'monthly'
+      } as GeneratedReport;
     },
     onSuccess: (report) => {
       queryClient.invalidateQueries({ queryKey: ['generated-reports'] });
