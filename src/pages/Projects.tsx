@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useTasks } from '@/hooks/useTasks';
-import { useProjects } from '@/hooks/useProjects';
+import { useProjects, Project } from '@/hooks/useProjects';
 import { useProjectMutations } from '@/hooks/useProjectMutations';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import CreateProjectModal from '@/components/modals/CreateProjectModal';
+import EditProjectModal from '@/components/modals/EditProjectModal';
 import ProjectGanttView from '@/components/projects/ProjectGanttView';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -34,6 +35,8 @@ const Projects = () => {
   const { tasks } = useTasks();
   const { deleteProject } = useProjectMutations();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   const getProjectStats = (projectId: string) => {
@@ -47,6 +50,16 @@ const Projects = () => {
       pendingTasks: totalTasks - completedTasks,
       completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
     };
+  };
+
+  const handleEditProject = (project: Project) => {
+    setSelectedProject(project);
+    setIsEditProjectOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditProjectOpen(false);
+    setSelectedProject(null);
   };
 
   if (viewMode === 'gantt') {
@@ -136,7 +149,7 @@ const Projects = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-40">
-                        <DropdownMenuItem onClick={() => console.log('Edit project', project.id)}>
+                        <DropdownMenuItem onClick={() => handleEditProject(project)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Editar
                         </DropdownMenuItem>
@@ -213,6 +226,12 @@ const Projects = () => {
       <CreateProjectModal
         isOpen={isCreateProjectOpen}
         onClose={() => setIsCreateProjectOpen(false)}
+      />
+
+      <EditProjectModal
+        isOpen={isEditProjectOpen}
+        onClose={handleCloseEditModal}
+        project={selectedProject}
       />
     </div>
   );
