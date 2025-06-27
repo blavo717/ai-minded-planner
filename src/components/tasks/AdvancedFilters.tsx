@@ -1,37 +1,20 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { 
-  Filter, 
-  X, 
-  Calendar as CalendarIcon, 
-  Tag, 
-  Bookmark,
-  RotateCcw,
-  AlertTriangle,
-  Clock,
-  Zap,
-  Users,
-  Archive
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { FilterState } from '@/types/filters';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
-import { getSmartFilters } from '@/utils/smartFilters';
+import FilterHeader from './filters/FilterHeader';
+import SmartFiltersSection from './filters/SmartFiltersSection';
+import SavedFiltersSection from './filters/SavedFiltersSection';
+import StatusFilter from './filters/StatusFilter';
+import PriorityFilter from './filters/PriorityFilter';
+import ProjectsFilter from './filters/ProjectsFilter';
+import AssignedToFilter from './filters/AssignedToFilter';
+import TagsFilter from './filters/TagsFilter';
+import DateRangeFilter from './filters/DateRangeFilter';
+import CharacteristicsFilter from './filters/CharacteristicsFilter';
+import FilterOperations from './filters/FilterOperations';
 
 interface Project {
   id: string;
@@ -57,18 +40,6 @@ interface AdvancedFiltersProps {
   taskDependencies?: any[];
 }
 
-const getIconForSmartFilter = (filterId: string) => {
-  const icons: Record<string, React.ComponentType<any>> = {
-    overdue: AlertTriangle,
-    due_today: CalendarIcon,
-    inactive: Clock,
-    high_priority_pending: Zap,
-    unassigned: Users,
-    recently_completed: Archive,
-  };
-  return icons[filterId] || Bookmark;
-};
-
 const AdvancedFilters = ({ 
   projects, 
   profiles,
@@ -79,12 +50,7 @@ const AdvancedFilters = ({
   onLoadFilter
 }: AdvancedFiltersProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [saveFilterName, setSaveFilterName] = useState('');
-  const [saveFilterDescription, setSaveFilterDescription] = useState('');
-  const [showSaveInput, setShowSaveInput] = useState(false);
-  
   const { savedFilters, saveFilter, loading } = useSavedFilters();
-  const smartFilters = getSmartFilters();
 
   useEffect(() => {
     const defaultFilter = savedFilters.find(filter => filter.is_default);
@@ -92,20 +58,6 @@ const AdvancedFilters = ({
       onLoadFilter(defaultFilter.filter_data);
     }
   }, [savedFilters, onLoadFilter]);
-
-  const statusOptions = [
-    { value: 'pending', label: 'Pendiente' },
-    { value: 'in_progress', label: 'En Progreso' },
-    { value: 'completed', label: 'Completada' },
-    { value: 'cancelled', label: 'Cancelada' }
-  ];
-
-  const priorityOptions = [
-    { value: 'low', label: 'Baja', color: 'bg-green-500' },
-    { value: 'medium', label: 'Media', color: 'bg-yellow-500' },
-    { value: 'high', label: 'Alta', color: 'bg-orange-500' },
-    { value: 'urgent', label: 'Urgente', color: 'bg-red-500' }
-  ];
 
   const handleArrayFilterChange = (key: keyof FilterState, value: string, checked: boolean) => {
     const currentArray = filters[key] as string[] || [];
@@ -193,16 +145,11 @@ const AdvancedFilters = ({
     return count;
   };
 
-  const handleSaveFilter = async () => {
-    if (saveFilterName.trim()) {
-      if (onSaveFilter) {
-        onSaveFilter(saveFilterName.trim(), filters);
-      } else {
-        await saveFilter(saveFilterName.trim(), saveFilterDescription.trim(), filters);
-      }
-      setSaveFilterName('');
-      setSaveFilterDescription('');
-      setShowSaveInput(false);
+  const handleSaveFilterOperation = async (name: string, description: string) => {
+    if (onSaveFilter) {
+      onSaveFilter(name, filters);
+    } else {
+      await saveFilter(name, description, filters);
     }
   };
 
@@ -216,39 +163,12 @@ const AdvancedFilters = ({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Filtros Avanzados
-            {getActiveFiltersCount() > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {getActiveFiltersCount()}
-              </Badge>
-            )}
-          </span>
-          <div className="flex items-center gap-2">
-            {getActiveFiltersCount() > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={clearAllFilters}
-                className="text-xs"
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                Limpiar
-              </Button>
-            )}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setIsExpanded(!isExpanded)}
-            >
-              {isExpanded ? 'Contraer' : 'Expandir'}
-            </Button>
-          </div>
-        </CardTitle>
-      </CardHeader>
+      <FilterHeader
+        activeFiltersCount={getActiveFiltersCount()}
+        isExpanded={isExpanded}
+        onToggleExpanded={() => setIsExpanded(!isExpanded)}
+        onClearFilters={clearAllFilters}
+      />
       
       <CardContent className="space-y-4">
         <div>
@@ -259,362 +179,75 @@ const AdvancedFilters = ({
           />
         </div>
 
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Filtros Inteligentes</Label>
-          <div className="flex flex-wrap gap-2">
-            {smartFilters.map((filter) => {
-              const Icon = getIconForSmartFilter(filter.id);
-              const isActive = filters.smartFilters?.includes(filter.id) || false;
-              
-              return (
-                <Button
-                  key={filter.id}
-                  variant={isActive ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleSmartFilterChange(filter.id, !isActive)}
-                  className="text-xs"
-                  title={filter.description}
-                >
-                  <Icon className="h-3 w-3 mr-1" />
-                  {filter.name}
-                </Button>
-              );
-            })}
-          </div>
-        </div>
+        <SmartFiltersSection
+          selectedFilters={filters.smartFilters || []}
+          onFilterChange={handleSmartFilterChange}
+        />
 
-        {!loading && savedFilters.length > 0 && (
-          <div className="space-y-2">
-            <Label className="text-xs font-medium">Filtros Guardados</Label>
-            <div className="flex flex-wrap gap-2">
-              {savedFilters.map((savedFilter) => (
-                <Button
-                  key={savedFilter.id}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleLoadFilter(savedFilter.filter_data)}
-                  className="text-xs"
-                >
-                  <Bookmark className="h-3 w-3 mr-1" />
-                  {savedFilter.name}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
+        <SavedFiltersSection
+          savedFilters={savedFilters}
+          loading={loading}
+          onLoadFilter={handleLoadFilter}
+        />
 
         {isExpanded && (
           <div className="space-y-6">
-            {/* Estados con operador */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Estados</Label>
-                <Select
-                  value={filters.operators.status.type}
-                  onValueChange={(value) => handleOperatorChange('status', value as 'AND' | 'OR')}
-                >
-                  <SelectTrigger className="w-20 h-6 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="OR">O</SelectItem>
-                    <SelectItem value="AND">Y</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {statusOptions.map((status) => (
-                  <div key={status.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`status-${status.value}`}
-                      checked={filters.status.includes(status.value)}
-                      onCheckedChange={(checked) => 
-                        handleArrayFilterChange('status', status.value, checked as boolean)
-                      }
-                    />
-                    <Label htmlFor={`status-${status.value}`} className="text-sm font-normal">
-                      {status.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <StatusFilter
+              selectedStatuses={filters.status}
+              operator={filters.operators.status.type}
+              onStatusChange={(status, checked) => handleArrayFilterChange('status', status, checked)}
+              onOperatorChange={(operator) => handleOperatorChange('status', operator)}
+            />
 
-            {/* Prioridades con operador */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Prioridades</Label>
-                <Select
-                  value={filters.operators.priority.type}
-                  onValueChange={(value) => handleOperatorChange('priority', value as 'AND' | 'OR')}
-                >
-                  <SelectTrigger className="w-20 h-6 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="OR">O</SelectItem>
-                    <SelectItem value="AND">Y</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {priorityOptions.map((priority) => (
-                  <div key={priority.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`priority-${priority.value}`}
-                      checked={filters.priority.includes(priority.value)}
-                      onCheckedChange={(checked) => 
-                        handleArrayFilterChange('priority', priority.value, checked as boolean)
-                      }
-                    />
-                    <Label htmlFor={`priority-${priority.value}`} className="text-sm font-normal flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${priority.color}`} />
-                      {priority.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <PriorityFilter
+              selectedPriorities={filters.priority}
+              operator={filters.operators.priority.type}
+              onPriorityChange={(priority, checked) => handleArrayFilterChange('priority', priority, checked)}
+              onOperatorChange={(operator) => handleOperatorChange('priority', operator)}
+            />
 
-            {/* Proyectos con operador */}
-            {projects.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Proyectos</Label>
-                  <Select
-                    value={filters.operators.projects.type}
-                    onValueChange={(value) => handleOperatorChange('projects', value as 'AND' | 'OR')}
-                  >
-                    <SelectTrigger className="w-20 h-6 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="OR">O</SelectItem>
-                      <SelectItem value="AND">Y</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
-                  {projects.map((project) => (
-                    <div key={project.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`project-${project.id}`}
-                        checked={filters.projects.includes(project.id)}
-                        onCheckedChange={(checked) => 
-                          handleArrayFilterChange('projects', project.id, checked as boolean)
-                        }
-                      />
-                      <Label htmlFor={`project-${project.id}`} className="text-sm font-normal flex items-center gap-2">
-                        <div 
-                          className="w-2 h-2 rounded-full" 
-                          style={{ backgroundColor: project.color || '#3B82F6' }}
-                        />
-                        {project.name}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <ProjectsFilter
+              projects={projects}
+              selectedProjects={filters.projects}
+              operator={filters.operators.projects.type}
+              onProjectChange={(projectId, checked) => handleArrayFilterChange('projects', projectId, checked)}
+              onOperatorChange={(operator) => handleOperatorChange('projects', operator)}
+            />
 
-            {/* Personas asignadas con operador */}
-            {profiles.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Personas Asignadas</Label>
-                  <Select
-                    value={filters.operators.assignedTo.type}
-                    onValueChange={(value) => handleOperatorChange('assignedTo', value as 'AND' | 'OR')}
-                  >
-                    <SelectTrigger className="w-20 h-6 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="OR">O</SelectItem>
-                      <SelectItem value="AND">Y</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
-                  {profiles.map((profile) => (
-                    <div key={profile.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`assignedTo-${profile.id}`}
-                        checked={filters.assignedTo.includes(profile.id)}
-                        onCheckedChange={(checked) => 
-                          handleArrayFilterChange('assignedTo', profile.id, checked as boolean)
-                        }
-                      />
-                      <Label htmlFor={`assignedTo-${profile.id}`} className="text-sm font-normal">
-                        {profile.full_name || profile.email}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <AssignedToFilter
+              profiles={profiles}
+              selectedAssignees={filters.assignedTo}
+              operator={filters.operators.assignedTo.type}
+              onAssigneeChange={(profileId, checked) => handleArrayFilterChange('assignedTo', profileId, checked)}
+              onOperatorChange={(operator) => handleOperatorChange('assignedTo', operator)}
+            />
 
-            {/* Etiquetas con operador */}
-            {availableTags.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Etiquetas</Label>
-                  <Select
-                    value={filters.operators.tags.type}
-                    onValueChange={(value) => handleOperatorChange('tags', value as 'AND' | 'OR')}
-                  >
-                    <SelectTrigger className="w-20 h-6 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="OR">O</SelectItem>
-                      <SelectItem value="AND">Y</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                  {availableTags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant={filters.tags.includes(tag) ? "default" : "outline"}
-                      className="cursor-pointer text-xs flex items-center gap-1"
-                      onClick={() => handleArrayFilterChange('tags', tag, !filters.tags.includes(tag))}
-                    >
-                      <Tag className="h-2 w-2" />
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+            <TagsFilter
+              availableTags={availableTags}
+              selectedTags={filters.tags}
+              operator={filters.operators.tags.type}
+              onTagChange={(tag, checked) => handleArrayFilterChange('tags', tag, checked)}
+              onOperatorChange={(operator) => handleOperatorChange('tags', operator)}
+            />
 
-            {/* Rango de fechas */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Fecha de Vencimiento</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {filters.dueDateFrom ? (
-                        format(filters.dueDateFrom, 'PPP', { locale: es })
-                      ) : (
-                        <span>Desde...</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={filters.dueDateFrom}
-                      onSelect={(date) => handleDateRangeChange('from', date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+            <DateRangeFilter
+              dueDateFrom={filters.dueDateFrom}
+              dueDateTo={filters.dueDateTo}
+              onDateFromChange={(date) => handleDateRangeChange('from', date)}
+              onDateToChange={(date) => handleDateRangeChange('to', date)}
+            />
 
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {filters.dueDateTo ? (
-                        format(filters.dueDateTo, 'PPP', { locale: es })
-                      ) : (
-                        <span>Hasta...</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={filters.dueDateTo}
-                      onSelect={(date) => handleDateRangeChange('to', date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
+            <CharacteristicsFilter
+              hasSubtasks={filters.hasSubtasks}
+              hasDependencies={filters.hasDependencies}
+              onSubtasksChange={(value) => handleBooleanFilterChange('hasSubtasks', value)}
+              onDependenciesChange={(value) => handleBooleanFilterChange('hasDependencies', value)}
+            />
 
-            {/* Filtros adicionales */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Características</Label>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="hasSubtasks"
-                    checked={filters.hasSubtasks === true}
-                    onCheckedChange={(checked) => 
-                      handleBooleanFilterChange('hasSubtasks', checked ? true : undefined)
-                    }
-                  />
-                  <Label htmlFor="hasSubtasks" className="text-sm font-normal">
-                    Con subtareas
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="hasDependencies"
-                    checked={filters.hasDependencies === true}
-                    onCheckedChange={(checked) => 
-                      handleBooleanFilterChange('hasDependencies', checked ? true : undefined)
-                    }
-                  />
-                  <Label htmlFor="hasDependencies" className="text-sm font-normal">
-                    Con dependencias
-                  </Label>
-                </div>
-              </div>
-            </div>
-
-            {/* Guardar filtro */}
-            {getActiveFiltersCount() > 0 && (
-              <div className="space-y-2 pt-4 border-t">
-                {!showSaveInput ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSaveInput(true)}
-                    className="w-full"
-                  >
-                    <Bookmark className="h-3 w-3 mr-2" />
-                    Guardar Filtro Actual
-                  </Button>
-                ) : (
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="Nombre del filtro..."
-                      value={saveFilterName}
-                      onChange={(e) => setSaveFilterName(e.target.value)}
-                      className="text-sm"
-                    />
-                    <Input
-                      placeholder="Descripción (opcional)..."
-                      value={saveFilterDescription}
-                      onChange={(e) => setSaveFilterDescription(e.target.value)}
-                      className="text-sm"
-                    />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleSaveFilter}>
-                        Guardar
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => {
-                          setShowSaveInput(false);
-                          setSaveFilterName('');
-                          setSaveFilterDescription('');
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            <FilterOperations
+              activeFiltersCount={getActiveFiltersCount()}
+              onSaveFilter={handleSaveFilterOperation}
+            />
           </div>
         )}
       </CardContent>
