@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 const TaskDataGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStatus, setGenerationStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle');
-  const { createTask } = useTaskMutations();
+  const { createTask, updateTask } = useTaskMutations();
   const { createProject } = useProjectMutations();
 
   const sampleProjects = [
@@ -358,7 +357,7 @@ const TaskDataGenerator = () => {
       // Crear tareas principales con sus jerarquías
       for (const mainTask of sampleMainTasks) {
         try {
-          // Crear tarea principal
+          // Crear tarea principal - sin completed_at inicialmente
           const mainTaskResult = await new Promise<any>((resolve, reject) => {
             createTask({
               title: mainTask.title,
@@ -369,16 +368,41 @@ const TaskDataGenerator = () => {
               due_date: mainTask.due_date,
               estimated_duration: mainTask.estimated_duration,
               tags: mainTask.tags,
-              completed_at: mainTask.completed_at,
-              needs_followup: mainTask.needs_followup,
-              last_communication_at: mainTask.last_communication_at,
-              communication_type: mainTask.communication_type,
               task_level: 1
             }, {
               onSuccess: resolve,
               onError: reject
             });
           });
+
+          // Si la tarea está completada, actualizarla con completed_at
+          if (mainTask.status === 'completed' && mainTask.completed_at) {
+            await new Promise<any>((resolve, reject) => {
+              updateTask({
+                id: mainTaskResult.id,
+                completed_at: mainTask.completed_at,
+                status: 'completed'
+              }, {
+                onSuccess: resolve,
+                onError: reject
+              });
+            });
+          }
+
+          // Actualizar otros campos específicos si existen
+          if (mainTask.needs_followup || mainTask.last_communication_at || mainTask.communication_type) {
+            await new Promise<any>((resolve, reject) => {
+              updateTask({
+                id: mainTaskResult.id,
+                needs_followup: mainTask.needs_followup,
+                last_communication_at: mainTask.last_communication_at,
+                communication_type: mainTask.communication_type
+              }, {
+                onSuccess: resolve,
+                onError: reject
+              });
+            });
+          }
 
           // Crear subtareas
           for (const subtask of mainTask.subtasks) {
