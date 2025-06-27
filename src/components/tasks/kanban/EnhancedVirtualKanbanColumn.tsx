@@ -79,7 +79,7 @@ const EnhancedVirtualKanbanColumn = memo(({
       y: 0,
       transition: {
         duration: 0.4,
-        ease: [0.23, 1, 0.320, 1],
+        ease: "easeOut",
         staggerChildren: 0.1
       }
     },

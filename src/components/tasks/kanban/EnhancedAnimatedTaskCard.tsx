@@ -58,7 +58,7 @@ const EnhancedAnimatedTaskCard = memo(({
                    task.priority === 'medium' ? '#eab308' : '#22c55e',
       transition: { 
         duration: 0.3,
-        ease: [0.23, 1, 0.320, 1]
+        ease: "easeOut"
       }
     },
     dragging: {
@@ -84,7 +84,7 @@ const EnhancedAnimatedTaskCard = memo(({
       opacity: 1,
       transition: { 
         duration: 0.4,
-        ease: [0.23, 1, 0.320, 1]
+        ease: "easeOut"
       }
     }
   };

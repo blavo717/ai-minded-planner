@@ -41,7 +41,7 @@ const taskVariants = {
     scale: 1,
     transition: { 
       duration: 0.4,
-      ease: [0.23, 1, 0.320, 1]
+      ease: "easeOut"
     }
   },
   exit: { 
@@ -50,7 +50,7 @@ const taskVariants = {
     scale: 0.9,
     transition: { 
       duration: 0.3,
-      ease: [0.23, 1, 0.320, 1]
+      ease: "easeOut"
     }
   }
 };
@@ -98,9 +98,8 @@ const EnhancedKanbanColumnContent = ({
           onDragLeave={onDragLeave}
           onDrop={(e) => onDrop(e, columnStatus)}
           initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.4, ease: [0.23, 1, 0.320, 1] }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
         >
           <motion.div
             variants={containerVariants}
