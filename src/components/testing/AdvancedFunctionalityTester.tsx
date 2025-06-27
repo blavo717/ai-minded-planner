@@ -1,9 +1,7 @@
-
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -15,7 +13,8 @@ import {
   CheckCircle,
   AlertTriangle,
   Play,
-  RefreshCw
+  RefreshCw,
+  Bug
 } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
@@ -25,6 +24,7 @@ import Logger, { LogCategory } from '@/utils/logger';
 import { PerformanceMonitor } from '@/utils/performanceMonitor';
 import { GanttTestUtils } from '@/utils/testing/ganttTestUtils';
 import { SearchTestUtils } from '@/utils/testing/searchTestUtils';
+import RealTestRunnerComponent from './RealTestRunner';
 
 interface TestResult {
   id: string;
@@ -72,7 +72,6 @@ const AdvancedFunctionalityTester = () => {
         const testData = GanttTestUtils.generatePerformanceTestData(50);
         
         return PerformanceMonitor.measure('gantt-render-test', () => {
-          // Simulate Gantt processing
           const processedTasks = testData.tasks.map(task => ({
             ...task,
             progress: GanttTestUtils.calculateExpectedProgress(task.status)
@@ -145,7 +144,6 @@ const AdvancedFunctionalityTester = () => {
             
             return `LLM respondió con ${results.length} resultados válidos`;
           } catch (error) {
-            // Test fallback search
             const fallbackResults = SearchTestUtils.createFallbackSearchMock(mainTasks, testQuery);
             return `LLM falló, fallback funcionó: ${fallbackResults.length} resultados`;
           }
@@ -164,10 +162,7 @@ const AdvancedFunctionalityTester = () => {
         
         for (const query of testQueries) {
           const duration = await PerformanceMonitor.measureAsync(`search-${query}`, async () => {
-            // Simulate debounce
             await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Simulate search processing
             const mockResults = SearchTestUtils.createFallbackSearchMock(mainTasks, query);
             return mockResults.length;
           });
@@ -185,7 +180,6 @@ const AdvancedFunctionalityTester = () => {
       test: async () => {
         Logger.info(LogCategory.AI_SEARCH, 'Starting relevance test');
         
-        // Create mock results with different relevance scores
         const mockResults = [
           { task_id: 'task-1', relevance_score: 95, reason: 'Exact match' },
           { task_id: 'task-2', relevance_score: 78, reason: 'Partial match' },
@@ -250,7 +244,6 @@ const AdvancedFunctionalityTester = () => {
       results.push(result);
       setTestResults(prev => [...prev.filter(r => r.id !== result.id), result]);
       
-      // Small delay between tests
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
@@ -298,8 +291,12 @@ const AdvancedFunctionalityTester = () => {
       </CardHeader>
       
       <CardContent>
-        <Tabs defaultValue="gantt" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="real" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="real" className="flex items-center gap-2">
+              <Bug className="h-4 w-4" />
+              Tests Reales
+            </TabsTrigger>
             <TabsTrigger value="gantt" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Gantt Chart
@@ -314,12 +311,23 @@ const AdvancedFunctionalityTester = () => {
             </TabsTrigger>
           </TabsList>
           
+          <TabsContent value="real" className="space-y-4">
+            <Alert>
+              <Bug className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Tests Reales:</strong> Estos tests interactúan directamente con el sistema y muestran exactamente qué está fallando. Incluyen logs detallados y análisis de errores reales.
+              </AlertDescription>
+            </Alert>
+            
+            <RealTestRunnerComponent />
+          </TabsContent>
+          
           <TabsContent value="gantt" className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">Tests del Gantt Chart</h3>
                 <p className="text-sm text-muted-foreground">
-                  Validación de renderizado, performance y filtrado
+                  Validación de renderizado, performance y filtrado (Mock)
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -375,7 +383,7 @@ const AdvancedFunctionalityTester = () => {
               <div>
                 <h3 className="text-lg font-semibold">Tests de Búsqueda Semántica</h3>
                 <p className="text-sm text-muted-foreground">
-                  Validación de LLM, performance y relevancia
+                  Validación de LLM, performance y relevancia (Mock)
                 </p>
               </div>
               <div className="flex items-center gap-2">
