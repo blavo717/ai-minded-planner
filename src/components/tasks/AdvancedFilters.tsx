@@ -21,10 +21,18 @@ import {
   Calendar as CalendarIcon, 
   Tag, 
   Bookmark,
-  RotateCcw
+  RotateCcw,
+  AlertTriangle,
+  Clock,
+  Zap,
+  Users,
+  Archive
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { FilterState } from '@/types/filters';
+import { useSavedFilters } from '@/hooks/useSavedFilters';
+import { getSmartFilters } from '@/utils/smartFilters';
 
 interface Project {
   id: string;
@@ -42,23 +50,23 @@ interface AdvancedFiltersProps {
   projects: Project[];
   profiles: Profile[];
   availableTags: string[];
-  filters: {
-    search: string;
-    status: string[];
-    priority: string[];
-    projects: string[];
-    tags: string[];
-    assignedTo: string[];
-    dueDateFrom?: Date;
-    dueDateTo?: Date;
-    hasSubtasks?: boolean;
-    hasDependencies?: boolean;
-  };
-  onFiltersChange: (filters: any) => void;
-  onSaveFilter?: (name: string, filters: any) => void;
-  savedFilters?: Array<{ name: string; filters: any }>;
-  onLoadFilter?: (filters: any) => void;
+  filters: FilterState;
+  onFiltersChange: (filters: FilterState) => void;
+  onSaveFilter?: (name: string, filters: FilterState) => void;
+  onLoadFilter?: (filters: FilterState) => void;
 }
+
+const getIconForSmartFilter = (filterId: string) => {
+  const icons: Record<string, React.ComponentType<any>> = {
+    overdue: AlertTriangle,
+    due_today: CalendarIcon,
+    inactive: Clock,
+    high_priority_pending: Zap,
+    unassigned: Users,
+    recently_completed: Archive,
+  };
+  return icons[filterId] || Bookmark;
+};
 
 const AdvancedFilters = ({ 
   projects, 
@@ -67,12 +75,15 @@ const AdvancedFilters = ({
   filters, 
   onFiltersChange,
   onSaveFilter,
-  savedFilters = [],
   onLoadFilter 
 }: AdvancedFiltersProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [saveFilterName, setSaveFilterName] = useState('');
+  const [saveFilterDescription, setSaveFilterDescription] = useState('');
   const [showSaveInput, setShowSaveInput] = useState(false);
+  
+  const { savedFilters, saveFilter } = useSavedFilters();
+  const smartFilters = getSmartFilters();
 
   const statusOptions = [
     { value: 'pending', label: 'Pendiente' },
@@ -88,8 +99,8 @@ const AdvancedFilters = ({
     { value: 'urgent', label: 'Urgente', color: 'bg-red-500' }
   ];
 
-  const handleArrayFilterChange = (key: string, value: string, checked: boolean) => {
-    const currentArray = filters[key as keyof typeof filters] as string[] || [];
+  const handleArrayFilterChange = (key: keyof FilterState, value: string, checked: boolean) => {
+    const currentArray = filters[key] as string[] || [];
     const newArray = checked 
       ? [...currentArray, value]
       : currentArray.filter(item => item !== value);
@@ -100,6 +111,28 @@ const AdvancedFilters = ({
     });
   };
 
+  const handleSmartFilterChange = (filterId: string, checked: boolean) => {
+    const currentFilters = filters.smartFilters || [];
+    const newFilters = checked
+      ? [...currentFilters, filterId]
+      : currentFilters.filter(id => id !== filterId);
+    
+    onFiltersChange({
+      ...filters,
+      smartFilters: newFilters
+    });
+  };
+
+  const handleOperatorChange = (filterType: keyof FilterState['operators'], operatorType: 'AND' | 'OR') => {
+    onFiltersChange({
+      ...filters,
+      operators: {
+        ...filters.operators,
+        [filterType]: { type: operatorType }
+      }
+    });
+  };
+
   const handleDateRangeChange = (type: 'from' | 'to', date?: Date) => {
     onFiltersChange({
       ...filters,
@@ -107,7 +140,7 @@ const AdvancedFilters = ({
     });
   };
 
-  const handleBooleanFilterChange = (key: string, value?: boolean) => {
+  const handleBooleanFilterChange = (key: keyof FilterState, value?: boolean) => {
     onFiltersChange({
       ...filters,
       [key]: value
@@ -125,29 +158,51 @@ const AdvancedFilters = ({
       dueDateFrom: undefined,
       dueDateTo: undefined,
       hasSubtasks: undefined,
-      hasDependencies: undefined
+      hasDependencies: undefined,
+      smartFilters: [],
+      operators: {
+        status: { type: 'OR' },
+        priority: { type: 'OR' },
+        projects: { type: 'OR' },
+        tags: { type: 'OR' },
+        assignedTo: { type: 'OR' },
+      }
     });
   };
 
   const getActiveFiltersCount = () => {
     let count = 0;
     if (filters.search) count++;
-    if (filters.status.length > 0) count++;
-    if (filters.priority.length > 0) count++;
-    if (filters.projects.length > 0) count++;
-    if (filters.tags.length > 0) count++;
-    if (filters.assignedTo.length > 0) count++;
+    if (filters.status?.length > 0) count++;
+    if (filters.priority?.length > 0) count++;
+    if (filters.projects?.length > 0) count++;
+    if (filters.tags?.length > 0) count++;
+    if (filters.assignedTo?.length > 0) count++;
     if (filters.dueDateFrom || filters.dueDateTo) count++;
     if (filters.hasSubtasks !== undefined) count++;
     if (filters.hasDependencies !== undefined) count++;
+    if (filters.smartFilters?.length > 0) count++;
     return count;
   };
 
-  const handleSaveFilter = () => {
-    if (saveFilterName.trim() && onSaveFilter) {
-      onSaveFilter(saveFilterName.trim(), filters);
+  const handleSaveFilter = async () => {
+    if (saveFilterName.trim()) {
+      if (onSaveFilter) {
+        onSaveFilter(saveFilterName.trim(), filters);
+      } else {
+        await saveFilter(saveFilterName.trim(), saveFilterDescription.trim(), filters);
+      }
       setSaveFilterName('');
+      setSaveFilterDescription('');
       setShowSaveInput(false);
+    }
+  };
+
+  const handleLoadFilter = (filterData: FilterState) => {
+    if (onLoadFilter) {
+      onLoadFilter(filterData);
+    } else {
+      onFiltersChange(filterData);
     }
   };
 
@@ -197,17 +252,42 @@ const AdvancedFilters = ({
           />
         </div>
 
+        {/* Filtros inteligentes */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Filtros Inteligentes</Label>
+          <div className="flex flex-wrap gap-2">
+            {smartFilters.map((filter) => {
+              const Icon = getIconForSmartFilter(filter.id);
+              const isActive = filters.smartFilters?.includes(filter.id) || false;
+              
+              return (
+                <Button
+                  key={filter.id}
+                  variant={isActive ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleSmartFilterChange(filter.id, !isActive)}
+                  className="text-xs"
+                  title={filter.description}
+                >
+                  <Icon className="h-3 w-3 mr-1" />
+                  {filter.name}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Filtros guardados */}
         {savedFilters.length > 0 && (
           <div className="space-y-2">
             <Label className="text-xs font-medium">Filtros Guardados</Label>
             <div className="flex flex-wrap gap-2">
-              {savedFilters.map((savedFilter, index) => (
+              {savedFilters.map((savedFilter) => (
                 <Button
-                  key={index}
+                  key={savedFilter.id}
                   variant="outline"
                   size="sm"
-                  onClick={() => onLoadFilter?.(savedFilter.filters)}
+                  onClick={() => handleLoadFilter(savedFilter.filter_data)}
                   className="text-xs"
                 >
                   <Bookmark className="h-3 w-3 mr-1" />
@@ -220,9 +300,23 @@ const AdvancedFilters = ({
 
         {isExpanded && (
           <div className="space-y-6">
-            {/* Estados */}
+            {/* Estados con operador */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Estados</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Estados</Label>
+                <Select
+                  value={filters.operators.status.type}
+                  onValueChange={(value) => handleOperatorChange('status', value as 'AND' | 'OR')}
+                >
+                  <SelectTrigger className="w-20 h-6 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="OR">O</SelectItem>
+                    <SelectItem value="AND">Y</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 {statusOptions.map((status) => (
                   <div key={status.value} className="flex items-center space-x-2">
@@ -241,9 +335,23 @@ const AdvancedFilters = ({
               </div>
             </div>
 
-            {/* Prioridades */}
+            {/* Prioridades con operador */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Prioridades</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Prioridades</Label>
+                <Select
+                  value={filters.operators.priority.type}
+                  onValueChange={(value) => handleOperatorChange('priority', value as 'AND' | 'OR')}
+                >
+                  <SelectTrigger className="w-20 h-6 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="OR">O</SelectItem>
+                    <SelectItem value="AND">Y</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 {priorityOptions.map((priority) => (
                   <div key={priority.value} className="flex items-center space-x-2">
@@ -263,10 +371,24 @@ const AdvancedFilters = ({
               </div>
             </div>
 
-            {/* Proyectos */}
+            {/* Proyectos con operador */}
             {projects.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Proyectos</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Proyectos</Label>
+                  <Select
+                    value={filters.operators.projects.type}
+                    onValueChange={(value) => handleOperatorChange('projects', value as 'AND' | 'OR')}
+                  >
+                    <SelectTrigger className="w-20 h-6 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OR">O</SelectItem>
+                      <SelectItem value="AND">Y</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
                   {projects.map((project) => (
                     <div key={project.id} className="flex items-center space-x-2">
@@ -290,10 +412,24 @@ const AdvancedFilters = ({
               </div>
             )}
 
-            {/* Personas asignadas */}
+            {/* Personas asignadas con operador */}
             {profiles.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Personas Asignadas</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Personas Asignadas</Label>
+                  <Select
+                    value={filters.operators.assignedTo.type}
+                    onValueChange={(value) => handleOperatorChange('assignedTo', value as 'AND' | 'OR')}
+                  >
+                    <SelectTrigger className="w-20 h-6 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OR">O</SelectItem>
+                      <SelectItem value="AND">Y</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
                   {profiles.map((profile) => (
                     <div key={profile.id} className="flex items-center space-x-2">
@@ -313,10 +449,24 @@ const AdvancedFilters = ({
               </div>
             )}
 
-            {/* Etiquetas */}
+            {/* Etiquetas con operador */}
             {availableTags.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Etiquetas</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Etiquetas</Label>
+                  <Select
+                    value={filters.operators.tags.type}
+                    onValueChange={(value) => handleOperatorChange('tags', value as 'AND' | 'OR')}
+                  >
+                    <SelectTrigger className="w-20 h-6 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OR">O</SelectItem>
+                      <SelectItem value="AND">Y</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                   {availableTags.map((tag) => (
                     <Badge
@@ -414,7 +564,7 @@ const AdvancedFilters = ({
             </div>
 
             {/* Guardar filtro */}
-            {onSaveFilter && getActiveFiltersCount() > 0 && (
+            {getActiveFiltersCount() > 0 && (
               <div className="space-y-2 pt-4 border-t">
                 {!showSaveInput ? (
                   <Button
@@ -427,26 +577,35 @@ const AdvancedFilters = ({
                     Guardar Filtro Actual
                   </Button>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="space-y-2">
                     <Input
                       placeholder="Nombre del filtro..."
                       value={saveFilterName}
                       onChange={(e) => setSaveFilterName(e.target.value)}
                       className="text-sm"
                     />
-                    <Button size="sm" onClick={handleSaveFilter}>
-                      Guardar
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {
-                        setShowSaveInput(false);
-                        setSaveFilterName('');
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+                    <Input
+                      placeholder="Descripción (opcional)..."
+                      value={saveFilterDescription}
+                      onChange={(e) => setSaveFilterDescription(e.target.value)}
+                      className="text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleSaveFilter}>
+                        Guardar
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          setShowSaveInput(false);
+                          setSaveFilterName('');
+                          setSaveFilterDescription('');
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

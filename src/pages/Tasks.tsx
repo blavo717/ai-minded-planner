@@ -5,6 +5,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useTaskHandlers } from '@/hooks/useTaskHandlers';
+import { useSavedFilters } from '@/hooks/useSavedFilters';
 import KanbanBoard from '@/components/tasks/KanbanBoard';
 import AdvancedFilters from '@/components/tasks/AdvancedFilters';
 import ProductivityInsights from '@/components/AI/ProductivityInsights';
@@ -19,11 +20,13 @@ import CalendarView from '@/components/tasks/views/CalendarView';
 import EisenhowerMatrix from '@/components/tasks/views/EisenhowerMatrix';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
+import { FilterState } from '@/types/filters';
 
 const TasksContent = () => {
   const { mainTasks, getSubtasksForTask } = useTasks();
   const { projects } = useProjects();
   const { profiles } = useProfiles();
+  const { saveFilter } = useSavedFilters();
   
   const {
     viewMode,
@@ -34,7 +37,16 @@ const TasksContent = () => {
     setIsCreateTaskOpen,
   } = useTasksContext();
   
-  const { filters, setFilters, filteredTasks, availableTags } = useTaskFilters(mainTasks, getSubtasksForTask);
+  const { 
+    filters, 
+    updateFilter, 
+    filteredTasks, 
+    availableTags, 
+    clearAllFilters,
+    getActiveFiltersCount,
+    loadFilter 
+  } = useTaskFilters(mainTasks, getSubtasksForTask);
+  
   const { 
     handleEditTask, 
     handleManageDependencies, 
@@ -43,6 +55,24 @@ const TasksContent = () => {
     handleArchiveTask,
     handleCreateSubtask 
   } = useTaskHandlers();
+
+  const handleSaveFilter = async (name: string, filterData: FilterState) => {
+    await saveFilter(name, '', filterData);
+  };
+
+  const handleFiltersChange = (newFilters: FilterState) => {
+    // Update individual filter properties
+    Object.keys(newFilters).forEach(key => {
+      if (key === 'operators') {
+        // Handle operators separately
+        Object.keys(newFilters.operators).forEach(opKey => {
+          updateFilter(`operators.${opKey}` as any, newFilters.operators[opKey as keyof typeof newFilters.operators]);
+        });
+      } else {
+        updateFilter(key as keyof FilterState, newFilters[key as keyof FilterState]);
+      }
+    });
+  };
 
   // Si estamos en la vista de histórico, mostrar el componente de histórico
   if (showHistory) {
@@ -140,7 +170,9 @@ const TasksContent = () => {
           profiles={profiles}
           availableTags={availableTags}
           filters={filters}
-          onFiltersChange={setFilters}
+          onFiltersChange={handleFiltersChange}
+          onSaveFilter={handleSaveFilter}
+          onLoadFilter={loadFilter}
         />
 
         <TaskViewControls
