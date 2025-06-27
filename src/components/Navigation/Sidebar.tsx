@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
@@ -8,21 +7,25 @@ import {
   Users, 
   Settings,
   Brain,
-  BarChart3
+  BarChart3,
+  Database
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
-  { name: 'Tareas', href: '/tasks', icon: CheckSquare },
-  { name: 'Proyectos', href: '/projects', icon: FolderOpen },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'Contactos', href: '/contacts', icon: Users },
-  { name: 'Configuración', href: '/settings', icon: Settings },
-];
-
 const Sidebar = () => {
   const location = useLocation();
+  
+  const navigation = [
+    { name: 'Dashboard', href: '/', icon: Home, current: location.pathname === '/' },
+    { name: 'Tareas', href: '/tasks', icon: CheckSquare, current: location.pathname === '/tasks' },
+    { name: 'Proyectos', href: '/projects', icon: FolderOpen, current: location.pathname === '/projects' },
+    { name: 'Contactos', href: '/contacts', icon: Users, current: location.pathname === '/contacts' },
+    { name: 'Analíticas', href: '/analytics', icon: BarChart3, current: location.pathname === '/analytics' },
+    { name: 'IA Configuración', href: '/ai-settings', icon: Brain, current: location.pathname === '/ai-settings' },
+    { name: 'LLM Settings', href: '/llm-settings', icon: Settings, current: location.pathname === '/llm-settings' },
+    { name: 'Configuración', href: '/settings', icon: Settings, current: location.pathname === '/settings' },
+    { name: 'Test Tareas', href: '/task-testing', icon: Database, current: location.pathname === '/task-testing' },
+  ];
 
   return (
     <div className="flex h-screen w-64 flex-col fixed left-0 top-0 z-40 bg-card border-r border-border">
@@ -36,7 +39,7 @@ const Sidebar = () => {
       <nav className="flex-1 px-4 py-6 space-y-2">
         {navigation.map((item) => {
           const IconComponent = item.icon;
-          const isActive = location.pathname === item.href;
+          const isActive = item.current;
           
           return (
             <NavLink
