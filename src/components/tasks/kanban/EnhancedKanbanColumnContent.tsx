@@ -57,13 +57,9 @@ const taskVariants = {
 
 const dropZoneVariants = {
   idle: {
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-    borderColor: 'rgba(59, 130, 246, 0.2)',
     scale: 1
   },
   dragOver: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderColor: 'rgba(59, 130, 246, 0.4)',
     scale: 1.02,
     transition: { duration: 0.2 }
   }
@@ -86,6 +82,12 @@ const EnhancedKanbanColumnContent = ({
   onDrop,
   columnStatus
 }: EnhancedKanbanColumnContentProps) => {
+  
+  const getDropZoneStyle = () => ({
+    backgroundColor: isDragOver ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
+    borderColor: isDragOver ? 'rgba(59, 130, 246, 0.4)' : 'rgba(59, 130, 246, 0.2)'
+  });
+
   return (
     <AnimatePresence>
       {isExpanded && (
@@ -93,6 +95,7 @@ const EnhancedKanbanColumnContent = ({
           className="min-h-[400px] space-y-3 p-3 rounded-lg border-2 border-dashed transition-all duration-300"
           variants={dropZoneVariants}
           animate={isDragOver ? "dragOver" : "idle"}
+          style={getDropZoneStyle()}
           onDragOver={onDragOver}
           onDragEnter={onDragEnter}
           onDragLeave={onDragLeave}

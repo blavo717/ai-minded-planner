@@ -85,7 +85,6 @@ const EnhancedVirtualKanbanColumn = memo(({
     },
     dragOver: {
       scale: 1.02,
-      boxShadow: '0 12px 40px rgba(59, 130, 246, 0.15)',
       transition: { duration: 0.2 }
     },
     updating: {
@@ -93,6 +92,11 @@ const EnhancedVirtualKanbanColumn = memo(({
       pointerEvents: 'none' as const,
       transition: { duration: 0.2 }
     }
+  };
+
+  const getBoxShadow = () => {
+    if (isDragOver) return '0 12px 40px rgba(59, 130, 246, 0.15)';
+    return 'none';
   };
 
   return (
@@ -107,6 +111,9 @@ const EnhancedVirtualKanbanColumn = memo(({
       }
       layout
       layoutId={`column-${column.id}`}
+      style={{
+        boxShadow: getBoxShadow()
+      }}
     >
       <motion.div
         whileHover={{ scale: 1.02 }}

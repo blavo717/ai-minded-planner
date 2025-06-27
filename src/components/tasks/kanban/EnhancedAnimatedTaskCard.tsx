@@ -45,17 +45,11 @@ const EnhancedAnimatedTaskCard = memo(({
     idle: { 
       scale: 1, 
       rotateY: 0,
-      rotateX: 0,
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-      borderColor: 'transparent'
+      rotateX: 0
     },
     hover: { 
       scale: 1.03, 
       rotateY: 2,
-      boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
-      borderColor: task.priority === 'urgent' ? '#ef4444' : 
-                   task.priority === 'high' ? '#f97316' :
-                   task.priority === 'medium' ? '#eab308' : '#22c55e',
       transition: { 
         duration: 0.3,
         ease: "easeOut"
@@ -64,7 +58,6 @@ const EnhancedAnimatedTaskCard = memo(({
     dragging: {
       scale: 1.1,
       rotateZ: 5,
-      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
       zIndex: 50,
       transition: { duration: 0.2 }
     },
@@ -94,7 +87,6 @@ const EnhancedAnimatedTaskCard = memo(({
     hover: { 
       scale: 1.3, 
       opacity: 1,
-      boxShadow: '0 0 12px currentColor',
       transition: { duration: 0.3 }
     }
   };
@@ -144,6 +136,18 @@ const EnhancedAnimatedTaskCard = memo(({
     y.set(0);
   }, [x, y]);
 
+  const getBorderColor = () => {
+    return task.priority === 'urgent' ? '#ef4444' : 
+           task.priority === 'high' ? '#f97316' :
+           task.priority === 'medium' ? '#eab308' : '#22c55e';
+  };
+
+  const getBoxShadow = () => {
+    if (isDragging) return '0 20px 40px rgba(0, 0, 0, 0.3)';
+    if (isHovered) return '0 8px 25px rgba(0, 0, 0, 0.15)';
+    return '0 1px 3px rgba(0, 0, 0, 0.1)';
+  };
+
   return (
     <motion.div
       variants={cardVariants}
@@ -164,6 +168,10 @@ const EnhancedAnimatedTaskCard = memo(({
         className={`mb-3 cursor-move bg-white overflow-hidden border-2 transition-colors duration-300 ${
           isDragging ? 'opacity-80' : ''
         }`}
+        style={{
+          borderColor: isHovered ? getBorderColor() : 'transparent',
+          boxShadow: getBoxShadow()
+        }}
         draggable
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -189,6 +197,9 @@ const EnhancedAnimatedTaskCard = memo(({
                 className={`w-3 h-3 rounded-full ${getPriorityColor(task.priority)} ml-2`}
                 variants={priorityIndicatorVariants}
                 animate={isHovered ? "hover" : "idle"}
+                style={{
+                  boxShadow: isHovered ? '0 0 12px currentColor' : 'none'
+                }}
               />
             </div>
 
