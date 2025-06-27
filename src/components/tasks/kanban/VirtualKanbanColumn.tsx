@@ -1,12 +1,10 @@
 
 import React, { memo, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
 import { Task } from '@/hooks/useTasks';
-import AnimatedKanbanTaskCard from './AnimatedKanbanTaskCard';
-import { ChevronDown, Plus, Loader2 } from 'lucide-react';
+import KanbanColumnHeader from './KanbanColumnHeader';
+import KanbanColumnContent from './KanbanColumnContent';
+import KanbanLoadMoreButton from './KanbanLoadMoreButton';
 
 interface VirtualKanbanColumnProps {
   column: {
@@ -95,20 +93,6 @@ const VirtualKanbanColumn = memo(({
     }
   };
 
-  const taskVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.3 }
-    },
-    exit: { 
-      opacity: 0, 
-      x: -20,
-      transition: { duration: 0.2 }
-    }
-  };
-
   return (
     <motion.div 
       className="space-y-4"
@@ -121,131 +105,39 @@ const VirtualKanbanColumn = memo(({
       }
       layout
     >
-      <Card className={`${column.color} border-2 transition-all duration-200 relative`}>
-        {isUpdating && (
-          <div className="absolute inset-0 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
-            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-          </div>
-        )}
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center justify-between">
-            <motion.span 
-              className="flex items-center gap-2"
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.2 }}
-            >
-              <motion.div
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.5 }}
-              >
-                {column.icon}
-              </motion.div>
-              {column.title}
-            </motion.span>
-            <div className="flex items-center gap-2">
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Badge variant="secondary" className="text-xs">
-                  {columnTasks.length}
-                </Badge>
-              </motion.div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() => setIsExpanded(!isExpanded)}
-                disabled={isUpdating}
-              >
-                <motion.div
-                  animate={{ rotate: isExpanded ? 0 : -90 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </motion.div>
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-      </Card>
+      <KanbanColumnHeader
+        column={column}
+        taskCount={columnTasks.length}
+        isExpanded={isExpanded}
+        isUpdating={isUpdating}
+        onToggleExpand={() => setIsExpanded(!isExpanded)}
+      />
 
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div 
-            className={`min-h-[400px] space-y-3 p-2 rounded-lg transition-all duration-200 ${
-              isDragOver ? 'bg-blue-50/50 border-2 border-dashed border-blue-300' : ''
-            }`}
-            onDragOver={onDragOver}
-            onDragEnter={onDragEnter}
-            onDragLeave={onDragLeave}
-            onDrop={(e) => onDrop(e, column.status)}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <AnimatePresence mode="popLayout">
-              {visibleTasks.map((task) => (
-                <motion.div
-                  key={`${task.id}-${task.status}`}
-                  variants={taskVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  layout
-                >
-                  <AnimatedKanbanTaskCard
-                    task={task}
-                    subtasks={getSubtasksForTask(task.id)}
-                    onEditTask={onEditTask}
-                    onDeleteTask={onDeleteTask}
-                    onDragStart={onDragStart}
-                    getProjectName={getProjectName}
-                    getProjectColor={getProjectColor}
-                    getPriorityColor={getPriorityColor}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            
-            {hasMoreTasks && !isUpdating && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex justify-center pt-2"
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLoadMore}
-                  className="text-xs"
-                >
-                  <Plus className="h-3 w-3 mr-1" />
-                  Cargar {Math.min(LOAD_MORE_COUNT, columnTasks.length - loadedCount)} más
-                </Button>
-              </motion.div>
-            )}
-            
-            {columnTasks.length === 0 && (
-              <motion.div 
-                className="text-center text-muted-foreground text-sm py-8"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                <motion.div 
-                  className={`${isDragOver ? 'text-blue-600' : ''}`}
-                  animate={isDragOver ? { scale: 1.05 } : { scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {isDragOver ? 'Suelta aquí la tarea' : 'Sin tareas'}
-                </motion.div>
-              </motion.div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <KanbanColumnContent
+        isExpanded={isExpanded}
+        isDragOver={isDragOver}
+        visibleTasks={visibleTasks}
+        getSubtasksForTask={getSubtasksForTask}
+        onEditTask={onEditTask}
+        onDeleteTask={onDeleteTask}
+        onDragStart={onDragStart}
+        getProjectName={getProjectName}
+        getProjectColor={getProjectColor}
+        getPriorityColor={getPriorityColor}
+        onDragOver={onDragOver}
+        onDragEnter={onDragEnter}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        columnStatus={column.status}
+      />
+
+      <KanbanLoadMoreButton
+        hasMoreTasks={hasMoreTasks}
+        isUpdating={isUpdating}
+        remainingTasksCount={columnTasks.length - loadedCount}
+        loadMoreCount={LOAD_MORE_COUNT}
+        onLoadMore={handleLoadMore}
+      />
     </motion.div>
   );
 });
