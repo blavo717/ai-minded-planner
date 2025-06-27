@@ -19,19 +19,28 @@ const ProjectGanttView = ({ tasks, projects, onBackToProjects }: ProjectGanttVie
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
 
   const getProjectStats = (projectId?: string) => {
-    const projectTasks = projectId === 'all' 
-      ? tasks 
-      : tasks.filter(task => task.project_id === projectId);
+    let projectTasks: Task[];
     
+    if (projectId === 'all' || !projectId) {
+      projectTasks = tasks;
+    } else {
+      projectTasks = tasks.filter(task => task.project_id === projectId);
+    }
+    
+    // Para el Gantt solo mostramos tareas con fechas, pero para las estadísticas mostramos todas
     const tasksWithDates = projectTasks.filter(task => task.due_date);
-    const completedTasks = tasksWithDates.filter(task => task.status === 'completed').length;
+    const completedTasks = projectTasks.filter(task => task.status === 'completed').length;
+    const completedTasksWithDates = tasksWithDates.filter(task => task.status === 'completed').length;
     
     return {
-      totalTasks: tasksWithDates.length,
+      totalTasks: projectTasks.length,
+      totalTasksWithDates: tasksWithDates.length,
       completedTasks,
-      pendingTasks: tasksWithDates.length - completedTasks,
-      completionRate: tasksWithDates.length > 0 
-        ? Math.round((completedTasks / tasksWithDates.length) * 100) 
+      completedTasksWithDates,
+      pendingTasks: projectTasks.length - completedTasks,
+      pendingTasksWithDates: tasksWithDates.length - completedTasksWithDates,
+      completionRate: projectTasks.length > 0 
+        ? Math.round((completedTasks / projectTasks.length) * 100) 
         : 0
     };
   };
@@ -110,6 +119,9 @@ const ProjectGanttView = ({ tasks, projects, onBackToProjects }: ProjectGanttVie
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Tareas</p>
                 <p className="text-2xl font-bold">{stats.totalTasks}</p>
+                <p className="text-xs text-muted-foreground">
+                  {stats.totalTasksWithDates} con fechas
+                </p>
               </div>
               <Calendar className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -122,6 +134,9 @@ const ProjectGanttView = ({ tasks, projects, onBackToProjects }: ProjectGanttVie
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Completadas</p>
                 <p className="text-2xl font-bold text-green-600">{stats.completedTasks}</p>
+                <p className="text-xs text-muted-foreground">
+                  {stats.completedTasksWithDates} con fechas
+                </p>
               </div>
               <Badge variant="secondary" className="bg-green-100 text-green-800">
                 {stats.completionRate}%
@@ -136,9 +151,12 @@ const ProjectGanttView = ({ tasks, projects, onBackToProjects }: ProjectGanttVie
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pendientes</p>
                 <p className="text-2xl font-bold text-blue-600">{stats.pendingTasks}</p>
+                <p className="text-xs text-muted-foreground">
+                  {stats.pendingTasksWithDates} con fechas
+                </p>
               </div>
               <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                {stats.totalTasks - stats.completedTasks}
+                {stats.pendingTasks}
               </Badge>
             </div>
           </CardContent>
