@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, ZoomIn, ZoomOut } from 'lucide-react';
+import Logger, { LogCategory } from '@/utils/logger';
+import { PerformanceMonitor } from '@/utils/performanceMonitor';
 
 interface GanttChartProps {
   tasks: Task[];
@@ -31,204 +33,248 @@ const GanttChart = ({ tasks, projects, selectedProjectId }: GanttChartProps) => 
   const [ganttTasks, setGanttTasks] = useState<GanttTask[]>([]);
 
   const processTasksForGantt = (): GanttTask[] => {
-    const filteredTasks = selectedProjectId 
-      ? tasks.filter(task => task.project_id === selectedProjectId)
-      : tasks;
+    Logger.debug(LogCategory.GANTT_RENDER, 'Processing tasks for Gantt', {
+      totalTasks: tasks.length,
+      selectedProjectId,
+      projects: projects.length
+    });
 
-    return filteredTasks
-      .filter(task => task.due_date)
-      .map(task => {
-        const project = projects.find(p => p.id === task.project_id);
-        const startDate = task.created_at ? new Date(task.created_at) : new Date();
-        const endDate = new Date(task.due_date!);
-        
-        // Calculate progress based on status
-        let progress = 0;
-        switch (task.status) {
-          case 'completed':
-            progress = 100;
-            break;
-          case 'in_progress':
-            progress = 50;
-            break;
-          case 'pending':
-            progress = 0;
-            break;
-          default:
-            progress = 0;
-        }
+    return PerformanceMonitor.measure('gantt-process-tasks', () => {
+      const filteredTasks = selectedProjectId 
+        ? tasks.filter(task => task.project_id === selectedProjectId)
+        : tasks;
 
-        return {
-          id: task.id,
-          title: task.title,
-          startDate,
-          endDate,
-          progress,
-          priority: task.priority,
-          projectColor: project?.color || '#3B82F6',
-          dependencies: [] // TODO: Implement task dependencies
-        };
-      })
-      .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+      const processedTasks = filteredTasks
+        .filter(task => task.due_date)
+        .map(task => {
+          const project = projects.find(p => p.id === task.project_id);
+          const startDate = task.created_at ? new Date(task.created_at) : new Date();
+          const endDate = new Date(task.due_date!);
+          
+          // Calculate progress based on status
+          let progress = 0;
+          switch (task.status) {
+            case 'completed':
+              progress = 100;
+              break;
+            case 'in_progress':
+              progress = 50;
+              break;
+            case 'pending':
+              progress = 0;
+              break;
+            default:
+              progress = 0;
+          }
+
+          return {
+            id: task.id,
+            title: task.title,
+            startDate,
+            endDate,
+            progress,
+            priority: task.priority,
+            projectColor: project?.color || '#3B82F6',
+            dependencies: [] // TODO: Implement task dependencies
+          };
+        })
+        .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+
+      Logger.info(LogCategory.GANTT_RENDER, 'Tasks processed for Gantt', {
+        originalCount: filteredTasks.length,
+        processedCount: processedTasks.length,
+        withDates: processedTasks.length
+      });
+
+      return processedTasks;
+    }, { selectedProjectId, taskCount: tasks.length });
   };
 
   useEffect(() => {
+    PerformanceMonitor.logMemoryUsage('gantt-tasks-update');
     setGanttTasks(processTasksForGantt());
   }, [tasks, projects, selectedProjectId]);
 
   useEffect(() => {
-    if (!svgRef.current || ganttTasks.length === 0) return;
-
-    const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
-
-    const margin = { top: 60, right: 30, bottom: 60, left: 200 };
-    const width = 1000 - margin.left - margin.right;
-    const height = ganttTasks.length * 40 + margin.top + margin.bottom;
-
-    svg.attr("width", width + margin.left + margin.right)
-       .attr("height", height);
-
-    const g = svg.append("g")
-                 .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    // Time scale
-    const minDate = d3.min(ganttTasks, d => d.startDate) || new Date();
-    const maxDate = d3.max(ganttTasks, d => d.endDate) || new Date();
-    
-    // Add padding to dates
-    const timePadding = (maxDate.getTime() - minDate.getTime()) * 0.1;
-    const paddedMinDate = new Date(minDate.getTime() - timePadding);
-    const paddedMaxDate = new Date(maxDate.getTime() + timePadding);
-
-    const xScale = d3.scaleTime()
-                     .domain([paddedMinDate, paddedMaxDate])
-                     .range([0, width]);
-
-    const yScale = d3.scaleBand()
-                     .domain(ganttTasks.map(d => d.id))
-                     .range([0, ganttTasks.length * 40])
-                     .padding(0.1);
-
-    // Create time axis
-    let timeFormat;
-    let tickInterval;
-    
-    switch (timeScale) {
-      case 'day':
-        timeFormat = d3.timeFormat("%d/%m");
-        tickInterval = d3.timeDay.every(1);
-        break;
-      case 'week':
-        timeFormat = d3.timeFormat("%d/%m");
-        tickInterval = d3.timeWeek.every(1);
-        break;
-      case 'month':
-        timeFormat = d3.timeFormat("%m/%Y");
-        tickInterval = d3.timeMonth.every(1);
-        break;
+    if (!svgRef.current || ganttTasks.length === 0) {
+      Logger.warn(LogCategory.GANTT_RENDER, 'Gantt render skipped', {
+        hasSvgRef: !!svgRef.current,
+        taskCount: ganttTasks.length
+      });
+      return;
     }
 
-    const xAxis = d3.axisTop(xScale)
-                    .tickFormat(timeFormat)
-                    .ticks(tickInterval);
+    Logger.info(LogCategory.GANTT_RENDER, 'Starting Gantt render', {
+      taskCount: ganttTasks.length,
+      timeScale
+    });
 
-    g.append("g")
-     .attr("class", "x-axis")
-     .call(xAxis)
-     .selectAll("text")
-     .style("text-anchor", "middle")
-     .style("font-size", "12px");
+    PerformanceMonitor.measure('gantt-d3-render', () => {
+      const svg = d3.select(svgRef.current);
+      svg.selectAll("*").remove();
 
-    // Add grid lines
-    g.selectAll(".grid-line")
-     .data(xScale.ticks(tickInterval))
-     .enter()
-     .append("line")
-     .attr("class", "grid-line")
-     .attr("x1", d => xScale(d))
-     .attr("x2", d => xScale(d))
-     .attr("y1", 0)
-     .attr("y2", ganttTasks.length * 40)
-     .attr("stroke", "#e2e8f0")
-     .attr("stroke-width", 1)
-     .attr("opacity", 0.5);
+      const margin = { top: 60, right: 30, bottom: 60, left: 200 };
+      const width = 1000 - margin.left - margin.right;
+      const height = ganttTasks.length * 40 + margin.top + margin.bottom;
 
-    // Create task bars
-    const taskGroups = g.selectAll(".task-group")
-                        .data(ganttTasks)
-                        .enter()
-                        .append("g")
-                        .attr("class", "task-group")
-                        .attr("transform", d => `translate(0, ${yScale(d.id)})`);
+      svg.attr("width", width + margin.left + margin.right)
+         .attr("height", height);
 
-    // Background bars
-    taskGroups.append("rect")
-              .attr("class", "task-background")
-              .attr("x", d => xScale(d.startDate))
-              .attr("width", d => xScale(d.endDate) - xScale(d.startDate))
-              .attr("height", yScale.bandwidth())
-              .attr("fill", d => d.projectColor)
-              .attr("opacity", 0.2)
-              .attr("rx", 4);
+      const g = svg.append("g")
+                   .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Progress bars
-    taskGroups.append("rect")
-              .attr("class", "task-progress")
-              .attr("x", d => xScale(d.startDate))
-              .attr("width", d => (xScale(d.endDate) - xScale(d.startDate)) * (d.progress / 100))
-              .attr("height", yScale.bandwidth())
-              .attr("fill", d => d.projectColor)
-              .attr("rx", 4);
+      // Time scale
+      const minDate = d3.min(ganttTasks, d => d.startDate) || new Date();
+      const maxDate = d3.max(ganttTasks, d => d.endDate) || new Date();
+      
+      // Add padding to dates
+      const timePadding = (maxDate.getTime() - minDate.getTime()) * 0.1;
+      const paddedMinDate = new Date(minDate.getTime() - timePadding);
+      const paddedMaxDate = new Date(maxDate.getTime() + timePadding);
 
-    // Task labels
-    taskGroups.append("text")
-              .attr("class", "task-label")
-              .attr("x", -10)
-              .attr("y", yScale.bandwidth() / 2)
-              .attr("dy", "0.35em")
-              .attr("text-anchor", "end")
-              .attr("font-size", "12px")
-              .attr("font-weight", "500")
-              .text(d => d.title.length > 25 ? d.title.substring(0, 25) + "..." : d.title);
+      const xScale = d3.scaleTime()
+                       .domain([paddedMinDate, paddedMaxDate])
+                       .range([0, width]);
 
-    // Priority indicators
-    taskGroups.append("circle")
-              .attr("class", "priority-indicator")
-              .attr("cx", d => xScale(d.startDate) - 8)
-              .attr("cy", yScale.bandwidth() / 2)
-              .attr("r", 4)
-              .attr("fill", d => {
-                switch (d.priority) {
-                  case 'urgent': return '#ef4444';
-                  case 'high': return '#f97316';
-                  case 'medium': return '#eab308';
-                  case 'low': return '#22c55e';
-                  default: return '#6b7280';
-                }
-              });
+      const yScale = d3.scaleBand()
+                       .domain(ganttTasks.map(d => d.id))
+                       .range([0, ganttTasks.length * 40])
+                       .padding(0.1);
 
-    // Add tooltips
-    taskGroups.append("title")
-              .text(d => `${d.title}\nInicio: ${d.startDate.toLocaleDateString()}\nFin: ${d.endDate.toLocaleDateString()}\nProgreso: ${d.progress}%`);
+      // Create time axis
+      let timeFormat;
+      let tickInterval;
+      
+      switch (timeScale) {
+        case 'day':
+          timeFormat = d3.timeFormat("%d/%m");
+          tickInterval = d3.timeDay.every(1);
+          break;
+        case 'week':
+          timeFormat = d3.timeFormat("%d/%m");
+          tickInterval = d3.timeWeek.every(1);
+          break;
+        case 'month':
+          timeFormat = d3.timeFormat("%m/%Y");
+          tickInterval = d3.timeMonth.every(1);
+          break;
+      }
+
+      const xAxis = d3.axisTop(xScale)
+                      .tickFormat(timeFormat)
+                      .ticks(tickInterval);
+
+      g.append("g")
+       .attr("class", "x-axis")
+       .call(xAxis)
+       .selectAll("text")
+       .style("text-anchor", "middle")
+       .style("font-size", "12px");
+
+      // Add grid lines
+      g.selectAll(".grid-line")
+       .data(xScale.ticks(tickInterval))
+       .enter()
+       .append("line")
+       .attr("class", "grid-line")
+       .attr("x1", d => xScale(d))
+       .attr("x2", d => xScale(d))
+       .attr("y1", 0)
+       .attr("y2", ganttTasks.length * 40)
+       .attr("stroke", "#e2e8f0")
+       .attr("stroke-width", 1)
+       .attr("opacity", 0.5);
+
+      // Create task bars
+      const taskGroups = g.selectAll(".task-group")
+                          .data(ganttTasks)
+                          .enter()
+                          .append("g")
+                          .attr("class", "task-group")
+                          .attr("transform", d => `translate(0, ${yScale(d.id)})`);
+
+      // Background bars
+      taskGroups.append("rect")
+                .attr("class", "task-background")
+                .attr("x", d => xScale(d.startDate))
+                .attr("width", d => xScale(d.endDate) - xScale(d.startDate))
+                .attr("height", yScale.bandwidth())
+                .attr("fill", d => d.projectColor)
+                .attr("opacity", 0.2)
+                .attr("rx", 4);
+
+      // Progress bars
+      taskGroups.append("rect")
+                .attr("class", "task-progress")
+                .attr("x", d => xScale(d.startDate))
+                .attr("width", d => (xScale(d.endDate) - xScale(d.startDate)) * (d.progress / 100))
+                .attr("height", yScale.bandwidth())
+                .attr("fill", d => d.projectColor)
+                .attr("rx", 4);
+
+      // Task labels
+      taskGroups.append("text")
+                .attr("class", "task-label")
+                .attr("x", -10)
+                .attr("y", yScale.bandwidth() / 2)
+                .attr("dy", "0.35em")
+                .attr("text-anchor", "end")
+                .attr("font-size", "12px")
+                .attr("font-weight", "500")
+                .text(d => d.title.length > 25 ? d.title.substring(0, 25) + "..." : d.title);
+
+      // Priority indicators
+      taskGroups.append("circle")
+                .attr("class", "priority-indicator")
+                .attr("cx", d => xScale(d.startDate) - 8)
+                .attr("cy", yScale.bandwidth() / 2)
+                .attr("r", 4)
+                .attr("fill", d => {
+                  switch (d.priority) {
+                    case 'urgent': return '#ef4444';
+                    case 'high': return '#f97316';
+                    case 'medium': return '#eab308';
+                    case 'low': return '#22c55e';
+                    default: return '#6b7280';
+                  }
+                });
+
+      // Add tooltips
+      taskGroups.append("title")
+                .text(d => `${d.title}\nInicio: ${d.startDate.toLocaleDateString()}\nFin: ${d.endDate.toLocaleDateString()}\nProgreso: ${d.progress}%`);
+
+      Logger.info(LogCategory.GANTT_RENDER, 'Gantt render completed', {
+        elementsCreated: ganttTasks.length,
+        svgDimensions: { width: width + margin.left + margin.right, height }
+      });
+    }, { taskCount: ganttTasks.length, timeScale });
 
   }, [ganttTasks, timeScale]);
 
   const handleZoomIn = () => {
     const currentIndex = ['month', 'week', 'day'].indexOf(timeScale);
     if (currentIndex < 2) {
-      setTimeScale(['month', 'week', 'day'][currentIndex + 1] as 'day' | 'week' | 'month');
+      const newScale = ['month', 'week', 'day'][currentIndex + 1] as 'day' | 'week' | 'month';
+      Logger.info(LogCategory.GANTT_RENDER, 'Gantt zoom in', { from: timeScale, to: newScale });
+      setTimeScale(newScale);
     }
   };
 
   const handleZoomOut = () => {
     const currentIndex = ['month', 'week', 'day'].indexOf(timeScale);
     if (currentIndex > 0) {
-      setTimeScale(['month', 'week', 'day'][currentIndex - 1] as 'day' | 'week' | 'month');
+      const newScale = ['month', 'week', 'day'][currentIndex - 1] as 'day' | 'week' | 'month';
+      Logger.info(LogCategory.GANTT_RENDER, 'Gantt zoom out', { from: timeScale, to: newScale });
+      setTimeScale(newScale);
     }
   };
 
   if (ganttTasks.length === 0) {
+    Logger.info(LogCategory.GANTT_RENDER, 'Showing empty state', {
+      totalTasks: tasks.length,
+      tasksWithDates: tasks.filter(t => t.due_date).length
+    });
+
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-16">

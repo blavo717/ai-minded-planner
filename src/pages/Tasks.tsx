@@ -13,10 +13,14 @@ import TaskHistory from '@/components/tasks/TaskHistory';
 import TasksInsightsSection from '@/components/tasks/TasksInsightsSection';
 import TasksFiltersSection from '@/components/tasks/TasksFiltersSection';
 import TasksViewSection from '@/components/tasks/TasksViewSection';
+import AdvancedFunctionalityTester from '@/components/testing/AdvancedFunctionalityTester';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
 import { FilterState } from '@/types/filters';
 import { Task } from '@/hooks/useTasks';
+import { Button } from '@/components/ui/button';
+import { TestTube } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const TasksContent = () => {
   const { mainTasks, getSubtasksForTask } = useTasks();
@@ -139,6 +143,19 @@ const TasksContent = () => {
           onArchiveTask={handleArchiveTask}
           onCreateSubtask={handleCreateSubtask}
         />
+
+        {/* Advanced Functionality Testing Panel */}
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full">
+              <TestTube className="h-4 w-4 mr-2" />
+              Panel de Testing Avanzado
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <AdvancedFunctionalityTester />
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       <TaskModals />

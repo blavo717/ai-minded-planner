@@ -11,6 +11,9 @@ import { Project } from '@/hooks/useProjects';
 import { useLLMService } from '@/hooks/useLLMService';
 import { useDebounce } from '@/hooks/useDebounce';
 import { toast } from '@/hooks/use-toast';
+import Logger, { LogCategory } from '@/utils/logger';
+import { PerformanceMonitor } from '@/utils/performanceMonitor';
+import { SearchTestUtils } from '@/utils/testing/searchTestUtils';
 
 interface SemanticSearchProps {
   tasks: Task[];
@@ -30,33 +33,45 @@ const SemanticSearch = ({ tasks, projects, onTaskSelect, onSearchResults }: Sema
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [fallbackUsed, setFallbackUsed] = useState(false);
   
   const { makeLLMRequest } = useLLMService();
   const debouncedQuery = useDebounce(query, 500);
 
   const performSemanticSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim() || tasks.length === 0) {
+      Logger.debug(LogCategory.AI_SEARCH, 'Search skipped', {
+        queryLength: searchQuery.trim().length,
+        taskCount: tasks.length
+      });
       setSearchResults([]);
       onSearchResults?.([]); 
       return;
     }
 
+    Logger.info(LogCategory.AI_SEARCH, 'Starting semantic search', {
+      query: searchQuery,
+      taskCount: tasks.length
+    });
+
     setIsSearching(true);
+    setFallbackUsed(false);
 
-    try {
-      const tasksContext = tasks.map(task => ({
-        id: task.id,
-        title: task.title,
-        description: task.description || '',
-        status: task.status,
-        priority: task.priority,
-        tags: task.tags || [],
-        project_name: projects.find(p => p.id === task.project_id)?.name || 'Sin proyecto',
-        due_date: task.due_date,
-        created_at: task.created_at
-      }));
+    return PerformanceMonitor.measureAsync('semantic-search', async () => {
+      try {
+        const tasksContext = tasks.map(task => ({
+          id: task.id,
+          title: task.title,
+          description: task.description || '',
+          status: task.status,
+          priority: task.priority,
+          tags: task.tags || [],
+          project_name: projects.find(p => p.id === task.project_id)?.name || 'Sin proyecto',
+          due_date: task.due_date,
+          created_at: task.created_at
+        }));
 
-      const systemPrompt = `Eres un asistente de búsqueda semántica especializado en encontrar tareas relevantes basándote en consultas en lenguaje natural.
+        const systemPrompt = `Eres un asistente de búsqueda semántica especializado en encontrar tareas relevantes basándote en consultas en lenguaje natural.
 
 Analiza la consulta del usuario y encuentra las tareas más relevantes considerando:
 1. Similitud semántica en título y descripción
@@ -72,73 +87,106 @@ Responde SOLO con un JSON válido con un array de objetos que tengan:
 
 Máximo 10 resultados, ordenados por relevancia descendente.`;
 
-      const userPrompt = `Consulta de búsqueda: "${searchQuery}"
+        const userPrompt = `Consulta de búsqueda: "${searchQuery}"
 
 Tareas disponibles:
 ${JSON.stringify(tasksContext, null, 2)}
 
 Encuentra las tareas más relevantes para esta consulta.`;
 
-      const response = await makeLLMRequest({
-        systemPrompt,
-        userPrompt,
-        functionName: 'semantic-search'
-      });
+        Logger.debug(LogCategory.AI_SEARCH, 'Making LLM request', {
+          systemPromptLength: systemPrompt.length,
+          userPromptLength: userPrompt.length,
+          tasksContextCount: tasksContext.length
+        });
 
-      const results = JSON.parse(response.content);
-      
-      const searchResults: SearchResult[] = results
-        .map((result: any) => {
-          const task = tasks.find(t => t.id === result.task_id);
-          if (!task) return null;
-          
-          return {
-            task,
-            relevanceScore: result.relevance_score,
-            reason: result.reason
-          };
-        })
-        .filter(Boolean)
-        .sort((a: SearchResult, b: SearchResult) => b.relevanceScore - a.relevanceScore);
+        const response = await makeLLMRequest({
+          systemPrompt,
+          userPrompt,
+          functionName: 'semantic-search'
+        });
 
-      setSearchResults(searchResults);
-      onSearchResults?.(searchResults.map(r => r.task));
+        const results = JSON.parse(response.content);
+        const validation = SearchTestUtils.validateSearchResults(results);
+        
+        if (!validation.valid) {
+          Logger.error(LogCategory.AI_SEARCH, 'Invalid LLM response', {
+            query: searchQuery,
+            errors: validation.errors,
+            responseLength: response.content.length
+          });
+          throw new Error(`Invalid LLM response: ${validation.errors.join(', ')}`);
+        }
 
-      // Add to search history
-      if (searchQuery.trim() && !searchHistory.includes(searchQuery.trim())) {
-        setSearchHistory(prev => [searchQuery.trim(), ...prev.slice(0, 4)]);
+        const searchResults: SearchResult[] = results
+          .map((result: any) => {
+            const task = tasks.find(t => t.id === result.task_id);
+            if (!task) return null;
+            
+            return {
+              task,
+              relevanceScore: result.relevance_score,
+              reason: result.reason
+            };
+          })
+          .filter(Boolean)
+          .sort((a: SearchResult, b: SearchResult) => b.relevanceScore - a.relevanceScore);
+
+        Logger.info(LogCategory.AI_SEARCH, 'LLM search completed', {
+          query: searchQuery,
+          resultsCount: searchResults.length,
+          avgRelevanceScore: searchResults.length > 0 
+            ? searchResults.reduce((sum, r) => sum + r.relevanceScore, 0) / searchResults.length 
+            : 0
+        });
+
+        setSearchResults(searchResults);
+        onSearchResults?.(searchResults.map(r => r.task));
+
+        // Add to search history
+        if (searchQuery.trim() && !searchHistory.includes(searchQuery.trim())) {
+          setSearchHistory(prev => [searchQuery.trim(), ...prev.slice(0, 4)]);
+        }
+
+        return { success: true, count: searchResults.length };
+
+      } catch (error) {
+        Logger.error(LogCategory.AI_SEARCH, 'LLM search failed, using fallback', {
+          query: searchQuery,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+
+        // Fallback to simple text search
+        const fallbackResults = SearchTestUtils.createFallbackSearchMock(tasks, searchQuery);
+        
+        Logger.info(LogCategory.AI_SEARCH, 'Fallback search completed', {
+          query: searchQuery,
+          resultsCount: fallbackResults.length
+        });
+
+        setSearchResults(fallbackResults);
+        setFallbackUsed(true);
+        onSearchResults?.(fallbackResults.map(r => r.task));
+
+        toast({
+          title: "Búsqueda con fallback",
+          description: "La IA no está disponible, usando búsqueda por texto.",
+          variant: "default",
+        });
+
+        return { success: false, count: fallbackResults.length };
       }
-
-    } catch (error) {
-      console.error('Error en búsqueda semántica:', error);
-      toast({
-        title: "Error en búsqueda",
-        description: "No se pudo realizar la búsqueda semántica. Intenta de nuevo.",
-        variant: "destructive",
-      });
-      
-      // Fallback to simple text search
-      const simpleResults = tasks
-        .filter(task => 
-          task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
-        .map(task => ({
-          task,
-          relevanceScore: 50,
-          reason: 'Coincidencia de texto'
-        }));
-      
-      setSearchResults(simpleResults);
-      onSearchResults?.(simpleResults.map(r => r.task));
-    } finally {
+    }, { query: searchQuery, taskCount: tasks.length }).finally(() => {
       setIsSearching(false);
-    }
-  }, [tasks, projects, makeLLMRequest, onSearchResults]);
+    });
+  }, [tasks, projects, makeLLMRequest, onSearchResults, searchHistory]);
 
   useEffect(() => {
     if (debouncedQuery) {
+      Logger.debug(LogCategory.AI_SEARCH, 'Debounced query triggered', {
+        query: debouncedQuery,
+        delay: 500
+      });
       performSemanticSearch(debouncedQuery);
     } else {
       setSearchResults([]);
@@ -147,8 +195,10 @@ Encuentra las tareas más relevantes para esta consulta.`;
   }, [debouncedQuery, performSemanticSearch]);
 
   const clearSearch = () => {
+    Logger.info(LogCategory.AI_SEARCH, 'Search cleared');
     setQuery('');
     setSearchResults([]);
+    setFallbackUsed(false);
     onSearchResults?.([]);
   };
 
@@ -193,8 +243,13 @@ Encuentra las tareas más relevantes para esta consulta.`;
             <X className="h-4 w-4" />
           </Button>
         )}
-        <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
+        <div className="absolute right-8 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
           <Sparkles className="h-4 w-4 text-purple-500" />
+          {fallbackUsed && (
+            <Badge variant="outline" className="text-xs px-1 py-0">
+              Texto
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -248,10 +303,17 @@ Encuentra las tareas más relevantes para esta consulta.`;
             <h3 className="text-sm font-medium text-muted-foreground">
               {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
             </h3>
-            <Badge variant="outline" className="text-xs">
-              <Sparkles className="h-3 w-3 mr-1" />
-              IA
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                <Sparkles className="h-3 w-3 mr-1" />
+                {fallbackUsed ? 'Texto' : 'IA'}
+              </Badge>
+              {fallbackUsed && (
+                <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
+                  Fallback
+                </Badge>
+              )}
+            </div>
           </div>
 
           {searchResults.map((result, index) => {
@@ -261,7 +323,14 @@ Encuentra las tareas más relevantes para esta consulta.`;
               <Card 
                 key={result.task.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => onTaskSelect?.(result.task)}
+                onClick={() => {
+                  Logger.info(LogCategory.AI_SEARCH, 'Task selected from search', {
+                    taskId: result.task.id,
+                    relevanceScore: result.relevanceScore,
+                    searchQuery: query
+                  });
+                  onTaskSelect?.(result.task);
+                }}
               >
                 <CardContent className="p-4">
                   <div className="space-y-3">
