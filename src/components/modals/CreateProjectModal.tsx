@@ -89,11 +89,20 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
   });
 
   const onSubmit = (data: ProjectFormData) => {
+    // Ensure name is always included and other optional fields are properly handled
     const projectData: CreateProjectData = {
-      ...data,
+      name: data.name, // This ensures name is required
+      description: data.description || undefined,
+      color: data.color,
       start_date: data.start_date || undefined,
       end_date: data.end_date || undefined,
       deadline: data.deadline || undefined,
+      priority: data.priority,
+      progress: data.progress,
+      budget: data.budget,
+      category: data.category || undefined,
+      estimated_hours: data.estimated_hours,
+      tags: data.tags,
     };
 
     createProject(projectData);

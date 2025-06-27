@@ -37,6 +37,7 @@ export class GanttTestUtils {
 
   static generateTestProjects(count: number = 3): Project[] {
     const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
+    const priorities = ['low', 'medium', 'high', 'urgent'] as const;
     const projects: Project[] = [];
 
     for (let i = 0; i < count; i++) {
@@ -45,9 +46,29 @@ export class GanttTestUtils {
         name: `Test Project ${i + 1}`,
         description: `Description for test project ${i + 1}`,
         color: colors[i % colors.length],
+        status: 'active',
         user_id: 'test-user',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        // Add all required new fields with default values
+        priority: priorities[i % priorities.length],
+        progress: Math.floor(Math.random() * 100),
+        budget_used: 0,
+        actual_hours: 0,
+        custom_fields: {},
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        deadline: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        budget: Math.floor(Math.random() * 10000) + 1000,
+        tags: [`tag-${i}`, `category-${i % 2}`],
+        category: `Category ${i + 1}`,
+        estimated_hours: Math.floor(Math.random() * 100) + 10,
+        completion_notes: undefined,
+        completed_at: undefined,
+        archived_at: undefined,
+        change_reason: undefined,
+        last_status_change: undefined,
+        template_name: undefined
       });
     }
 
