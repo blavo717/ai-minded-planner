@@ -27,18 +27,12 @@ const KeyboardShortcutsHelp = () => {
     visible: { 
       opacity: 1, 
       scale: 1, 
-      y: 0,
-      transition: {
-        duration: 0.3,
-        ease: "easeOut",
-        staggerChildren: 0.05
-      }
+      y: 0
     },
     exit: { 
       opacity: 0, 
       scale: 0.8, 
-      y: 20,
-      transition: { duration: 0.2 }
+      y: 20
     }
   };
 
@@ -73,6 +67,11 @@ const KeyboardShortcutsHelp = () => {
               initial="hidden"
               animate="visible"
               exit="exit"
+              transition={{
+                duration: 0.3,
+                ease: "easeOut",
+                staggerChildren: 0.05
+              }}
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md"
             >
