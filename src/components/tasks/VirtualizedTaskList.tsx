@@ -120,6 +120,7 @@ const VirtualizedTaskList = memo(({
     <div className="w-full">
       <List
         height={height}
+        width="100%"
         itemCount={tasks.length}
         itemSize={itemHeight}
         itemData={itemData}
