@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,15 @@ const PostRefactorValidation = () => {
   const [currentTest, setCurrentTest] = useState<string>('');
 
   const { mainTasks, getSubtasksForTask } = useTasks();
-  const { filters, setFilters, filteredTasks } = useTaskFilters(mainTasks, getSubtasksForTask);
+  const { 
+    filters, 
+    updateFilter, 
+    filteredTasks,
+    clearAllFilters,
+    getActiveFiltersCount,
+    loadFilter,
+    setFilteredTasks
+  } = useTaskFilters(mainTasks, getSubtasksForTask, [], []);
   const { handleEditTask, handleManageDependencies, handleAssignTask, handleCreateSubtask } = useTaskHandlers();
   const { getPriorityColor, getStatusColor: getTaskStatusColor } = useTaskCardHelpers();
 
@@ -64,13 +71,13 @@ const PostRefactorValidation = () => {
         
         // Test filtro de búsqueda
         const testSearchTerm = 'test-search-123';
-        setFilters(prev => ({ ...prev, search: testSearchTerm }));
+        updateFilter('search', testSearchTerm);
         
         // Esperar a que se aplique el filtro
         await new Promise(resolve => setTimeout(resolve, 100));
         
         // Resetear filtro
-        setFilters(prev => ({ ...prev, search: '' }));
+        updateFilter('search', '');
         
         // Test useTaskHandlers
         if (typeof handleEditTask !== 'function' || 
@@ -183,7 +190,7 @@ const PostRefactorValidation = () => {
         console.log('=== TEST: Integración Tasks.tsx ===');
         
         const integrationTests = {
-          filtersIntegrated: typeof setFilters === 'function',
+          filtersIntegrated: typeof updateFilter === 'function',
           handlersIntegrated: typeof handleEditTask === 'function',
           tasksLoaded: mainTasks.length >= 0,
           subtasksAccessible: typeof getSubtasksForTask === 'function'
@@ -193,15 +200,15 @@ const PostRefactorValidation = () => {
         const originalFilters = { ...filters };
         
         // Test cambio de filtro de estado
-        setFilters(prev => ({ ...prev, status: ['pending'] }));
+        updateFilter('status', ['pending']);
         await new Promise(resolve => setTimeout(resolve, 50));
         
         // Test cambio de filtro de prioridad
-        setFilters(prev => ({ ...prev, priority: ['high'] }));
+        updateFilter('priority', ['high']);
         await new Promise(resolve => setTimeout(resolve, 50));
         
         // Resetear filtros
-        setFilters(originalFilters);
+        clearAllFilters();
         
         // Verificar que los handlers están disponibles
         const handlerTests = [
@@ -246,12 +253,12 @@ const PostRefactorValidation = () => {
         
         // Simular cambios que provocarían re-renders
         for (let i = 0; i < 5; i++) {
-          setFilters(prev => ({ ...prev, search: `test-${i}` }));
+          updateFilter('search', `test-${i}`);
           await new Promise(resolve => setTimeout(resolve, 10));
         }
         
         // Resetear
-        setFilters(prev => ({ ...prev, search: '' }));
+        updateFilter('search', '');
         
         const renderEnd = performance.now();
         const renderTime = renderEnd - renderStart;
@@ -327,7 +334,7 @@ const PostRefactorValidation = () => {
     } finally {
       setCurrentTest('');
     }
-  }, [postRefactorTests, setFilters, filteredTasks, mainTasks, handleEditTask, getPriorityColor, getTaskStatusColor, getSubtasksForTask]);
+  }, [postRefactorTests, updateFilter, filteredTasks, mainTasks, handleEditTask, getPriorityColor, getTaskStatusColor, getSubtasksForTask, clearAllFilters]);
 
   const runAllTests = useCallback(async () => {
     console.log('=== INICIANDO VALIDACIÓN POST-REFACTOR ===');

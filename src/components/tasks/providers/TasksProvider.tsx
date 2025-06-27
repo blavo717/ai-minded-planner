@@ -10,6 +10,10 @@ interface TasksContextType {
   isEditModalOpen: boolean;
   setIsEditModalOpen: (open: boolean) => void;
   
+  // New properties for backward compatibility
+  isEditTaskOpen: boolean;
+  setIsEditTaskOpen: (open: boolean) => void;
+  
   isDependenciesModalOpen: boolean;
   setIsDependenciesModalOpen: (open: boolean) => void;
   
@@ -30,6 +34,9 @@ interface TasksContextType {
   // Task state
   editingTask: Task | null;
   setEditingTask: (task: Task | null) => void;
+  
+  selectedTask: Task | null;
+  setSelectedTask: (task: Task | null) => void;
   
   dependenciesTask: Task | null;
   setDependenciesTask: (task: Task | null) => void;
@@ -74,6 +81,7 @@ export const TasksProvider = ({ children }: TasksProviderProps) => {
   
   // Task states
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [dependenciesTask, setDependenciesTask] = useState<Task | null>(null);
   const [assigningTask, setAssigningTask] = useState<Task | null>(null);
   const [completingTask, setCompletingTask] = useState<Task | null>(null);
@@ -84,6 +92,8 @@ export const TasksProvider = ({ children }: TasksProviderProps) => {
     setIsCreateTaskOpen,
     isEditModalOpen,
     setIsEditModalOpen,
+    isEditTaskOpen: isEditModalOpen,
+    setIsEditTaskOpen: setIsEditModalOpen,
     isDependenciesModalOpen,
     setIsDependenciesModalOpen,
     isAssignModalOpen,
@@ -102,6 +112,8 @@ export const TasksProvider = ({ children }: TasksProviderProps) => {
     // Task states
     editingTask,
     setEditingTask,
+    selectedTask,
+    setSelectedTask,
     dependenciesTask,
     setDependenciesTask,
     assigningTask,

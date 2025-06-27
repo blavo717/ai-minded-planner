@@ -4,7 +4,7 @@ import { Task } from './useTasks';
 import { TaskAssignment } from './useTaskAssignments';
 import { TaskDependency } from './useTaskDependencies';
 import { FilterState } from '@/types/filters';
-import { useTaskFilterOperations } from './filters/useTaskFilterOperations';
+import { applyTaskFilters } from '@/utils/taskFilterUtils';
 
 export const useTaskFilters = (
   tasks: Task[],
@@ -13,30 +13,27 @@ export const useTaskFilters = (
   taskDependencies: TaskDependency[]
 ) => {
   const [filters, setFilters] = useState<FilterState>({
-    statuses: [],
-    priorities: [],
+    search: '',
+    status: [],
+    priority: [],
     projects: [],
     assignedTo: [],
     tags: [],
-    dateRange: {
-      from: undefined,
-      to: undefined
-    },
+    dueDateFrom: undefined,
+    dueDateTo: undefined,
     hasSubtasks: undefined,
     hasDependencies: undefined,
     smartFilters: [],
     operators: {
-      status: 'OR',
-      priority: 'OR', 
-      project: 'OR',
-      assignedTo: 'OR',
-      tags: 'OR'
+      status: { type: 'OR' },
+      priority: { type: 'OR' }, 
+      projects: { type: 'OR' },
+      assignedTo: { type: 'OR' },
+      tags: { type: 'OR' }
     }
   });
 
   const [customFilteredTasks, setCustomFilteredTasks] = useState<Task[] | null>(null);
-
-  const { applyFilters } = useTaskFilterOperations();
 
   const filteredTasks = useMemo(() => {
     // Si hay tareas personalizadas (por ejemplo, de búsqueda semántica), usar esas
@@ -44,8 +41,8 @@ export const useTaskFilters = (
       return customFilteredTasks;
     }
 
-    return applyFilters(tasks, filters, getSubtasksForTask, taskAssignments, taskDependencies);
-  }, [tasks, filters, getSubtasksForTask, taskAssignments, taskDependencies, customFilteredTasks, applyFilters]);
+    return applyTaskFilters(tasks, filters, filters.search, getSubtasksForTask, taskAssignments, taskDependencies);
+  }, [tasks, filters, getSubtasksForTask, taskAssignments, taskDependencies, customFilteredTasks]);
 
   const availableTags = useMemo(() => {
     return Array.from(new Set(
@@ -78,36 +75,36 @@ export const useTaskFilters = (
   const clearAllFilters = useCallback(() => {
     setCustomFilteredTasks(null);
     setFilters({
-      statuses: [],
-      priorities: [],
+      search: '',
+      status: [],
+      priority: [],
       projects: [],
       assignedTo: [],
       tags: [],
-      dateRange: {
-        from: undefined,
-        to: undefined
-      },
+      dueDateFrom: undefined,
+      dueDateTo: undefined,
       hasSubtasks: undefined,
       hasDependencies: undefined,
       smartFilters: [],
       operators: {
-        status: 'OR',
-        priority: 'OR',
-        project: 'OR', 
-        assignedTo: 'OR',
-        tags: 'OR'
+        status: { type: 'OR' },
+        priority: { type: 'OR' },
+        projects: { type: 'OR' }, 
+        assignedTo: { type: 'OR' },
+        tags: { type: 'OR' }
       }
     });
   }, []);
 
   const getActiveFiltersCount = useCallback(() => {
     let count = 0;
-    if (filters.statuses.length > 0) count++;
-    if (filters.priorities.length > 0) count++;
+    if (filters.search) count++;
+    if (filters.status.length > 0) count++;
+    if (filters.priority.length > 0) count++;
     if (filters.projects.length > 0) count++;
     if (filters.assignedTo.length > 0) count++;
     if (filters.tags.length > 0) count++;
-    if (filters.dateRange.from || filters.dateRange.to) count++;
+    if (filters.dueDateFrom || filters.dueDateTo) count++;
     if (filters.hasSubtasks !== undefined) count++;
     if (filters.hasDependencies !== undefined) count++;
     if (filters.smartFilters.length > 0) count++;
