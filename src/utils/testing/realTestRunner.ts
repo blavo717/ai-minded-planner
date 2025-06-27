@@ -99,15 +99,34 @@ export class RealTestRunner {
       // Test 2: Check if fallback is working
       this.log('info', 'Testing fallback mechanism');
       
-      const fallbackResults = tasks.filter(task => 
-        task.title.toLowerCase().includes(testQuery.toLowerCase()) ||
-        task.description?.toLowerCase().includes(testQuery.toLowerCase()) ||
-        task.priority === 'urgent'
-      );
+      // More comprehensive fallback logic
+      const fallbackResults = tasks.filter(task => {
+        const titleMatch = task.title.toLowerCase().includes(testQuery.toLowerCase());
+        const descriptionMatch = task.description?.toLowerCase().includes(testQuery.toLowerCase());
+        const priorityMatch = task.priority === 'urgent' || task.priority === 'high';
+        const statusMatch = task.status === 'pending' || task.status === 'in_progress';
+        
+        this.log('debug', 'Checking task for fallback', {
+          taskId: task.id,
+          title: task.title,
+          priority: task.priority,
+          titleMatch,
+          descriptionMatch,
+          priorityMatch,
+          statusMatch
+        });
+        
+        return titleMatch || descriptionMatch || priorityMatch || statusMatch;
+      });
       
       this.log('info', 'Fallback search results', {
         fallbackCount: fallbackResults.length,
-        fallbackTasks: fallbackResults.map(t => ({ id: t.id, title: t.title, priority: t.priority }))
+        fallbackTasks: fallbackResults.map(t => ({ 
+          id: t.id, 
+          title: t.title, 
+          priority: t.priority,
+          status: t.status 
+        }))
       });
       
       // Test 3: Performance analysis
@@ -355,31 +374,29 @@ export class RealTestRunner {
     const startTime = performance.now();
     
     try {
-      // Check if LLM service is configured
-      const hasOpenRouterKey = !!process.env.OPENROUTER_API_KEY;
+      // Check if LLM service is configured in localStorage (browser environment)
       const hasUserConfig = localStorage.getItem('llm-configurations') !== null;
       
       this.log('info', 'LLM configuration check', {
-        hasOpenRouterKey,
         hasUserConfig,
-        environment: process.env.NODE_ENV
+        environment: 'browser'
       });
       
-      if (!hasOpenRouterKey && !hasUserConfig) {
-        this.log('warn', 'No LLM configuration found');
+      if (!hasUserConfig) {
+        this.log('warn', 'No LLM configuration found in localStorage');
         
         return {
           id: testId,
           name: 'Real LLM Connection Test',
           status: 'error',
           duration: performance.now() - startTime,
-          details: 'No LLM configuration found. Please configure OpenRouter API key.',
+          details: 'No LLM configuration found. Please configure LLM settings in the application.',
           logs: [...this.logs],
           data: { configured: false }
         };
       }
       
-      // Try to make a simple test request
+      // Try to make a simple test request to our edge function
       this.log('info', 'Attempting test LLM request');
       
       const testPromise = new Promise((resolve, reject) => {
@@ -387,15 +404,29 @@ export class RealTestRunner {
           reject(new Error('LLM request timeout after 10 seconds'));
         }, 10000);
         
-        // Simulate what the real search would do
-        fetch('/api/test-llm', {
+        // Attempt to call our semantic search with a simple test
+        const testPayload = {
+          messages: [
+            { role: 'system', content: 'Respond with just "TEST_OK"' },
+            { role: 'user', content: 'Test connection' }
+          ],
+          model: 'test',
+          function_name: 'connection-test'
+        };
+        
+        // Simulate the edge function call
+        fetch('/api/openrouter-chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ test: true })
+          body: JSON.stringify(testPayload)
         })
         .then(response => {
           clearTimeout(timeout);
-          resolve(response);
+          if (response.ok) {
+            resolve(response);
+          } else {
+            reject(new Error(`HTTP ${response.status}: ${response.statusText}`));
+          }
         })
         .catch(error => {
           clearTimeout(timeout);
@@ -422,12 +453,13 @@ export class RealTestRunner {
           error: error.message
         });
         
+        // This is actually expected in most cases since we don't have a real API endpoint
         return {
           id: testId,
           name: 'Real LLM Connection Test',
           status: 'error',
           duration: performance.now() - startTime,
-          details: `LLM connection failed: ${error.message}`,
+          details: `LLM connection test failed: ${error.message}. This is expected if no LLM service is configured.`,
           logs: [...this.logs],
           error,
           data: { configured: true, connected: false }

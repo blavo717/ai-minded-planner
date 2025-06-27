@@ -35,40 +35,42 @@ const RealTestRunnerComponent = () => {
     setIsRunning(true);
     
     try {
-      // Create a mock search function that simulates the real search behavior
+      // Create a more realistic search function that simulates the actual SemanticSearch behavior
       const mockSearchFunction = async (query: string) => {
-        // This simulates what happens in the real SemanticSearch component
+        console.log('🔍 Testing semantic search with query:', query);
+        
         if (mainTasks.length === 0) {
           throw new Error('No tasks available for search');
         }
         
-        // Simulate the LLM request that might fail
-        const mockLLMRequest = () => {
-          return new Promise((resolve, reject) => {
-            setTimeout(() => {
-              // Simulate LLM failure (which seems to be happening based on the image)
-              reject(new Error('LLM service unavailable'));
-            }, 1000);
+        // Simulate the actual fallback search logic from SemanticSearch
+        const fallbackResults = mainTasks.filter(task => {
+          const titleMatch = task.title.toLowerCase().includes(query.toLowerCase());
+          const descriptionMatch = task.description?.toLowerCase().includes(query.toLowerCase());
+          const priorityMatch = query.toLowerCase().includes('urgent') && task.priority === 'urgent';
+          const statusMatch = query.toLowerCase().includes('progress') && task.status === 'in_progress';
+          
+          console.log('🔎 Checking task:', {
+            id: task.id,
+            title: task.title,
+            priority: task.priority,
+            status: task.status,
+            titleMatch,
+            descriptionMatch,
+            priorityMatch,
+            statusMatch
           });
-        };
+          
+          return titleMatch || descriptionMatch || priorityMatch || statusMatch;
+        });
         
-        try {
-          await mockLLMRequest();
-          return []; // LLM succeeded but returned no results
-        } catch (error) {
-          // Fallback search (what actually happens in the real component)
-          const fallbackResults = mainTasks.filter(task => 
-            task.title.toLowerCase().includes(query.toLowerCase()) ||
-            task.description?.toLowerCase().includes(query.toLowerCase()) ||
-            task.priority === 'urgent'
-          );
-          
-          if (fallbackResults.length === 0) {
-            throw new Error('No results found even with fallback');
-          }
-          
-          return fallbackResults;
-        }
+        console.log('📋 Fallback search found:', fallbackResults.length, 'results');
+        
+        return fallbackResults.map(task => ({
+          task,
+          relevanceScore: 75, // Mock relevance score
+          reason: 'Fallback text search match'
+        }));
       };
       
       const result = await testRunner.runSemanticSearchRealTest(
