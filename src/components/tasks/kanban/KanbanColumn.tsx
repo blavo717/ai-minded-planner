@@ -87,7 +87,6 @@ const KanbanColumn = memo(({
               onEditTask={onEditTask}
               onDeleteTask={onDeleteTask}
               onDragStart={onDragStart}
-              onDragEnd={onDragEnd}
               getProjectName={getProjectName}
               getProjectColor={getProjectColor}
               getPriorityColor={getPriorityColor}

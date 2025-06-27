@@ -22,7 +22,6 @@ import EisenhowerMatrix from '@/components/tasks/views/EisenhowerMatrix';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
 import { FilterState } from '@/types/filters';
-import PerformanceTestingEntry from '@/components/testing/PerformanceTestingEntry';
 
 const TasksContent = () => {
   const { mainTasks, getSubtasksForTask } = useTasks();
