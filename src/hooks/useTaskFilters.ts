@@ -1,76 +1,136 @@
 
-import { useState, useMemo } from 'react';
-import { Task } from '@/hooks/useTasks';
+import { useState, useMemo, useCallback } from 'react';
+import { Task } from './useTasks';
+import { TaskAssignment } from './useTaskAssignments';
+import { TaskDependency } from './useTaskDependencies';
 import { FilterState } from '@/types/filters';
-import { useDebounce } from './useDebounce';
 import { useTaskFilterOperations } from './filters/useTaskFilterOperations';
-import { applyTaskFilters } from '@/utils/taskFilterUtils';
-
-const DEFAULT_FILTERS: FilterState = {
-  search: '',
-  status: [],
-  priority: [],
-  projects: [],
-  tags: [],
-  assignedTo: [],
-  dueDateFrom: undefined,
-  dueDateTo: undefined,
-  hasSubtasks: undefined,
-  hasDependencies: undefined,
-  smartFilters: [],
-  operators: {
-    status: { type: 'OR' },
-    priority: { type: 'OR' },
-    projects: { type: 'OR' },
-    tags: { type: 'OR' },
-    assignedTo: { type: 'OR' },
-  }
-};
 
 export const useTaskFilters = (
   tasks: Task[],
   getSubtasksForTask: (taskId: string) => Task[],
-  taskAssignments: any[] = [],
-  taskDependencies: any[] = []
+  taskAssignments: TaskAssignment[],
+  taskDependencies: TaskDependency[]
 ) => {
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<FilterState>({
+    statuses: [],
+    priorities: [],
+    projects: [],
+    assignedTo: [],
+    tags: [],
+    dateRange: {
+      from: undefined,
+      to: undefined
+    },
+    hasSubtasks: undefined,
+    hasDependencies: undefined,
+    smartFilters: [],
+    operators: {
+      status: 'OR',
+      priority: 'OR', 
+      project: 'OR',
+      assignedTo: 'OR',
+      tags: 'OR'
+    }
+  });
 
-  // Aplicar debouncing al filtro de búsqueda
-  const debouncedSearch = useDebounce(filters.search, 300);
+  const [customFilteredTasks, setCustomFilteredTasks] = useState<Task[] | null>(null);
 
-  const {
-    updateFilter,
-    clearAllFilters,
-    getActiveFiltersCount,
-    loadFilter
-  } = useTaskFilterOperations(filters, setFilters);
+  const { applyFilters } = useTaskFilterOperations();
 
-  // Memoizar el filtrado de tareas
   const filteredTasks = useMemo(() => {
-    return applyTaskFilters(
-      tasks,
-      filters,
-      debouncedSearch,
-      getSubtasksForTask,
-      taskAssignments,
-      taskDependencies
-    );
-  }, [tasks, filters, debouncedSearch, getSubtasksForTask, taskAssignments, taskDependencies]);
+    // Si hay tareas personalizadas (por ejemplo, de búsqueda semántica), usar esas
+    if (customFilteredTasks) {
+      return customFilteredTasks;
+    }
 
-  // Memoizar las etiquetas disponibles
+    return applyFilters(tasks, filters, getSubtasksForTask, taskAssignments, taskDependencies);
+  }, [tasks, filters, getSubtasksForTask, taskAssignments, taskDependencies, customFilteredTasks, applyFilters]);
+
   const availableTags = useMemo(() => {
-    const allTags = tasks.flatMap(task => task.tags || []);
-    return [...new Set(allTags)];
+    return Array.from(new Set(
+      tasks.flatMap(task => task.tags || [])
+    )).sort();
   }, [tasks]);
+
+  const updateFilter = useCallback((key: keyof FilterState | `operators.${keyof FilterState['operators']}`, value: any) => {
+    // Limpiar filtros personalizados cuando se aplican filtros normales
+    setCustomFilteredTasks(null);
+    
+    setFilters(prev => {
+      if (key.startsWith('operators.')) {
+        const operatorKey = key.split('.')[1] as keyof FilterState['operators'];
+        return {
+          ...prev,
+          operators: {
+            ...prev.operators,
+            [operatorKey]: value
+          }
+        };
+      }
+      return {
+        ...prev,
+        [key]: value
+      };
+    });
+  }, []);
+
+  const clearAllFilters = useCallback(() => {
+    setCustomFilteredTasks(null);
+    setFilters({
+      statuses: [],
+      priorities: [],
+      projects: [],
+      assignedTo: [],
+      tags: [],
+      dateRange: {
+        from: undefined,
+        to: undefined
+      },
+      hasSubtasks: undefined,
+      hasDependencies: undefined,
+      smartFilters: [],
+      operators: {
+        status: 'OR',
+        priority: 'OR',
+        project: 'OR', 
+        assignedTo: 'OR',
+        tags: 'OR'
+      }
+    });
+  }, []);
+
+  const getActiveFiltersCount = useCallback(() => {
+    let count = 0;
+    if (filters.statuses.length > 0) count++;
+    if (filters.priorities.length > 0) count++;
+    if (filters.projects.length > 0) count++;
+    if (filters.assignedTo.length > 0) count++;
+    if (filters.tags.length > 0) count++;
+    if (filters.dateRange.from || filters.dateRange.to) count++;
+    if (filters.hasSubtasks !== undefined) count++;
+    if (filters.hasDependencies !== undefined) count++;
+    if (filters.smartFilters.length > 0) count++;
+    return count;
+  }, [filters]);
+
+  const loadFilter = useCallback((filterData: FilterState) => {
+    setCustomFilteredTasks(null);
+    setFilters(filterData);
+  }, []);
+
+  const setFilteredTasks = useCallback((tasks: Task[]) => {
+    setCustomFilteredTasks(tasks);
+  }, []);
 
   return {
     filters,
-    setFilters,
     updateFilter,
+    filteredTasks,
+    availableTags,
     clearAllFilters,
     getActiveFiltersCount,
     loadFilter,
-    filteredTasks,
-    availableTags
+    setFilteredTasks
   };
 };

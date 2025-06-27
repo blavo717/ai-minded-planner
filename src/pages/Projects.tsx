@@ -13,7 +13,8 @@ import {
   Trash2,
   FolderOpen,
   CheckCircle,
-  Clock
+  Clock,
+  BarChart3
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -22,14 +23,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import CreateProjectModal from '@/components/modals/CreateProjectModal';
+import ProjectGanttView from '@/components/projects/ProjectGanttView';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+type ViewMode = 'grid' | 'gantt';
 
 const Projects = () => {
   const { projects } = useProjects();
   const { tasks } = useTasks();
   const { deleteProject } = useProjectMutations();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   const getProjectStats = (projectId: string) => {
     const projectTasks = tasks.filter(task => task.project_id === projectId);
@@ -44,6 +49,18 @@ const Projects = () => {
     };
   };
 
+  if (viewMode === 'gantt') {
+    return (
+      <div className="container mx-auto px-6 py-8 space-y-8">
+        <ProjectGanttView
+          tasks={tasks}
+          projects={projects}
+          onBackToProjects={() => setViewMode('grid')}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-6 py-8 space-y-8">
       {/* Header */}
@@ -54,13 +71,23 @@ const Projects = () => {
             Organiza tu trabajo en proyectos
           </p>
         </div>
-        <Button 
-          onClick={() => setIsCreateProjectOpen(true)}
-          className="shrink-0"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Proyecto
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => setViewMode('gantt')}
+            className="shrink-0"
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Vista Gantt
+          </Button>
+          <Button 
+            onClick={() => setIsCreateProjectOpen(true)}
+            className="shrink-0"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Proyecto
+          </Button>
+        </div>
       </div>
 
       {/* Projects Grid */}

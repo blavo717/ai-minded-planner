@@ -16,6 +16,7 @@ import TasksViewSection from '@/components/tasks/TasksViewSection';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
 import { FilterState } from '@/types/filters';
+import { Task } from '@/hooks/useTasks';
 
 const TasksContent = () => {
   const { mainTasks, getSubtasksForTask } = useTasks();
@@ -32,6 +33,8 @@ const TasksContent = () => {
     setShowInsights,
     showHistory,
     setIsCreateTaskOpen,
+    setIsEditTaskOpen,
+    setSelectedTask,
   } = useTasksContext();
   
   const { 
@@ -41,7 +44,8 @@ const TasksContent = () => {
     availableTags, 
     clearAllFilters,
     getActiveFiltersCount,
-    loadFilter 
+    loadFilter,
+    setFilteredTasks 
   } = useTaskFilters(mainTasks, getSubtasksForTask, taskAssignments, allTaskDependencies);
   
   const { 
@@ -69,6 +73,15 @@ const TasksContent = () => {
     });
   };
 
+  const handleTaskSelect = (task: Task) => {
+    setSelectedTask(task);
+    setIsEditTaskOpen(true);
+  };
+
+  const handleSearchResults = (results: Task[]) => {
+    setFilteredTasks(results);
+  };
+
   if (showHistory) {
     return (
       <div className="container mx-auto px-4 py-6 space-y-6">
@@ -76,6 +89,10 @@ const TasksContent = () => {
           showInsights={showInsights}
           onToggleInsights={() => setShowInsights(!showInsights)}
           onCreateTask={() => setIsCreateTaskOpen(true)}
+          tasks={mainTasks}
+          projects={projects}
+          onTaskSelect={handleTaskSelect}
+          onSearchResults={handleSearchResults}
         />
         <TaskHistory />
         <TaskModals />
@@ -89,6 +106,10 @@ const TasksContent = () => {
         showInsights={showInsights}
         onToggleInsights={() => setShowInsights(!showInsights)}
         onCreateTask={() => setIsCreateTaskOpen(true)}
+        tasks={mainTasks}
+        projects={projects}
+        onTaskSelect={handleTaskSelect}
+        onSearchResults={handleSearchResults}
       />
 
       <TasksInsightsSection showInsights={showInsights} />
