@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,9 +76,7 @@ const AdvancedFilters = ({
   filters, 
   onFiltersChange,
   onSaveFilter,
-  onLoadFilter,
-  taskAssignments = [],
-  taskDependencies = []
+  onLoadFilter
 }: AdvancedFiltersProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [saveFilterName, setSaveFilterName] = useState('');
@@ -89,9 +86,7 @@ const AdvancedFilters = ({
   const { savedFilters, saveFilter, loading } = useSavedFilters();
   const smartFilters = getSmartFilters();
 
-  // Cargar filtros guardados al inicializar
   useEffect(() => {
-    // Auto-cargar el filtro por defecto si existe
     const defaultFilter = savedFilters.find(filter => filter.is_default);
     if (defaultFilter && onLoadFilter) {
       onLoadFilter(defaultFilter.filter_data);
@@ -256,7 +251,6 @@ const AdvancedFilters = ({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Búsqueda básica - siempre visible */}
         <div>
           <Input
             placeholder="Buscar tareas..."
@@ -265,7 +259,6 @@ const AdvancedFilters = ({
           />
         </div>
 
-        {/* Filtros inteligentes */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">Filtros Inteligentes</Label>
           <div className="flex flex-wrap gap-2">
@@ -290,7 +283,6 @@ const AdvancedFilters = ({
           </div>
         </div>
 
-        {/* Filtros guardados */}
         {!loading && savedFilters.length > 0 && (
           <div className="space-y-2">
             <Label className="text-xs font-medium">Filtros Guardados</Label>

@@ -1,231 +1,240 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Task } from '@/hooks/useTasks';
 import { FilterState } from '@/types/filters';
 import { applySmartFilter } from '@/utils/smartFilters';
 
-const initialFilterState: FilterState = {
-  search: '',
-  status: [],
-  priority: [],
-  projects: [],
-  tags: [],
-  assignedTo: [],
-  dueDateFrom: undefined,
-  dueDateTo: undefined,
-  hasSubtasks: undefined,
-  hasDependencies: undefined,
-  smartFilters: [],
-  operators: {
-    status: { type: 'OR' },
-    priority: { type: 'OR' },
-    projects: { type: 'OR' },
-    tags: { type: 'OR' },
-    assignedTo: { type: 'OR' },
-  }
-};
-
 export const useTaskFilters = (
-  tasks: Task[], 
+  tasks: Task[],
   getSubtasksForTask: (taskId: string) => Task[],
   taskAssignments: any[] = [],
   taskDependencies: any[] = []
 ) => {
-  const [filters, setFilters] = useState<FilterState>(initialFilterState);
+  const [filters, setFilters] = useState<FilterState>({
+    search: '',
+    status: [],
+    priority: [],
+    projects: [],
+    tags: [],
+    assignedTo: [],
+    dueDateFrom: undefined,
+    dueDateTo: undefined,
+    hasSubtasks: undefined,
+    hasDependencies: undefined,
+    smartFilters: [],
+    operators: {
+      status: { type: 'OR' },
+      priority: { type: 'OR' },
+      projects: { type: 'OR' },
+      tags: { type: 'OR' },
+      assignedTo: { type: 'OR' },
+    }
+  });
 
-  const availableTags = useMemo(() => {
-    return Array.from(
-      new Set(
-        tasks
-          .filter(task => task.tags)
-          .flatMap(task => task.tags || [])
-      )
-    );
-  }, [tasks]);
-
-  // Función auxiliar para aplicar filtros con operadores
-  const applyArrayFilter = (
-    taskValue: string | string[] | undefined | null,
-    filterValues: string[],
-    operator: 'AND' | 'OR'
-  ): boolean => {
-    if (filterValues.length === 0) return true;
-    
-    if (Array.isArray(taskValue)) {
-      if (operator === 'AND') {
-        return filterValues.every(filterValue => taskValue.includes(filterValue));
-      } else {
-        return filterValues.some(filterValue => taskValue.includes(filterValue));
-      }
+  const updateFilter = (key: keyof FilterState | string, value: any) => {
+    if (key.includes('.')) {
+      const [parentKey, childKey] = key.split('.');
+      setFilters(prev => ({
+        ...prev,
+        [parentKey]: {
+          ...prev[parentKey as keyof FilterState],
+          [childKey]: value
+        }
+      }));
     } else {
-      return taskValue ? filterValues.includes(taskValue) : false;
+      setFilters(prev => ({
+        ...prev,
+        [key]: value
+      }));
     }
-  };
-
-  // Función para verificar si una tarea está asignada a usuarios específicos
-  const isTaskAssignedTo = (taskId: string, userIds: string[]): boolean => {
-    if (userIds.length === 0) return true;
-    
-    const taskAssignmentsForTask = taskAssignments.filter(assignment => assignment.task_id === taskId);
-    return taskAssignmentsForTask.some(assignment => userIds.includes(assignment.assigned_to));
-  };
-
-  // Función para verificar si una tarea tiene dependencias
-  const taskHasDependencies = (taskId: string): boolean => {
-    return taskDependencies.some(dep => dep.task_id === taskId || dep.depends_on_task_id === taskId);
-  };
-
-  const filteredTasks = useMemo(() => {
-    let result = [...tasks];
-
-    // Aplicar filtros inteligentes primero (como unión, no intersección)
-    if (filters.smartFilters.length > 0) {
-      const smartFilteredTasksSet = new Set<Task>();
-      
-      filters.smartFilters.forEach(filterId => {
-        const filtered = applySmartFilter(result, filterId);
-        filtered.forEach(task => smartFilteredTasksSet.add(task));
-      });
-      
-      result = Array.from(smartFilteredTasksSet);
-    }
-
-    // Aplicar filtros regulares
-    result = result.filter((task) => {
-      // Filtro de búsqueda
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const searchInTask = task.title.toLowerCase().includes(searchLower) ||
-                           task.description?.toLowerCase().includes(searchLower);
-        
-        if (!searchInTask) {
-          // Buscar también en subtareas
-          const subtasks = getSubtasksForTask(task.id);
-          const searchInSubtasks = subtasks.some(subtask => 
-            subtask.title.toLowerCase().includes(searchLower) ||
-            subtask.description?.toLowerCase().includes(searchLower)
-          );
-          if (!searchInSubtasks) return false;
-        }
-      }
-
-      // Filtros con operadores
-      if (!applyArrayFilter(task.status, filters.status, filters.operators.status.type)) {
-        return false;
-      }
-
-      if (!applyArrayFilter(task.priority, filters.priority, filters.operators.priority.type)) {
-        return false;
-      }
-
-      if (!applyArrayFilter(task.project_id, filters.projects, filters.operators.projects.type)) {
-        return false;
-      }
-
-      if (!applyArrayFilter(task.tags, filters.tags, filters.operators.tags.type)) {
-        return false;
-      }
-
-      // Filtro de asignaciones (corregido)
-      if (filters.assignedTo.length > 0) {
-        if (filters.operators.assignedTo.type === 'AND') {
-          // Todas las personas deben estar asignadas a la tarea
-          const taskAssignmentsForTask = taskAssignments.filter(assignment => assignment.task_id === task.id);
-          const assignedUserIds = taskAssignmentsForTask.map(assignment => assignment.assigned_to);
-          if (!filters.assignedTo.every(userId => assignedUserIds.includes(userId))) {
-            return false;
-          }
-        } else {
-          // Al menos una persona debe estar asignada a la tarea
-          if (!isTaskAssignedTo(task.id, filters.assignedTo)) {
-            return false;
-          }
-        }
-      }
-
-      // Filtros de fecha
-      if (filters.dueDateFrom && task.due_date) {
-        if (new Date(task.due_date) < filters.dueDateFrom) {
-          return false;
-        }
-      }
-      if (filters.dueDateTo && task.due_date) {
-        if (new Date(task.due_date) > filters.dueDateTo) {
-          return false;
-        }
-      }
-
-      // Filtros booleanos
-      if (filters.hasSubtasks !== undefined) {
-        const hasSubtasks = getSubtasksForTask(task.id).length > 0;
-        if (filters.hasSubtasks !== hasSubtasks) {
-          return false;
-        }
-      }
-
-      // Filtro de dependencias (corregido)
-      if (filters.hasDependencies !== undefined) {
-        const hasDependencies = taskHasDependencies(task.id);
-        if (filters.hasDependencies !== hasDependencies) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    return result;
-  }, [tasks, filters, getSubtasksForTask, taskAssignments, taskDependencies]);
-
-  const updateFilter = (key: keyof FilterState, value: any) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value
-    }));
-  };
-
-  const updateOperator = (filterType: keyof FilterState['operators'], operatorType: 'AND' | 'OR') => {
-    setFilters(prev => ({
-      ...prev,
-      operators: {
-        ...prev.operators,
-        [filterType]: { type: operatorType }
-      }
-    }));
   };
 
   const clearAllFilters = () => {
-    setFilters(initialFilterState);
+    setFilters({
+      search: '',
+      status: [],
+      priority: [],
+      projects: [],
+      tags: [],
+      assignedTo: [],
+      dueDateFrom: undefined,
+      dueDateTo: undefined,
+      hasSubtasks: undefined,
+      hasDependencies: undefined,
+      smartFilters: [],
+      operators: {
+        status: { type: 'OR' },
+        priority: { type: 'OR' },
+        projects: { type: 'OR' },
+        tags: { type: 'OR' },
+        assignedTo: { type: 'OR' },
+      }
+    });
   };
 
   const getActiveFiltersCount = () => {
     let count = 0;
     if (filters.search) count++;
-    if (filters.status.length > 0) count++;
-    if (filters.priority.length > 0) count++;
-    if (filters.projects.length > 0) count++;
-    if (filters.tags.length > 0) count++;
-    if (filters.assignedTo.length > 0) count++;
+    if (filters.status?.length > 0) count++;
+    if (filters.priority?.length > 0) count++;
+    if (filters.projects?.length > 0) count++;
+    if (filters.tags?.length > 0) count++;
+    if (filters.assignedTo?.length > 0) count++;
     if (filters.dueDateFrom || filters.dueDateTo) count++;
     if (filters.hasSubtasks !== undefined) count++;
     if (filters.hasDependencies !== undefined) count++;
-    if (filters.smartFilters.length > 0) count++;
+    if (filters.smartFilters?.length > 0) count++;
     return count;
   };
 
-  const loadFilter = (savedFilter: FilterState) => {
-    setFilters(savedFilter);
+  const loadFilter = (filterData: FilterState) => {
+    setFilters(filterData);
   };
+
+  const filteredTasks = useMemo(() => {
+    let result = [...tasks];
+
+    // Apply smart filters first
+    if (filters.smartFilters?.length > 0) {
+      for (const smartFilterId of filters.smartFilters) {
+        result = applySmartFilter(result, smartFilterId);
+      }
+    }
+
+    // Search filter
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      result = result.filter(task => {
+        const matchesTitle = task.title.toLowerCase().includes(searchTerm);
+        const matchesDescription = task.description?.toLowerCase().includes(searchTerm);
+        
+        // Search in subtasks
+        const subtasks = getSubtasksForTask(task.id);
+        const matchesSubtasks = subtasks.some(subtask => 
+          subtask.title.toLowerCase().includes(searchTerm) ||
+          subtask.description?.toLowerCase().includes(searchTerm)
+        );
+        
+        return matchesTitle || matchesDescription || matchesSubtasks;
+      });
+    }
+
+    // Status filter
+    if (filters.status.length > 0) {
+      result = result.filter(task => {
+        if (filters.operators.status.type === 'OR') {
+          return filters.status.includes(task.status);
+        } else {
+          return filters.status.every(status => task.status === status);
+        }
+      });
+    }
+
+    // Priority filter
+    if (filters.priority.length > 0) {
+      result = result.filter(task => {
+        if (filters.operators.priority.type === 'OR') {
+          return filters.priority.includes(task.priority);
+        } else {
+          return filters.priority.every(priority => task.priority === priority);
+        }
+      });
+    }
+
+    // Projects filter
+    if (filters.projects.length > 0) {
+      result = result.filter(task => {
+        if (!task.project_id) return false;
+        if (filters.operators.projects.type === 'OR') {
+          return filters.projects.includes(task.project_id);
+        } else {
+          return filters.projects.every(projectId => task.project_id === projectId);
+        }
+      });
+    }
+
+    // Tags filter
+    if (filters.tags.length > 0) {
+      result = result.filter(task => {
+        if (!task.tags || task.tags.length === 0) return false;
+        if (filters.operators.tags.type === 'OR') {
+          return filters.tags.some(tag => task.tags?.includes(tag));
+        } else {
+          return filters.tags.every(tag => task.tags?.includes(tag));
+        }
+      });
+    }
+
+    // Assigned to filter
+    if (filters.assignedTo.length > 0) {
+      result = result.filter(task => {
+        const taskAssignments = taskAssignments.filter(assignment => assignment.task_id === task.id);
+        if (taskAssignments.length === 0) return false;
+        
+        const assignedUserIds = taskAssignments.map(assignment => assignment.assigned_to);
+        
+        if (filters.operators.assignedTo.type === 'OR') {
+          return filters.assignedTo.some(userId => assignedUserIds.includes(userId));
+        } else {
+          return filters.assignedTo.every(userId => assignedUserIds.includes(userId));
+        }
+      });
+    }
+
+    // Date range filters
+    if (filters.dueDateFrom || filters.dueDateTo) {
+      result = result.filter(task => {
+        if (!task.due_date) return false;
+        
+        const taskDate = new Date(task.due_date);
+        
+        if (filters.dueDateFrom) {
+          const fromDate = new Date(filters.dueDateFrom);
+          fromDate.setHours(0, 0, 0, 0);
+          if (taskDate < fromDate) return false;
+        }
+        
+        if (filters.dueDateTo) {
+          const toDate = new Date(filters.dueDateTo);
+          toDate.setHours(23, 59, 59, 999);
+          if (taskDate > toDate) return false;
+        }
+        
+        return true;
+      });
+    }
+
+    // Has subtasks filter
+    if (filters.hasSubtasks !== undefined) {
+      result = result.filter(task => {
+        const hasSubtasks = getSubtasksForTask(task.id).length > 0;
+        return filters.hasSubtasks ? hasSubtasks : !hasSubtasks;
+      });
+    }
+
+    // Has dependencies filter
+    if (filters.hasDependencies !== undefined) {
+      result = result.filter(task => {
+        const hasDependencies = taskDependencies.some(dep => dep.task_id === task.id);
+        return filters.hasDependencies ? hasDependencies : !hasDependencies;
+      });
+    }
+
+    return result;
+  }, [tasks, filters, getSubtasksForTask, taskAssignments, taskDependencies]);
+
+  const availableTags = useMemo(() => {
+    const allTags = tasks.flatMap(task => task.tags || []);
+    return [...new Set(allTags)];
+  }, [tasks]);
 
   return {
     filters,
-    setFilters,
     updateFilter,
-    updateOperator,
-    filteredTasks,
-    availableTags,
     clearAllFilters,
     getActiveFiltersCount,
-    loadFilter
+    loadFilter,
+    filteredTasks,
+    availableTags
   };
 };
