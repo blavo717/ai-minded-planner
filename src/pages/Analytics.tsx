@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, BarChart3, TrendingUp, Clock, Target, Download, Timer, Database } from 'lucide-react';
+import { Calendar, BarChart3, TrendingUp, Clock, Target, Download, Timer, Database, CheckCircle } from 'lucide-react';
 import ProductivityOverview from '@/components/Analytics/ProductivityOverview';
 import TaskCompletionChart from '@/components/Analytics/TaskCompletionChart';
 import TimeDistributionChart from '@/components/Analytics/TimeDistributionChart';
@@ -15,6 +14,8 @@ import WorkPatternsAnalysis from '@/components/Analytics/WorkPatternsAnalysis';
 import TimeMetricsDashboard from '@/components/Analytics/TimeMetricsDashboard';
 import TaskSessionLogger from '@/components/Analytics/TaskSessionLogger';
 import TestDataGenerator from '@/components/Analytics/TestDataGenerator';
+import KPIDashboard from '@/components/Analytics/KPIDashboard';
+import TaskLevelAnalytics from '@/components/Analytics/TaskLevelAnalytics';
 import { useAnalytics } from '@/hooks/useAnalytics';
 
 const Analytics = () => {
@@ -77,15 +78,23 @@ const Analytics = () => {
       </div>
 
       {/* Main Content */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
+      <Tabs defaultValue="dashboard" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-8">
+          <TabsTrigger value="dashboard" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
+            Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Target className="h-4 w-4" />
             Resumen
           </TabsTrigger>
           <TabsTrigger value="time" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Tiempo
+          </TabsTrigger>
+          <TabsTrigger value="tasks" className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            Tareas
           </TabsTrigger>
           <TabsTrigger value="sessions" className="flex items-center gap-2">
             <Timer className="h-4 w-4" />
@@ -103,11 +112,11 @@ const Analytics = () => {
             <Calendar className="h-4 w-4" />
             Reportes
           </TabsTrigger>
-          <TabsTrigger value="data" className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            Datos
-          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-6">
+          <KPIDashboard period={selectedPeriod} />
+        </TabsContent>
 
         <TabsContent value="overview" className="space-y-6">
           <ProductivityOverview period={selectedPeriod} />
@@ -120,6 +129,10 @@ const Analytics = () => {
         <TabsContent value="time" className="space-y-6">
           <TimeMetricsDashboard period={selectedPeriod} />
           <ProductivityHeatmap period={selectedPeriod} />
+        </TabsContent>
+
+        <TabsContent value="tasks" className="space-y-6">
+          <TaskLevelAnalytics period={selectedPeriod} />
         </TabsContent>
 
         <TabsContent value="sessions" className="space-y-6">
@@ -136,10 +149,6 @@ const Analytics = () => {
 
         <TabsContent value="reports" className="space-y-6">
           <ReportGenerator />
-        </TabsContent>
-
-        <TabsContent value="data" className="space-y-6">
-          <TestDataGenerator />
         </TabsContent>
       </Tabs>
     </div>
