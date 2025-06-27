@@ -3,7 +3,9 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjects } from '@/hooks/useProjects';
+import { useKanbanPreferences } from '@/hooks/useKanbanPreferences';
 import { Task } from '@/hooks/useTasks';
+import { toast } from '@/components/ui/use-toast';
 import { 
   CheckCircle, 
   Clock, 
@@ -53,23 +55,43 @@ const columns = [
 const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps) => {
   const { updateTask, deleteTask } = useTaskMutations();
   const { projects } = useProjects();
+  const { preferences, setSelectedProject } = useKanbanPreferences();
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Filter tasks by selected project
+  // Filter tasks by selected project with memoization
   const filteredTasks = useMemo(() => {
-    if (!selectedProjectId) return tasks;
-    return tasks.filter(task => task.project_id === selectedProjectId);
-  }, [tasks, selectedProjectId]);
+    if (!preferences.selectedProjectId) return tasks;
+    return tasks.filter(task => task.project_id === preferences.selectedProjectId);
+  }, [tasks, preferences.selectedProjectId]);
 
-  const handleStatusChange = useCallback((taskId: string, newStatus: Task['status']) => {
-    updateTask({ 
-      id: taskId, 
-      status: newStatus,
-      completed_at: newStatus === 'completed' ? new Date().toISOString() : undefined
-    });
-  }, [updateTask]);
+  const handleStatusChange = useCallback(async (taskId: string, newStatus: Task['status']) => {
+    if (isUpdating) return;
+    
+    setIsUpdating(true);
+    try {
+      await updateTask({ 
+        id: taskId, 
+        status: newStatus,
+        completed_at: newStatus === 'completed' ? new Date().toISOString() : undefined
+      });
+      
+      toast({
+        title: "Tarea actualizada",
+        description: `Estado cambiado a ${newStatus === 'completed' ? 'completada' : 'en progreso'}`,
+      });
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la tarea",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [updateTask, isUpdating]);
 
   const getPriorityColor = useCallback((priority: Task['priority']) => {
     switch (priority) {
@@ -96,9 +118,10 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
   const handleDragStart = useCallback((e: React.DragEvent, task: Task) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', task.id);
   }, []);
 
-  const handleDragEnd = useCallback((e: React.DragEvent) => {
+  const handleDragEnd = useCallback(() => {
     setDraggedTask(null);
     setDragOverColumn(null);
   }, []);
@@ -112,21 +135,43 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
     setDragOverColumn(columnId);
   }, []);
 
-  const handleDragLeave = useCallback(() => {
-    setDragOverColumn(null);
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    // Only clear drag over if we're actually leaving the column
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setDragOverColumn(null);
+    }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent, targetStatus: Task['status']) => {
+  const handleDrop = useCallback(async (e: React.DragEvent, targetStatus: Task['status']) => {
     e.preventDefault();
-    if (draggedTask && draggedTask.status !== targetStatus) {
-      handleStatusChange(draggedTask.id, targetStatus);
+    
+    if (draggedTask && draggedTask.status !== targetStatus && !isUpdating) {
+      await handleStatusChange(draggedTask.id, targetStatus);
     }
+    
     setDraggedTask(null);
     setDragOverColumn(null);
-  }, [draggedTask, handleStatusChange]);
+  }, [draggedTask, handleStatusChange, isUpdating]);
 
-  const handleDeleteTask = useCallback((taskId: string) => {
-    deleteTask(taskId);
+  const handleDeleteTask = useCallback(async (taskId: string) => {
+    try {
+      await deleteTask(taskId);
+      toast({
+        title: "Tarea eliminada",
+        description: "La tarea se ha eliminado correctamente",
+      });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la tarea",
+        variant: "destructive"
+      });
+    }
   }, [deleteTask]);
 
   const boardVariants = {
@@ -144,8 +189,8 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
     <div className="space-y-6">
       <ProjectKanbanSelector
         projects={projects}
-        selectedProjectId={selectedProjectId}
-        onProjectSelect={setSelectedProjectId}
+        selectedProjectId={preferences.selectedProjectId}
+        onProjectSelect={setSelectedProject}
         tasks={filteredTasks}
       />
 
@@ -180,6 +225,7 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
               getProjectColor={getProjectColor}
               getPriorityColor={getPriorityColor}
               isDragOver={dragOverColumn === column.id}
+              isUpdating={isUpdating}
             />
           </motion.div>
         ))}

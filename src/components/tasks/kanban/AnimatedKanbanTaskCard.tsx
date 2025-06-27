@@ -1,5 +1,5 @@
 
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -45,7 +45,10 @@ const AnimatedKanbanTaskCard = memo(({
 }: AnimatedKanbanTaskCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  
   const completedSubtasks = subtasks.filter(s => s.status === 'completed').length;
+  const projectName = getProjectName(task.project_id);
+  const projectColor = getProjectColor(task.project_id);
 
   const cardVariants = {
     idle: { 
@@ -82,14 +85,26 @@ const AnimatedKanbanTaskCard = memo(({
     }
   };
 
-  const handleDragStart = (e: React.DragEvent) => {
+  const handleDragStart = useCallback((e: React.DragEvent) => {
     setIsDragging(true);
     onDragStart(e, task);
-  };
+  }, [onDragStart, task]);
 
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     setIsDragging(false);
-  };
+  }, []);
+
+  const handleEditTask = useCallback(() => {
+    onEditTask(task);
+  }, [onEditTask, task]);
+
+  const handleDeleteTask = useCallback(() => {
+    onDeleteTask(task.id);
+  }, [onDeleteTask, task.id]);
+
+  const toggleExpanded = useCallback(() => {
+    setIsExpanded(prev => !prev);
+  }, []);
 
   return (
     <motion.div
@@ -135,7 +150,7 @@ const AnimatedKanbanTaskCard = memo(({
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
-                  onClick={() => setIsExpanded(!isExpanded)}
+                  onClick={toggleExpanded}
                 >
                   <motion.div
                     animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -152,11 +167,11 @@ const AnimatedKanbanTaskCard = memo(({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEditTask(task)}>
+                    <DropdownMenuItem onClick={handleEditTask}>
                       Editar
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => onDeleteTask(task.id)}
+                      onClick={handleDeleteTask}
                       className="text-red-600"
                     >
                       Eliminar
@@ -189,7 +204,7 @@ const AnimatedKanbanTaskCard = memo(({
               transition={{ delay: 0.2 }}
             >
               {/* Project badge */}
-              {getProjectName(task.project_id) && (
+              {projectName && (
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.2 }}
@@ -197,10 +212,10 @@ const AnimatedKanbanTaskCard = memo(({
                   <Badge variant="outline" className="text-xs flex items-center gap-1 w-fit">
                     <motion.div 
                       className="w-2 h-2 rounded-full" 
-                      style={{ backgroundColor: getProjectColor(task.project_id) || '#3B82F6' }}
+                      style={{ backgroundColor: projectColor || '#3B82F6' }}
                       whileHover={{ scale: 1.2 }}
                     />
-                    {getProjectName(task.project_id)}
+                    {projectName}
                   </Badge>
                 </motion.div>
               )}

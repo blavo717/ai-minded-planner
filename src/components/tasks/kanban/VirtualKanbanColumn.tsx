@@ -1,12 +1,12 @@
+
 import React, { memo, useMemo, useState } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Task } from '@/hooks/useTasks';
-import KanbanTaskCard from './KanbanTaskCard';
 import AnimatedKanbanTaskCard from './AnimatedKanbanTaskCard';
-import { ChevronDown, Plus } from 'lucide-react';
+import { ChevronDown, Plus, Loader2 } from 'lucide-react';
 
 interface VirtualKanbanColumnProps {
   column: {
@@ -24,12 +24,13 @@ interface VirtualKanbanColumnProps {
   onDragEnd: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDragEnter: () => void;
-  onDragLeave: () => void;
+  onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, targetStatus: Task['status']) => void;
   getProjectName: (projectId?: string) => string | null;
   getProjectColor: (projectId?: string) => string | null;
   getPriorityColor: (priority: Task['priority']) => string;
   isDragOver: boolean;
+  isUpdating?: boolean;
 }
 
 const INITIAL_LOAD_COUNT = 15;
@@ -50,7 +51,8 @@ const VirtualKanbanColumn = memo(({
   getProjectName,
   getProjectColor,
   getPriorityColor,
-  isDragOver
+  isDragOver,
+  isUpdating = false
 }: VirtualKanbanColumnProps) => {
   const [loadedCount, setLoadedCount] = useState(INITIAL_LOAD_COUNT);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -85,6 +87,11 @@ const VirtualKanbanColumn = memo(({
       scale: 1.02,
       boxShadow: '0 8px 32px rgba(59, 130, 246, 0.15)',
       transition: { duration: 0.2 }
+    },
+    updating: {
+      opacity: 0.7,
+      pointerEvents: 'none' as const,
+      transition: { duration: 0.2 }
     }
   };
 
@@ -107,10 +114,19 @@ const VirtualKanbanColumn = memo(({
       className="space-y-4"
       variants={containerVariants}
       initial="hidden"
-      animate={isDragOver ? "dragOver" : "visible"}
+      animate={
+        isUpdating ? "updating" : 
+        isDragOver ? "dragOver" : 
+        "visible"
+      }
       layout
     >
-      <Card className={`${column.color} border-2 transition-all duration-200`}>
+      <Card className={`${column.color} border-2 transition-all duration-200 relative`}>
+        {isUpdating && (
+          <div className="absolute inset-0 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+          </div>
+        )}
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center justify-between">
             <motion.span 
@@ -140,6 +156,7 @@ const VirtualKanbanColumn = memo(({
                 size="sm"
                 className="h-6 w-6 p-0"
                 onClick={() => setIsExpanded(!isExpanded)}
+                disabled={isUpdating}
               >
                 <motion.div
                   animate={{ rotate: isExpanded ? 0 : -90 }}
@@ -171,7 +188,7 @@ const VirtualKanbanColumn = memo(({
             <AnimatePresence mode="popLayout">
               {visibleTasks.map((task) => (
                 <motion.div
-                  key={task.id}
+                  key={`${task.id}-${task.status}`}
                   variants={taskVariants}
                   initial="hidden"
                   animate="visible"
@@ -192,7 +209,7 @@ const VirtualKanbanColumn = memo(({
               ))}
             </AnimatePresence>
             
-            {hasMoreTasks && (
+            {hasMoreTasks && !isUpdating && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
