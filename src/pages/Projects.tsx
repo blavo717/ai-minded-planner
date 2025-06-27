@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects, Project } from '@/hooks/useProjects';
@@ -14,7 +13,8 @@ import {
   FolderOpen,
   CheckCircle,
   Clock,
-  BarChart3
+  BarChart3,
+  Settings
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -25,6 +25,8 @@ import {
 import CreateProjectModal from '@/components/modals/CreateProjectModal';
 import EditProjectModal from '@/components/modals/EditProjectModal';
 import ProjectGanttView from '@/components/projects/ProjectGanttView';
+import ProjectStatusModal from '@/components/modals/ProjectStatusModal';
+import ProjectStatusBadge from '@/components/projects/ProjectStatusBadge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -36,6 +38,7 @@ const Projects = () => {
   const { deleteProject } = useProjectMutations();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
@@ -57,8 +60,18 @@ const Projects = () => {
     setIsEditProjectOpen(true);
   };
 
+  const handleChangeStatus = (project: Project) => {
+    setSelectedProject(project);
+    setIsStatusModalOpen(true);
+  };
+
   const handleCloseEditModal = () => {
     setIsEditProjectOpen(false);
+    setSelectedProject(null);
+  };
+
+  const handleCloseStatusModal = () => {
+    setIsStatusModalOpen(false);
     setSelectedProject(null);
   };
 
@@ -154,6 +167,11 @@ const Projects = () => {
                           Editar
                         </DropdownMenuItem>
                         
+                        <DropdownMenuItem onClick={() => handleChangeStatus(project)}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          Estado
+                        </DropdownMenuItem>
+                        
                         <DropdownMenuItem 
                           onClick={() => deleteProject(project.id)}
                           className="text-destructive focus:text-destructive"
@@ -163,6 +181,11 @@ const Projects = () => {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className="mt-2">
+                    <ProjectStatusBadge status={project.status || 'active'} size="sm" />
                   </div>
                 </CardHeader>
                 
@@ -215,6 +238,11 @@ const Projects = () => {
                     <p className="text-xs text-muted-foreground">
                       Creado el {format(new Date(project.created_at), 'dd MMM yyyy', { locale: es })}
                     </p>
+                    {project.completed_at && (
+                      <p className="text-xs text-green-600 mt-1">
+                        Completado el {format(new Date(project.completed_at), 'dd MMM yyyy', { locale: es })}
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -231,6 +259,12 @@ const Projects = () => {
       <EditProjectModal
         isOpen={isEditProjectOpen}
         onClose={handleCloseEditModal}
+        project={selectedProject}
+      />
+
+      <ProjectStatusModal
+        isOpen={isStatusModalOpen}
+        onClose={handleCloseStatusModal}
         project={selectedProject}
       />
     </div>

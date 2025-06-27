@@ -8,6 +8,10 @@ export interface Project {
   name: string;
   description?: string;
   color: string;
+  status?: 'active' | 'completed' | 'archived' | 'on_hold';
+  completed_at?: string;
+  archived_at?: string;
+  completion_notes?: string;
   created_at: string;
   updated_at: string;
   user_id: string;
@@ -24,6 +28,10 @@ export interface UpdateProjectData {
   name?: string;
   description?: string;
   color?: string;
+  status?: 'active' | 'completed' | 'archived' | 'on_hold';
+  completed_at?: string | null;
+  archived_at?: string | null;
+  completion_notes?: string;
 }
 
 export const useProjects = () => {
