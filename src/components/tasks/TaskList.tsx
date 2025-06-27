@@ -1,10 +1,12 @@
 
 import React, { memo } from 'react';
 import { Task } from '@/hooks/useTasks';
+import { Project } from '@/hooks/useProjects';
 import VirtualizedTaskList from './VirtualizedTaskList';
 
 interface TaskListProps {
   tasks: Task[];
+  projects: Project[];
   getSubtasksForTask: (taskId: string) => Task[];
   onEditTask: (task: Task) => void;
   onManageDependencies: (task: Task) => void;
@@ -16,6 +18,7 @@ interface TaskListProps {
 
 const TaskList = memo(({ 
   tasks, 
+  projects,
   getSubtasksForTask, 
   onEditTask, 
   onManageDependencies,
@@ -28,6 +31,7 @@ const TaskList = memo(({
     <div className="animate-fade-in transition-all duration-300">
       <VirtualizedTaskList
         tasks={tasks}
+        projects={projects}
         getSubtasksForTask={getSubtasksForTask}
         onEditTask={onEditTask}
         onManageDependencies={onManageDependencies}

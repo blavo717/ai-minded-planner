@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, Folder } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
+import { Project } from '@/hooks/useProjects';
 import { useTaskCardHelpers } from '@/hooks/useTaskCardHelpers';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -12,9 +13,10 @@ interface TaskCardBadgesProps {
   task: Task;
   completedSubtasks: number;
   totalSubtasks: number;
+  project?: Project;
 }
 
-const TaskCardBadges = ({ task, completedSubtasks, totalSubtasks }: TaskCardBadgesProps) => {
+const TaskCardBadges = ({ task, completedSubtasks, totalSubtasks, project }: TaskCardBadgesProps) => {
   const { getPriorityColor, getStatusColor } = useTaskCardHelpers();
 
   return (
@@ -26,6 +28,22 @@ const TaskCardBadges = ({ task, completedSubtasks, totalSubtasks }: TaskCardBadg
       <Badge className={getStatusColor(task.status)}>
         {task.status}
       </Badge>
+
+      {project ? (
+        <Badge 
+          variant="outline" 
+          className="flex items-center gap-1"
+          style={{ borderColor: project.color, color: project.color }}
+        >
+          <Folder className="h-3 w-3" />
+          {project.name}
+        </Badge>
+      ) : (
+        <Badge variant="outline" className="flex items-center gap-1 text-muted-foreground">
+          <Folder className="h-3 w-3" />
+          Sin proyecto
+        </Badge>
+      )}
 
       <TaskHealthIndicator taskId={task.id} compact />
 

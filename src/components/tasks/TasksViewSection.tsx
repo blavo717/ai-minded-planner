@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Task } from '@/hooks/useTasks';
+import { Project } from '@/hooks/useProjects';
 import KanbanBoard from '@/components/tasks/KanbanBoard';
 import TaskList from '@/components/tasks/TaskList';
 import TimelineView from '@/components/tasks/views/TimelineView';
@@ -14,6 +15,7 @@ interface TasksViewSectionProps {
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
   filteredTasks: Task[];
+  projects: Project[];
   getSubtasksForTask: (taskId: string) => Task[];
   onEditTask: (task: Task) => void;
   onManageDependencies: (task: Task) => void;
@@ -27,6 +29,7 @@ const TasksViewSection = ({
   viewMode,
   setViewMode,
   filteredTasks,
+  projects,
   getSubtasksForTask,
   onEditTask,
   onManageDependencies,
@@ -76,6 +79,7 @@ const TasksViewSection = ({
         return (
           <TaskList
             tasks={filteredTasks}
+            projects={projects}
             getSubtasksForTask={getSubtasksForTask}
             onEditTask={onEditTask}
             onManageDependencies={onManageDependencies}

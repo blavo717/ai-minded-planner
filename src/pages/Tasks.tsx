@@ -131,6 +131,7 @@ const TasksContent = () => {
           viewMode={viewMode}
           setViewMode={setViewMode}
           filteredTasks={filteredTasks}
+          projects={projects}
           getSubtasksForTask={getSubtasksForTask}
           onEditTask={handleEditTask}
           onManageDependencies={handleManageDependencies}

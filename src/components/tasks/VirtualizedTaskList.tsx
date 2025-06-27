@@ -3,10 +3,12 @@ import React, { memo, useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { Card, CardContent } from '@/components/ui/card';
 import { Task } from '@/hooks/useTasks';
+import { Project } from '@/hooks/useProjects';
 import TaskCard from './TaskCard';
 
 interface VirtualizedTaskListProps {
   tasks: Task[];
+  projects: Project[];
   getSubtasksForTask: (taskId: string) => Task[];
   onEditTask: (task: Task) => void;
   onManageDependencies: (task: Task) => void;
@@ -23,6 +25,7 @@ interface TaskItemProps {
   style: React.CSSProperties;
   data: {
     tasks: Task[];
+    projects: Project[];
     getSubtasksForTask: (taskId: string) => Task[];
     onEditTask: (task: Task) => void;
     onManageDependencies: (task: Task) => void;
@@ -36,6 +39,7 @@ interface TaskItemProps {
 const TaskItem = memo(({ index, style, data }: TaskItemProps) => {
   const task = data.tasks[index];
   const subtasks = data.getSubtasksForTask(task.id);
+  const project = data.projects.find(p => p.id === task.project_id);
 
   return (
     <div style={style}>
@@ -43,6 +47,7 @@ const TaskItem = memo(({ index, style, data }: TaskItemProps) => {
         <TaskCard
           task={task}
           subtasks={subtasks}
+          project={project}
           onEditTask={data.onEditTask}
           onManageDependencies={data.onManageDependencies}
           onAssignTask={data.onAssignTask}
@@ -59,6 +64,7 @@ TaskItem.displayName = 'TaskItem';
 
 const VirtualizedTaskList = memo(({
   tasks,
+  projects,
   getSubtasksForTask,
   onEditTask,
   onManageDependencies,
@@ -71,6 +77,7 @@ const VirtualizedTaskList = memo(({
 }: VirtualizedTaskListProps) => {
   const itemData = useMemo(() => ({
     tasks,
+    projects,
     getSubtasksForTask,
     onEditTask,
     onManageDependencies,
@@ -78,7 +85,7 @@ const VirtualizedTaskList = memo(({
     onCompleteTask,
     onArchiveTask,
     onCreateSubtask,
-  }), [tasks, getSubtasksForTask, onEditTask, onManageDependencies, onAssignTask, onCompleteTask, onArchiveTask, onCreateSubtask]);
+  }), [tasks, projects, getSubtasksForTask, onEditTask, onManageDependencies, onAssignTask, onCompleteTask, onArchiveTask, onCreateSubtask]);
 
   if (tasks.length === 0) {
     return (
@@ -97,6 +104,7 @@ const VirtualizedTaskList = memo(({
       <div className="w-full space-y-4">
         {tasks.map((task, index) => {
           const subtasks = getSubtasksForTask(task.id);
+          const project = projects.find(p => p.id === task.project_id);
           
           return (
             <div
@@ -107,6 +115,7 @@ const VirtualizedTaskList = memo(({
               <TaskCard
                 task={task}
                 subtasks={subtasks}
+                project={project}
                 onEditTask={onEditTask}
                 onManageDependencies={onManageDependencies}
                 onAssignTask={onAssignTask}

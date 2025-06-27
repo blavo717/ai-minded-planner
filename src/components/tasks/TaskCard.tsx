@@ -3,6 +3,7 @@ import React, { memo, useCallback } from 'react';
 import { Card, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Task } from '@/hooks/useTasks';
+import { Project } from '@/hooks/useProjects';
 import TaskCardActions from './TaskCardActions';
 import TaskCardBadges from './TaskCardBadges';
 import TaskCardHeader from './TaskCardHeader';
@@ -11,6 +12,7 @@ import TaskCardContent from './TaskCardContent';
 interface TaskCardProps {
   task: Task;
   subtasks: Task[];
+  project?: Project;
   onEditTask: (task: Task) => void;
   onManageDependencies: (task: Task) => void;
   onAssignTask: (task: Task) => void;
@@ -22,6 +24,7 @@ interface TaskCardProps {
 const TaskCard = memo(({ 
   task, 
   subtasks, 
+  project,
   onEditTask, 
   onManageDependencies,
   onAssignTask,
@@ -39,8 +42,8 @@ const TaskCard = memo(({
 
   return (
     <Card className={`w-full shadow-sm hover:shadow-md transition-all duration-200 border animate-scale-in hover:scale-[1.02] ${
-      isCompleted ? 'border-green-200 bg-green-50' : 'border-gray-200'
-    }`}>
+      isCompleted ? 'border-green-200 bg-green-50' : project ? 'border' : 'border-gray-200'
+    }`} style={project && !isCompleted ? { borderLeftColor: project.color, borderLeftWidth: '4px' } : undefined}>
       <CardHeader className="pb-3">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -64,6 +67,7 @@ const TaskCard = memo(({
             task={task}
             completedSubtasks={completedSubtasks}
             totalSubtasks={totalSubtasks}
+            project={project}
           />
         </div>
 
