@@ -1,4 +1,6 @@
+
 import React, { useState, useCallback, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjects } from '@/hooks/useProjects';
 import { Task } from '@/hooks/useTasks';
@@ -8,7 +10,8 @@ import {
   AlertTriangle,
   Pause
 } from 'lucide-react';
-import KanbanColumn from './kanban/KanbanColumn';
+import VirtualKanbanColumn from './kanban/VirtualKanbanColumn';
+import ProjectKanbanSelector from './kanban/ProjectKanbanSelector';
 
 interface KanbanBoardProps {
   tasks: Task[];
@@ -52,6 +55,13 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
   const { projects } = useProjects();
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  // Filter tasks by selected project
+  const filteredTasks = useMemo(() => {
+    if (!selectedProjectId) return tasks;
+    return tasks.filter(task => task.project_id === selectedProjectId);
+  }, [tasks, selectedProjectId]);
 
   const handleStatusChange = useCallback((taskId: string, newStatus: Task['status']) => {
     updateTask({ 
@@ -86,13 +96,11 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
   const handleDragStart = useCallback((e: React.DragEvent, task: Task) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = 'move';
-    e.currentTarget.classList.add('opacity-50', 'scale-95');
   }, []);
 
   const handleDragEnd = useCallback((e: React.DragEvent) => {
     setDraggedTask(null);
     setDragOverColumn(null);
-    e.currentTarget.classList.remove('opacity-50', 'scale-95');
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -121,36 +129,61 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
     deleteTask(taskId);
   }, [deleteTask]);
 
-  const memoizedColumns = useMemo(() => columns, []);
+  const boardVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.1
+      }
+    }
+  };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {memoizedColumns.map((column) => (
-        <div 
-          key={column.id}
-          className={`transition-all duration-200 ${
-            dragOverColumn === column.id ? 'scale-105 shadow-lg' : ''
-          }`}
-        >
-          <KanbanColumn
-            column={column}
-            tasks={tasks}
-            getSubtasksForTask={getSubtasksForTask}
-            onEditTask={onEditTask}
-            onDeleteTask={handleDeleteTask}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragOver={handleDragOver}
-            onDragEnter={() => handleDragEnter(column.id)}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            getProjectName={getProjectName}
-            getProjectColor={getProjectColor}
-            getPriorityColor={getPriorityColor}
-            isDragOver={dragOverColumn === column.id}
-          />
-        </div>
-      ))}
+    <div className="space-y-6">
+      <ProjectKanbanSelector
+        projects={projects}
+        selectedProjectId={selectedProjectId}
+        onProjectSelect={setSelectedProjectId}
+        tasks={filteredTasks}
+      />
+
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        variants={boardVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {columns.map((column) => (
+          <motion.div 
+            key={column.id}
+            className={`transition-all duration-200 ${
+              dragOverColumn === column.id ? 'scale-105 shadow-lg' : ''
+            }`}
+            whileHover={{ scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+          >
+            <VirtualKanbanColumn
+              column={column}
+              tasks={filteredTasks}
+              getSubtasksForTask={getSubtasksForTask}
+              onEditTask={onEditTask}
+              onDeleteTask={handleDeleteTask}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragOver={handleDragOver}
+              onDragEnter={() => handleDragEnter(column.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              getProjectName={getProjectName}
+              getProjectColor={getProjectColor}
+              getPriorityColor={getPriorityColor}
+              isDragOver={dragOverColumn === column.id}
+            />
+          </motion.div>
+        ))}
+      </motion.div>
     </div>
   );
 };
