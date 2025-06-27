@@ -38,12 +38,16 @@ const TaskCard = memo(({
   const isCompleted = task.status === 'completed';
 
   return (
-    <Card className={`w-full shadow-sm hover:shadow-md transition-shadow border ${isCompleted ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
+    <Card className={`w-full shadow-sm hover:shadow-md transition-all duration-200 border animate-scale-in hover:scale-[1.02] ${
+      isCompleted ? 'border-green-200 bg-green-50' : 'border-gray-200'
+    }`}>
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <TaskCardHeader task={task} isCompleted={isCompleted} />
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <TaskCardHeader task={task} isCompleted={isCompleted} />
+          </div>
           
-          <div className="flex-shrink-0 ml-4">
+          <div className="flex-shrink-0 self-start">
             <TaskCardActions
               task={task}
               onEditTask={onEditTask}
@@ -55,16 +59,22 @@ const TaskCard = memo(({
           </div>
         </div>
 
-        <TaskCardBadges
-          task={task}
-          completedSubtasks={completedSubtasks}
-          totalSubtasks={totalSubtasks}
-        />
+        <div className="animate-slide-in">
+          <TaskCardBadges
+            task={task}
+            completedSubtasks={completedSubtasks}
+            totalSubtasks={totalSubtasks}
+          />
+        </div>
 
         {task.tags && task.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
+          <div className="flex flex-wrap gap-1 mt-2 animate-fade-in">
             {task.tags.map((tag, index) => (
-              <Badge key={index} variant="secondary" className="text-xs">
+              <Badge 
+                key={index} 
+                variant="secondary" 
+                className="text-xs transition-all duration-200 hover:scale-105"
+              >
                 #{tag}
               </Badge>
             ))}

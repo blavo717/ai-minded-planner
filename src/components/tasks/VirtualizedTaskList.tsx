@@ -39,7 +39,7 @@ const TaskItem = memo(({ index, style, data }: TaskItemProps) => {
 
   return (
     <div style={style}>
-      <div className="px-1 pb-4">
+      <div className="px-1 pb-4 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
         <TaskCard
           task={task}
           subtasks={subtasks}
@@ -82,7 +82,7 @@ const VirtualizedTaskList = memo(({
 
   if (tasks.length === 0) {
     return (
-      <Card className="w-full">
+      <Card className="w-full animate-fade-in">
         <CardContent className="text-center py-12">
           <div className="text-gray-500 text-lg">No se encontraron tareas</div>
           <p className="text-gray-400 text-sm mt-2">Crea una nueva tarea para comenzar</p>
@@ -95,21 +95,26 @@ const VirtualizedTaskList = memo(({
   if (tasks.length <= 20) {
     return (
       <div className="w-full space-y-4">
-        {tasks.map((task) => {
+        {tasks.map((task, index) => {
           const subtasks = getSubtasksForTask(task.id);
           
           return (
-            <TaskCard
+            <div
               key={task.id}
-              task={task}
-              subtasks={subtasks}
-              onEditTask={onEditTask}
-              onManageDependencies={onManageDependencies}
-              onAssignTask={onAssignTask}
-              onCompleteTask={onCompleteTask}
-              onArchiveTask={onArchiveTask}
-              onCreateSubtask={onCreateSubtask}
-            />
+              className="animate-fade-in hover:scale-[1.01] transition-all duration-200"
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <TaskCard
+                task={task}
+                subtasks={subtasks}
+                onEditTask={onEditTask}
+                onManageDependencies={onManageDependencies}
+                onAssignTask={onAssignTask}
+                onCompleteTask={onCompleteTask}
+                onArchiveTask={onArchiveTask}
+                onCreateSubtask={onCreateSubtask}
+              />
+            </div>
           );
         })}
       </div>
@@ -117,7 +122,7 @@ const VirtualizedTaskList = memo(({
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full animate-fade-in">
       <List
         height={height}
         width="100%"

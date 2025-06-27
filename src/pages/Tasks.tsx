@@ -145,14 +145,11 @@ const TasksContent = () => {
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <TasksHeader
-          showInsights={showInsights}
-          onToggleInsights={() => setShowInsights(!showInsights)}
-          onCreateTask={() => setIsCreateTaskOpen(true)}
-        />
-        <PerformanceTestingEntry />
-      </div>
+      <TasksHeader
+        showInsights={showInsights}
+        onToggleInsights={() => setShowInsights(!showInsights)}
+        onCreateTask={() => setIsCreateTaskOpen(true)}
+      />
 
       {showInsights && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">

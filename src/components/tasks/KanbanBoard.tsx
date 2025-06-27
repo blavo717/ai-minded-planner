@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo } from 'react';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjects } from '@/hooks/useProjects';
@@ -52,6 +51,7 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
   const { updateTask, deleteTask } = useTaskMutations();
   const { projects } = useProjects();
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
   const handleStatusChange = useCallback((taskId: string, newStatus: Task['status']) => {
     updateTask({ 
@@ -86,11 +86,26 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
   const handleDragStart = useCallback((e: React.DragEvent, task: Task) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = 'move';
+    e.currentTarget.classList.add('opacity-50', 'scale-95');
+  }, []);
+
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    setDraggedTask(null);
+    setDragOverColumn(null);
+    e.currentTarget.classList.remove('opacity-50', 'scale-95');
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const handleDragEnter = useCallback((columnId: string) => {
+    setDragOverColumn(columnId);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverColumn(null);
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent, targetStatus: Task['status']) => {
@@ -99,6 +114,7 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
       handleStatusChange(draggedTask.id, targetStatus);
     }
     setDraggedTask(null);
+    setDragOverColumn(null);
   }, [draggedTask, handleStatusChange]);
 
   const handleDeleteTask = useCallback((taskId: string) => {
@@ -110,20 +126,30 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {memoizedColumns.map((column) => (
-        <KanbanColumn
+        <div 
           key={column.id}
-          column={column}
-          tasks={tasks}
-          getSubtasksForTask={getSubtasksForTask}
-          onEditTask={onEditTask}
-          onDeleteTask={handleDeleteTask}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          getProjectName={getProjectName}
-          getProjectColor={getProjectColor}
-          getPriorityColor={getPriorityColor}
-        />
+          className={`transition-all duration-200 ${
+            dragOverColumn === column.id ? 'scale-105 shadow-lg' : ''
+          }`}
+        >
+          <KanbanColumn
+            column={column}
+            tasks={tasks}
+            getSubtasksForTask={getSubtasksForTask}
+            onEditTask={onEditTask}
+            onDeleteTask={handleDeleteTask}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragOver={handleDragOver}
+            onDragEnter={() => handleDragEnter(column.id)}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            getProjectName={getProjectName}
+            getProjectColor={getProjectColor}
+            getPriorityColor={getPriorityColor}
+            isDragOver={dragOverColumn === column.id}
+          />
+        </div>
       ))}
     </div>
   );

@@ -25,16 +25,18 @@ const TaskList = memo(({
   onCreateSubtask 
 }: TaskListProps) => {
   return (
-    <VirtualizedTaskList
-      tasks={tasks}
-      getSubtasksForTask={getSubtasksForTask}
-      onEditTask={onEditTask}
-      onManageDependencies={onManageDependencies}
-      onAssignTask={onAssignTask}
-      onCompleteTask={onCompleteTask}
-      onArchiveTask={onArchiveTask}
-      onCreateSubtask={onCreateSubtask}
-    />
+    <div className="animate-fade-in transition-all duration-300">
+      <VirtualizedTaskList
+        tasks={tasks}
+        getSubtasksForTask={getSubtasksForTask}
+        onEditTask={onEditTask}
+        onManageDependencies={onManageDependencies}
+        onAssignTask={onAssignTask}
+        onCompleteTask={onCompleteTask}
+        onArchiveTask={onArchiveTask}
+        onCreateSubtask={onCreateSubtask}
+      />
+    </div>
   );
 });
 
