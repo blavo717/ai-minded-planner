@@ -16,6 +16,7 @@ import TaskHistory from '@/components/tasks/TaskHistory';
 import DailyPlannerPreview from '@/components/AI/DailyPlannerPreview';
 import TimelineView from '@/components/tasks/views/TimelineView';
 import CalendarView from '@/components/tasks/views/CalendarView';
+import EisenhowerMatrix from '@/components/tasks/views/EisenhowerMatrix';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
 
@@ -81,6 +82,14 @@ const TasksContent = () => {
       case 'calendar':
         return (
           <CalendarView
+            tasks={filteredTasks}
+            onEditTask={handleEditTask}
+            onCompleteTask={handleCompleteTask}
+          />
+        );
+      case 'eisenhower':
+        return (
+          <EisenhowerMatrix
             tasks={filteredTasks}
             onEditTask={handleEditTask}
             onCompleteTask={handleCompleteTask}

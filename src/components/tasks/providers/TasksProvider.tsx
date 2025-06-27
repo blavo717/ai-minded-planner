@@ -21,8 +21,8 @@ interface TasksContextType {
   setIsCompleteModalOpen: (open: boolean) => void;
   
   // View and state management
-  viewMode: 'list' | 'kanban' | 'timeline' | 'calendar';
-  setViewMode: (mode: 'list' | 'kanban' | 'timeline' | 'calendar') => void;
+  viewMode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower';
+  setViewMode: (mode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower') => void;
   
   showInsights: boolean;
   setShowInsights: (show: boolean) => void;
@@ -68,7 +68,7 @@ export const TasksProvider = ({ children }: TasksProviderProps) => {
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
   
   // View states
-  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'timeline' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower'>('list');
   const [showInsights, setShowInsights] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   
