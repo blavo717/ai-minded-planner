@@ -10,18 +10,10 @@ import { Label } from '@/components/ui/label';
 import { 
   Bookmark, 
   Plus, 
-  Edit, 
-  Trash2, 
-  AlertTriangle, 
-  Calendar, 
-  Clock, 
-  Zap, 
-  Users, 
-  Archive 
+  Trash2,
 } from 'lucide-react';
 import { FilterState } from '@/types/filters';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
-import { getSmartFilters } from '@/utils/smartFilters';
 
 interface FilterPresetsProps {
   currentFilters: FilterState;
@@ -29,18 +21,6 @@ interface FilterPresetsProps {
   onSaveFilter: (name: string, description: string) => void;
   getActiveFiltersCount: () => number;
 }
-
-const getIconForSmartFilter = (filterId: string) => {
-  const icons: Record<string, React.ComponentType<any>> = {
-    overdue: AlertTriangle,
-    due_today: Calendar,
-    inactive: Clock,
-    high_priority_pending: Zap,
-    unassigned: Users,
-    recently_completed: Archive,
-  };
-  return icons[filterId] || Bookmark;
-};
 
 const FilterPresets = ({ 
   currentFilters, 
@@ -51,7 +31,6 @@ const FilterPresets = ({
   const { savedFilters, loading, deleteFilter } = useSavedFilters();
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveForm, setSaveForm] = useState({ name: '', description: '' });
-  const smartFilters = getSmartFilters();
 
   const handleSaveFilter = () => {
     if (saveForm.name.trim()) {
@@ -67,13 +46,15 @@ const FilterPresets = ({
     }
   };
 
+  // Este componente ahora solo maneja filtros guardados personalizados
+  // Los filtros inteligentes se manejan directamente en AdvancedFilters
   return (
     <Card className="mb-4">
       <CardHeader>
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <Bookmark className="h-5 w-5" />
-            Filtros y Presets
+            Filtros Personalizados
           </span>
           {getActiveFiltersCount() > 0 && (
             <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
@@ -122,41 +103,7 @@ const FilterPresets = ({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Filtros Inteligentes */}
-        <div>
-          <h4 className="text-sm font-medium mb-2 text-muted-foreground">Filtros Inteligentes</h4>
-          <div className="flex flex-wrap gap-2">
-            {smartFilters.map((filter) => {
-              const Icon = getIconForSmartFilter(filter.id);
-              const isActive = currentFilters.smartFilters.includes(filter.id);
-              
-              return (
-                <Button
-                  key={filter.id}
-                  variant={isActive ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    const newSmartFilters = isActive
-                      ? currentFilters.smartFilters.filter(id => id !== filter.id)
-                      : [...currentFilters.smartFilters, filter.id];
-                    
-                    onLoadFilter({
-                      ...currentFilters,
-                      smartFilters: newSmartFilters
-                    });
-                  }}
-                  className="text-xs"
-                  title={filter.description}
-                >
-                  <Icon className="h-3 w-3 mr-1" />
-                  {filter.name}
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Filtros Guardados */}
+        {/* Solo filtros guardados personalizados */}
         {savedFilters.length > 0 && (
           <div>
             <h4 className="text-sm font-medium mb-2 text-muted-foreground">Filtros Guardados</h4>
@@ -204,6 +151,13 @@ const FilterPresets = ({
         {loading && (
           <div className="text-center text-sm text-muted-foreground">
             Cargando filtros guardados...
+          </div>
+        )}
+
+        {!loading && savedFilters.length === 0 && (
+          <div className="text-center text-sm text-muted-foreground py-4">
+            No tienes filtros guardados aún. 
+            {getActiveFiltersCount() > 0 && " Puedes guardar el filtro actual usando el botón de arriba."}
           </div>
         )}
       </CardContent>

@@ -6,6 +6,8 @@ import { useProfiles } from '@/hooks/useProfiles';
 import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useTaskHandlers } from '@/hooks/useTaskHandlers';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
+import { useTaskAssignments } from '@/hooks/useTaskAssignments';
+import { useTaskDependencies } from '@/hooks/useTaskDependencies';
 import KanbanBoard from '@/components/tasks/KanbanBoard';
 import AdvancedFilters from '@/components/tasks/AdvancedFilters';
 import ProductivityInsights from '@/components/AI/ProductivityInsights';
@@ -27,6 +29,8 @@ const TasksContent = () => {
   const { projects } = useProjects();
   const { profiles } = useProfiles();
   const { saveFilter } = useSavedFilters();
+  const { taskAssignments } = useTaskAssignments();
+  const { dependencies: allTaskDependencies } = useTaskDependencies();
   
   const {
     viewMode,
@@ -45,7 +49,7 @@ const TasksContent = () => {
     clearAllFilters,
     getActiveFiltersCount,
     loadFilter 
-  } = useTaskFilters(mainTasks, getSubtasksForTask);
+  } = useTaskFilters(mainTasks, getSubtasksForTask, taskAssignments, allTaskDependencies);
   
   const { 
     handleEditTask, 
@@ -173,6 +177,8 @@ const TasksContent = () => {
           onFiltersChange={handleFiltersChange}
           onSaveFilter={handleSaveFilter}
           onLoadFilter={loadFilter}
+          taskAssignments={taskAssignments}
+          taskDependencies={allTaskDependencies}
         />
 
         <TaskViewControls

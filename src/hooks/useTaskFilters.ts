@@ -25,7 +25,12 @@ const initialFilterState: FilterState = {
   }
 };
 
-export const useTaskFilters = (tasks: Task[], getSubtasksForTask: (taskId: string) => Task[]) => {
+export const useTaskFilters = (
+  tasks: Task[], 
+  getSubtasksForTask: (taskId: string) => Task[],
+  taskAssignments: any[] = [],
+  taskDependencies: any[] = []
+) => {
   const [filters, setFilters] = useState<FilterState>(initialFilterState);
 
   const availableTags = useMemo(() => {
@@ -57,17 +62,32 @@ export const useTaskFilters = (tasks: Task[], getSubtasksForTask: (taskId: strin
     }
   };
 
+  // Función para verificar si una tarea está asignada a usuarios específicos
+  const isTaskAssignedTo = (taskId: string, userIds: string[]): boolean => {
+    if (userIds.length === 0) return true;
+    
+    const taskAssignmentsForTask = taskAssignments.filter(assignment => assignment.task_id === taskId);
+    return taskAssignmentsForTask.some(assignment => userIds.includes(assignment.assigned_to));
+  };
+
+  // Función para verificar si una tarea tiene dependencias
+  const taskHasDependencies = (taskId: string): boolean => {
+    return taskDependencies.some(dep => dep.task_id === taskId || dep.depends_on_task_id === taskId);
+  };
+
   const filteredTasks = useMemo(() => {
     let result = [...tasks];
 
-    // Aplicar filtros inteligentes primero
+    // Aplicar filtros inteligentes primero (como unión, no intersección)
     if (filters.smartFilters.length > 0) {
-      const smartFilteredTasks = new Set<Task>();
+      const smartFilteredTasksSet = new Set<Task>();
+      
       filters.smartFilters.forEach(filterId => {
         const filtered = applySmartFilter(result, filterId);
-        filtered.forEach(task => smartFilteredTasks.add(task));
+        filtered.forEach(task => smartFilteredTasksSet.add(task));
       });
-      result = Array.from(smartFilteredTasks);
+      
+      result = Array.from(smartFilteredTasksSet);
     }
 
     // Aplicar filtros regulares
@@ -106,6 +126,23 @@ export const useTaskFilters = (tasks: Task[], getSubtasksForTask: (taskId: strin
         return false;
       }
 
+      // Filtro de asignaciones (corregido)
+      if (filters.assignedTo.length > 0) {
+        if (filters.operators.assignedTo.type === 'AND') {
+          // Todas las personas deben estar asignadas a la tarea
+          const taskAssignmentsForTask = taskAssignments.filter(assignment => assignment.task_id === task.id);
+          const assignedUserIds = taskAssignmentsForTask.map(assignment => assignment.assigned_to);
+          if (!filters.assignedTo.every(userId => assignedUserIds.includes(userId))) {
+            return false;
+          }
+        } else {
+          // Al menos una persona debe estar asignada a la tarea
+          if (!isTaskAssignedTo(task.id, filters.assignedTo)) {
+            return false;
+          }
+        }
+      }
+
       // Filtros de fecha
       if (filters.dueDateFrom && task.due_date) {
         if (new Date(task.due_date) < filters.dueDateFrom) {
@@ -126,11 +163,19 @@ export const useTaskFilters = (tasks: Task[], getSubtasksForTask: (taskId: strin
         }
       }
 
+      // Filtro de dependencias (corregido)
+      if (filters.hasDependencies !== undefined) {
+        const hasDependencies = taskHasDependencies(task.id);
+        if (filters.hasDependencies !== hasDependencies) {
+          return false;
+        }
+      }
+
       return true;
     });
 
     return result;
-  }, [tasks, filters, getSubtasksForTask]);
+  }, [tasks, filters, getSubtasksForTask, taskAssignments, taskDependencies]);
 
   const updateFilter = (key: keyof FilterState, value: any) => {
     setFilters(prev => ({

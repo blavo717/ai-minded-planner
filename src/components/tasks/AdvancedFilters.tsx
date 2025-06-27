@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,8 @@ interface AdvancedFiltersProps {
   onFiltersChange: (filters: FilterState) => void;
   onSaveFilter?: (name: string, filters: FilterState) => void;
   onLoadFilter?: (filters: FilterState) => void;
+  taskAssignments?: any[];
+  taskDependencies?: any[];
 }
 
 const getIconForSmartFilter = (filterId: string) => {
@@ -75,15 +77,26 @@ const AdvancedFilters = ({
   filters, 
   onFiltersChange,
   onSaveFilter,
-  onLoadFilter 
+  onLoadFilter,
+  taskAssignments = [],
+  taskDependencies = []
 }: AdvancedFiltersProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [saveFilterName, setSaveFilterName] = useState('');
   const [saveFilterDescription, setSaveFilterDescription] = useState('');
   const [showSaveInput, setShowSaveInput] = useState(false);
   
-  const { savedFilters, saveFilter } = useSavedFilters();
+  const { savedFilters, saveFilter, loading } = useSavedFilters();
   const smartFilters = getSmartFilters();
+
+  // Cargar filtros guardados al inicializar
+  useEffect(() => {
+    // Auto-cargar el filtro por defecto si existe
+    const defaultFilter = savedFilters.find(filter => filter.is_default);
+    if (defaultFilter && onLoadFilter) {
+      onLoadFilter(defaultFilter.filter_data);
+    }
+  }, [savedFilters, onLoadFilter]);
 
   const statusOptions = [
     { value: 'pending', label: 'Pendiente' },
@@ -278,7 +291,7 @@ const AdvancedFilters = ({
         </div>
 
         {/* Filtros guardados */}
-        {savedFilters.length > 0 && (
+        {!loading && savedFilters.length > 0 && (
           <div className="space-y-2">
             <Label className="text-xs font-medium">Filtros Guardados</Label>
             <div className="flex flex-wrap gap-2">
