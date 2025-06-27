@@ -23,7 +23,19 @@ export const useSavedFilters = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setSavedFilters(data || []);
+      
+      // Convert the data from Supabase to our SavedFilter type
+      const convertedData: SavedFilter[] = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        filter_data: item.filter_data as FilterState,
+        is_default: item.is_default,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      }));
+      
+      setSavedFilters(convertedData);
     } catch (error) {
       console.error('Error fetching saved filters:', error);
       toast({
@@ -42,24 +54,35 @@ export const useSavedFilters = () => {
     try {
       const { data, error } = await supabase
         .from('saved_filters')
-        .insert({
+        .insert([{
           user_id: user.id,
           name,
           description,
-          filter_data: filterData,
-        })
+          filter_data: filterData as any, // Cast to any to handle Json type
+        }])
         .select()
         .single();
 
       if (error) throw error;
 
-      setSavedFilters(prev => [data, ...prev]);
+      // Convert the returned data to our SavedFilter type
+      const convertedData: SavedFilter = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        filter_data: data.filter_data as FilterState,
+        is_default: data.is_default,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      };
+
+      setSavedFilters(prev => [convertedData, ...prev]);
       toast({
         title: "Filtro guardado",
         description: `El filtro "${name}" se ha guardado correctamente`,
       });
 
-      return data;
+      return convertedData;
     } catch (error) {
       console.error('Error saving filter:', error);
       toast({
@@ -74,9 +97,16 @@ export const useSavedFilters = () => {
     if (!user) return;
 
     try {
+      // Convert updates to match Supabase expected format
+      const supabaseUpdates: any = {};
+      if (updates.name !== undefined) supabaseUpdates.name = updates.name;
+      if (updates.description !== undefined) supabaseUpdates.description = updates.description;
+      if (updates.filter_data !== undefined) supabaseUpdates.filter_data = updates.filter_data as any;
+      if (updates.is_default !== undefined) supabaseUpdates.is_default = updates.is_default;
+
       const { data, error } = await supabase
         .from('saved_filters')
-        .update(updates)
+        .update(supabaseUpdates)
         .eq('id', id)
         .eq('user_id', user.id)
         .select()
@@ -84,8 +114,19 @@ export const useSavedFilters = () => {
 
       if (error) throw error;
 
+      // Convert the returned data to our SavedFilter type
+      const convertedData: SavedFilter = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        filter_data: data.filter_data as FilterState,
+        is_default: data.is_default,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      };
+
       setSavedFilters(prev => prev.map(filter => 
-        filter.id === id ? { ...filter, ...data } : filter
+        filter.id === id ? { ...filter, ...convertedData } : filter
       ));
 
       toast({
