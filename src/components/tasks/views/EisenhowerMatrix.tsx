@@ -3,10 +3,15 @@ import React, { useMemo, useState } from 'react';
 import { Task } from '@/hooks/useTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import MatrixQuadrant from './MatrixQuadrant';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Grid3X3, RotateCcw } from 'lucide-react';
+import EisenhowerHeader from './eisenhower/EisenhowerHeader';
+import EisenhowerGuide from './eisenhower/EisenhowerGuide';
 import { toast } from 'sonner';
+import { 
+  QuadrantType, 
+  getTaskQuadrant, 
+  organizeTasksByQuadrants,
+  getNewPriorityForQuadrant 
+} from '@/utils/eisenhowerUtils';
 
 interface EisenhowerMatrixProps {
   tasks: Task[];
@@ -14,39 +19,13 @@ interface EisenhowerMatrixProps {
   onCompleteTask: (task: Task) => void;
 }
 
-type QuadrantType = 'urgent-important' | 'important-not-urgent' | 'urgent-not-important' | 'not-urgent-not-important';
-
 const EisenhowerMatrix = ({ tasks, onEditTask, onCompleteTask }: EisenhowerMatrixProps) => {
   const { updateTask } = useTaskMutations();
   const [autoClassified, setAutoClassified] = useState(0);
 
-  // Función para auto-clasificar tareas basada en fechas y prioridad
-  const getTaskQuadrant = (task: Task): QuadrantType => {
-    const isUrgent = task.priority === 'urgent' || 
-                    (task.due_date && new Date(task.due_date) <= new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)); // Próximos 2 días
-    const isImportant = task.priority === 'urgent' || task.priority === 'high';
-
-    if (isUrgent && isImportant) return 'urgent-important';
-    if (!isUrgent && isImportant) return 'important-not-urgent';
-    if (isUrgent && !isImportant) return 'urgent-not-important';
-    return 'not-urgent-not-important';
-  };
-
   // Organizar tareas por cuadrantes
   const organizedTasks = useMemo(() => {
-    const quadrants = {
-      'urgent-important': [] as Task[],
-      'important-not-urgent': [] as Task[],
-      'urgent-not-important': [] as Task[],
-      'not-urgent-not-important': [] as Task[]
-    };
-
-    tasks.forEach(task => {
-      const quadrant = getTaskQuadrant(task);
-      quadrants[quadrant].push(task);
-    });
-
-    return quadrants;
+    return organizeTasksByQuadrants(tasks);
   }, [tasks]);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -57,22 +36,7 @@ const EisenhowerMatrix = ({ tasks, onEditTask, onCompleteTask }: EisenhowerMatri
     const currentQuadrant = getTaskQuadrant(task);
     if (currentQuadrant === targetQuadrant) return;
 
-    // Determinar nueva prioridad basada en el cuadrante
-    let newPriority: Task['priority'];
-    switch (targetQuadrant) {
-      case 'urgent-important':
-        newPriority = 'urgent';
-        break;
-      case 'important-not-urgent':
-        newPriority = 'high';
-        break;
-      case 'urgent-not-important':
-        newPriority = 'medium';
-        break;
-      case 'not-urgent-not-important':
-        newPriority = 'low';
-        break;
-    }
+    const newPriority = getNewPriorityForQuadrant(targetQuadrant);
 
     try {
       await updateTask({
@@ -90,22 +54,7 @@ const EisenhowerMatrix = ({ tasks, onEditTask, onCompleteTask }: EisenhowerMatri
     
     for (const task of tasks) {
       const currentQuadrant = getTaskQuadrant(task);
-      let newPriority: Task['priority'];
-      
-      switch (currentQuadrant) {
-        case 'urgent-important':
-          newPriority = 'urgent';
-          break;
-        case 'important-not-urgent':
-          newPriority = 'high';
-          break;
-        case 'urgent-not-important':
-          newPriority = 'medium';
-          break;
-        case 'not-urgent-not-important':
-          newPriority = 'low';
-          break;
-      }
+      const newPriority = getNewPriorityForQuadrant(currentQuadrant);
       
       if (task.priority !== newPriority) {
         try {
@@ -130,35 +79,12 @@ const EisenhowerMatrix = ({ tasks, onEditTask, onCompleteTask }: EisenhowerMatri
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Grid3X3 className="h-5 w-5" />
-          <h2 className="text-lg font-semibold">Matriz de Eisenhower</h2>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {autoClassified > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {autoClassified} auto-clasificadas
-            </Badge>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAutoClassify}
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Auto-clasificar
-          </Button>
-        </div>
-      </div>
-
-      <div className="text-sm text-muted-foreground mb-4">
-        <p>Arrastra las tareas entre cuadrantes para reclasificarlas según urgencia e importancia</p>
-      </div>
+      <EisenhowerHeader 
+        autoClassified={autoClassified}
+        onAutoClassify={handleAutoClassify}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-auto">
-        {/* Cuadrante 1: Urgente e Importante */}
         <MatrixQuadrant
           title="Hacer Ahora"
           description="Urgente e Importante"
@@ -170,7 +96,6 @@ const EisenhowerMatrix = ({ tasks, onEditTask, onCompleteTask }: EisenhowerMatri
           onDragOver={handleDragOver}
         />
 
-        {/* Cuadrante 2: Importante pero No Urgente */}
         <MatrixQuadrant
           title="Planificar"
           description="Importante pero No Urgente"
@@ -182,7 +107,6 @@ const EisenhowerMatrix = ({ tasks, onEditTask, onCompleteTask }: EisenhowerMatri
           onDragOver={handleDragOver}
         />
 
-        {/* Cuadrante 3: Urgente pero No Importante */}
         <MatrixQuadrant
           title="Delegar"
           description="Urgente pero No Importante"
@@ -194,7 +118,6 @@ const EisenhowerMatrix = ({ tasks, onEditTask, onCompleteTask }: EisenhowerMatri
           onDragOver={handleDragOver}
         />
 
-        {/* Cuadrante 4: Ni Urgente ni Importante */}
         <MatrixQuadrant
           title="Eliminar"
           description="Ni Urgente ni Importante"
@@ -207,12 +130,7 @@ const EisenhowerMatrix = ({ tasks, onEditTask, onCompleteTask }: EisenhowerMatri
         />
       </div>
 
-      <div className="text-xs text-muted-foreground space-y-1">
-        <p><strong>Hacer Ahora:</strong> Crisis, emergencias, deadlines inminentes</p>
-        <p><strong>Planificar:</strong> Proyectos importantes, desarrollo personal, prevención</p>
-        <p><strong>Delegar:</strong> Interrupciones, algunas reuniones, algunas llamadas</p>
-        <p><strong>Eliminar:</strong> Actividades triviales, pérdidas de tiempo, actividades de escape</p>
-      </div>
+      <EisenhowerGuide />
     </div>
   );
 };
