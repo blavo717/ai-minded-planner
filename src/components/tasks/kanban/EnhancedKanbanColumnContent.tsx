@@ -25,11 +25,7 @@ interface EnhancedKanbanColumnContentProps {
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-      delayChildren: 0.1
-    }
+    opacity: 1
   }
 };
 
@@ -38,20 +34,12 @@ const taskVariants = {
   visible: { 
     opacity: 1, 
     y: 0,
-    scale: 1,
-    transition: { 
-      duration: 0.4,
-      ease: "easeOut"
-    }
+    scale: 1
   },
   exit: { 
     opacity: 0, 
     x: -30,
-    scale: 0.9,
-    transition: { 
-      duration: 0.3,
-      ease: "easeOut"
-    }
+    scale: 0.9
   }
 };
 
@@ -60,8 +48,7 @@ const dropZoneVariants = {
     scale: 1
   },
   dragOver: {
-    scale: 1.02,
-    transition: { duration: 0.2 }
+    scale: 1.02
   }
 };
 
@@ -108,6 +95,10 @@ const EnhancedKanbanColumnContent = ({
             variants={containerVariants}
             initial="hidden"
             animate="visible"
+            transition={{
+              staggerChildren: 0.05,
+              delayChildren: 0.1
+            }}
           >
             <AnimatePresence mode="popLayout">
               {visibleTasks.map((task) => (
@@ -119,6 +110,10 @@ const EnhancedKanbanColumnContent = ({
                   exit="exit"
                   layout
                   layoutId={task.id}
+                  transition={{ 
+                    duration: 0.4,
+                    ease: "easeOut"
+                  }}
                 >
                   <EnhancedAnimatedTaskCard
                     task={task}

@@ -76,21 +76,14 @@ const EnhancedVirtualKanbanColumn = memo(({
     visible: { 
       opacity: 1, 
       scale: 1,
-      y: 0,
-      transition: {
-        duration: 0.4,
-        ease: "easeOut",
-        staggerChildren: 0.1
-      }
+      y: 0
     },
     dragOver: {
-      scale: 1.02,
-      transition: { duration: 0.2 }
+      scale: 1.02
     },
     updating: {
       opacity: 0.7,
-      pointerEvents: 'none' as const,
-      transition: { duration: 0.2 }
+      pointerEvents: 'none' as const
     }
   };
 
@@ -113,6 +106,11 @@ const EnhancedVirtualKanbanColumn = memo(({
       layoutId={`column-${column.id}`}
       style={{
         boxShadow: getBoxShadow()
+      }}
+      transition={{
+        duration: 0.4,
+        ease: "easeOut",
+        staggerChildren: 0.1
       }}
     >
       <motion.div

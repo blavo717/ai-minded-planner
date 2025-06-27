@@ -49,21 +49,15 @@ const EnhancedAnimatedTaskCard = memo(({
     },
     hover: { 
       scale: 1.03, 
-      rotateY: 2,
-      transition: { 
-        duration: 0.3,
-        ease: "easeOut"
-      }
+      rotateY: 2
     },
     dragging: {
       scale: 1.1,
       rotateZ: 5,
-      zIndex: 50,
-      transition: { duration: 0.2 }
+      zIndex: 50
     },
     tap: {
-      scale: 0.97,
-      transition: { duration: 0.1 }
+      scale: 0.97
     }
   };
 
@@ -74,11 +68,7 @@ const EnhancedAnimatedTaskCard = memo(({
     },
     expanded: { 
       height: 'auto',
-      opacity: 1,
-      transition: { 
-        duration: 0.4,
-        ease: "easeOut"
-      }
+      opacity: 1
     }
   };
 
@@ -86,8 +76,7 @@ const EnhancedAnimatedTaskCard = memo(({
     idle: { scale: 1, opacity: 0.7 },
     hover: { 
       scale: 1.3, 
-      opacity: 1,
-      transition: { duration: 0.3 }
+      opacity: 1
     }
   };
 
@@ -163,6 +152,10 @@ const EnhancedAnimatedTaskCard = memo(({
         rotateY: isHovered ? rotateY : 0,
         transformStyle: "preserve-3d"
       }}
+      transition={{ 
+        duration: isDragging ? 0.2 : 0.3, 
+        ease: "easeOut" 
+      }}
     >
       <Card 
         className={`mb-3 cursor-move bg-white overflow-hidden border-2 transition-colors duration-300 ${
@@ -181,6 +174,7 @@ const EnhancedAnimatedTaskCard = memo(({
             className="space-y-3"
             variants={contentVariants}
             animate={isExpanded ? "expanded" : "collapsed"}
+            transition={{ duration: 0.4, ease: "easeOut" }}
           >
             <div className="flex items-start justify-between">
               <TaskCardHeader
@@ -197,6 +191,7 @@ const EnhancedAnimatedTaskCard = memo(({
                 className={`w-3 h-3 rounded-full ${getPriorityColor(task.priority)} ml-2`}
                 variants={priorityIndicatorVariants}
                 animate={isHovered ? "hover" : "idle"}
+                transition={{ duration: 0.3 }}
                 style={{
                   boxShadow: isHovered ? '0 0 12px currentColor' : 'none'
                 }}
