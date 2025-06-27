@@ -389,31 +389,150 @@ export type Database = {
         }
         Relationships: []
       }
-      projects: {
+      project_history: {
         Row: {
-          color: string | null
+          change_type: string
+          created_at: string
+          id: string
+          new_values: Json | null
+          notes: string | null
+          old_values: Json | null
+          project_id: string | null
+          user_id: string
+        }
+        Insert: {
+          change_type: string
+          created_at?: string
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+          project_id?: string | null
+          user_id: string
+        }
+        Update: {
+          change_type?: string
+          created_at?: string
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+          project_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_templates: {
+        Row: {
           created_at: string
           description: string | null
           id: string
+          is_public: boolean | null
           name: string
+          template_data: Json
           updated_at: string
           user_id: string
         }
         Insert: {
-          color?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          is_public?: boolean | null
           name: string
+          template_data?: Json
           updated_at?: string
           user_id: string
         }
         Update: {
-          color?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          is_public?: boolean | null
           name?: string
+          template_data?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          actual_hours: number | null
+          budget: number | null
+          budget_used: number | null
+          category: string | null
+          change_reason: string | null
+          color: string | null
+          created_at: string
+          custom_fields: Json | null
+          deadline: string | null
+          description: string | null
+          end_date: string | null
+          estimated_hours: number | null
+          id: string
+          last_status_change: string | null
+          name: string
+          priority: string | null
+          progress: number | null
+          start_date: string | null
+          tags: string[] | null
+          template_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_hours?: number | null
+          budget?: number | null
+          budget_used?: number | null
+          category?: string | null
+          change_reason?: string | null
+          color?: string | null
+          created_at?: string
+          custom_fields?: Json | null
+          deadline?: string | null
+          description?: string | null
+          end_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          last_status_change?: string | null
+          name: string
+          priority?: string | null
+          progress?: number | null
+          start_date?: string | null
+          tags?: string[] | null
+          template_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_hours?: number | null
+          budget?: number | null
+          budget_used?: number | null
+          category?: string | null
+          change_reason?: string | null
+          color?: string | null
+          created_at?: string
+          custom_fields?: Json | null
+          deadline?: string | null
+          description?: string | null
+          end_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          last_status_change?: string | null
+          name?: string
+          priority?: string | null
+          progress?: number | null
+          start_date?: string | null
+          tags?: string[] | null
+          template_name?: string | null
           updated_at?: string
           user_id?: string
         }

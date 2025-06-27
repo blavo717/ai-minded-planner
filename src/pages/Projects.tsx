@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects, Project } from '@/hooks/useProjects';
@@ -14,7 +15,10 @@ import {
   CheckCircle,
   Clock,
   BarChart3,
-  Settings
+  Settings,
+  Calendar,
+  Target,
+  DollarSign
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -23,14 +27,21 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import CreateProjectModal from '@/components/modals/CreateProjectModal';
-import EditProjectModal from '@/components/modals/EditProjectModal';
+import AdvancedEditProjectModal from '@/components/modals/AdvancedEditProjectModal';
 import ProjectGanttView from '@/components/projects/ProjectGanttView';
 import ProjectStatusModal from '@/components/modals/ProjectStatusModal';
 import ProjectStatusBadge from '@/components/projects/ProjectStatusBadge';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 type ViewMode = 'grid' | 'gantt';
+
+const priorityColors = {
+  low: 'bg-green-100 text-green-800',
+  medium: 'bg-blue-100 text-blue-800',
+  high: 'bg-orange-100 text-orange-800',
+  urgent: 'bg-red-100 text-red-800',
+};
 
 const Projects = () => {
   const { projects } = useProjects();
@@ -53,6 +64,26 @@ const Projects = () => {
       pendingTasks: totalTasks - completedTasks,
       completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
     };
+  };
+
+  const getProjectDaysInfo = (project: Project) => {
+    const today = new Date();
+    let daysInfo = null;
+
+    if (project.deadline) {
+      const deadlineDate = new Date(project.deadline);
+      const daysToDeadline = differenceInDays(deadlineDate, today);
+      
+      if (daysToDeadline < 0) {
+        daysInfo = { type: 'overdue', days: Math.abs(daysToDeadline), text: `${Math.abs(daysToDeadline)} días de retraso` };
+      } else if (daysToDeadline <= 7) {
+        daysInfo = { type: 'urgent', days: daysToDeadline, text: `${daysToDeadline} días restantes` };
+      } else {
+        daysInfo = { type: 'normal', days: daysToDeadline, text: `${daysToDeadline} días restantes` };
+      }
+    }
+
+    return daysInfo;
   };
 
   const handleEditProject = (project: Project) => {
@@ -140,6 +171,7 @@ const Projects = () => {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => {
             const stats = getProjectStats(project.id);
+            const daysInfo = getProjectDaysInfo(project);
             
             return (
               <Card key={project.id} className="hover:shadow-lg transition-shadow duration-200">
@@ -183,9 +215,19 @@ const Projects = () => {
                     </DropdownMenu>
                   </div>
 
-                  {/* Status Badge */}
-                  <div className="mt-2">
+                  {/* Status, Priority and Category */}
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
                     <ProjectStatusBadge status={project.status || 'active'} size="sm" />
+                    <Badge className={priorityColors[project.priority]} variant="secondary">
+                      {project.priority === 'low' ? 'Baja' : 
+                       project.priority === 'medium' ? 'Media' : 
+                       project.priority === 'high' ? 'Alta' : 'Urgente'}
+                    </Badge>
+                    {project.category && (
+                      <Badge variant="outline" className="text-xs">
+                        {project.category}
+                      </Badge>
+                    )}
                   </div>
                 </CardHeader>
                 
@@ -195,11 +237,70 @@ const Projects = () => {
                       {project.description}
                     </p>
                   )}
+
+                  {/* Tags */}
+                  {project.tags && project.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {project.tags.slice(0, 3).map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                      {project.tags.length > 3 && (
+                        <Badge variant="secondary" className="text-xs">
+                          +{project.tags.length - 3}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Dates and Deadline Info */}
+                  {(project.start_date || project.deadline || daysInfo) && (
+                    <div className="space-y-2">
+                      {project.start_date && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          Inicio: {format(new Date(project.start_date), 'dd MMM yyyy', { locale: es })}
+                        </div>
+                      )}
+                      {daysInfo && (
+                        <div className={`flex items-center gap-2 text-xs ${
+                          daysInfo.type === 'overdue' ? 'text-red-600' : 
+                          daysInfo.type === 'urgent' ? 'text-orange-600' : 'text-muted-foreground'
+                        }`}>
+                          <Target className="h-3 w-3" />
+                          {daysInfo.text}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Budget and Hours */}
+                  {(project.budget || project.estimated_hours) && (
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      {project.budget && (
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">Presupuesto:</span>
+                          <span className="font-medium">${project.budget.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {project.estimated_hours && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">Horas:</span>
+                          <span className="font-medium">{project.estimated_hours}h</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   {/* Progress Section */}
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-card-foreground">Progreso</span>
+                      <span className="text-sm font-medium text-card-foreground">
+                        Progreso {project.progress > 0 ? `(Manual: ${project.progress}%)` : ''}
+                      </span>
                       <Badge variant="outline" className="font-semibold">
                         {stats.completionRate}%
                       </Badge>
@@ -210,7 +311,7 @@ const Projects = () => {
                         className="h-2 rounded-full transition-all duration-300"
                         style={{
                           backgroundColor: project.color,
-                          width: `${stats.completionRate}%`
+                          width: `${Math.max(stats.completionRate, project.progress)}%`
                         }}
                       />
                     </div>
@@ -256,7 +357,7 @@ const Projects = () => {
         onClose={() => setIsCreateProjectOpen(false)}
       />
 
-      <EditProjectModal
+      <AdvancedEditProjectModal
         isOpen={isEditProjectOpen}
         onClose={handleCloseEditModal}
         project={selectedProject}

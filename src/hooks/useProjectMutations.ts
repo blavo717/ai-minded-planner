@@ -19,6 +19,11 @@ export const useProjectMutations = () => {
           ...projectData,
           user_id: user.id,
           color: projectData.color || '#3B82F6',
+          priority: projectData.priority || 'medium',
+          progress: projectData.progress || 0,
+          budget_used: 0,
+          actual_hours: 0,
+          custom_fields: projectData.custom_fields || {},
         })
         .select()
         .single();
@@ -45,6 +50,12 @@ export const useProjectMutations = () => {
   const updateProjectMutation = useMutation({
     mutationFn: async (projectData: UpdateProjectData) => {
       const { id, ...updateData } = projectData;
+      
+      // Si hay un cambio de estado, registrar el timestamp
+      if (updateData.status) {
+        updateData.last_status_change = new Date().toISOString();
+      }
+
       const { data, error } = await supabase
         .from('projects')
         .update({
@@ -56,6 +67,20 @@ export const useProjectMutations = () => {
         .single();
 
       if (error) throw error;
+
+      // Registrar en el historial si es necesario
+      if (user) {
+        await supabase
+          .from('project_history')
+          .insert({
+            project_id: id,
+            user_id: user.id,
+            change_type: 'update',
+            new_values: updateData,
+            notes: updateData.change_reason || 'Proyecto actualizado',
+          });
+      }
+
       return data;
     },
     onSuccess: () => {

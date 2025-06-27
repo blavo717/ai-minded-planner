@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -25,8 +25,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 import { useProjectMutations } from '@/hooks/useProjectMutations';
-import { CreateProjectData } from '@/hooks/useProjects';
+import { Project, UpdateProjectData } from '@/hooks/useProjects';
 import { Calendar as CalendarIcon, Plus, X, Target, DollarSign, Clock, Tag } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -49,9 +50,10 @@ const projectSchema = z.object({
 
 type ProjectFormData = z.infer<typeof projectSchema>;
 
-interface CreateProjectModalProps {
+interface AdvancedEditProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
+  project: Project | null;
 }
 
 const predefinedColors = [
@@ -66,8 +68,8 @@ const priorityColors = {
   urgent: 'bg-red-100 text-red-800',
 };
 
-const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
-  const { createProject, isCreatingProject } = useProjectMutations();
+const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProjectModalProps) => {
+  const { updateProject, isUpdatingProject } = useProjectMutations();
   const [newTag, setNewTag] = useState('');
 
   const form = useForm<ProjectFormData>({
@@ -88,15 +90,41 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
     },
   });
 
+  useEffect(() => {
+    if (project) {
+      form.reset({
+        name: project.name,
+        description: project.description || '',
+        color: project.color,
+        start_date: project.start_date || '',
+        end_date: project.end_date || '',
+        deadline: project.deadline || '',
+        priority: project.priority,
+        progress: project.progress,
+        budget: project.budget,
+        category: project.category || '',
+        estimated_hours: project.estimated_hours,
+        tags: project.tags || [],
+      });
+    }
+  }, [project, form]);
+
   const onSubmit = (data: ProjectFormData) => {
-    const projectData: CreateProjectData = {
+    if (!project) return;
+
+    const projectData: UpdateProjectData = {
+      id: project.id,
       ...data,
-      start_date: data.start_date || undefined,
-      end_date: data.end_date || undefined,
-      deadline: data.deadline || undefined,
+      start_date: data.start_date || null,
+      end_date: data.end_date || null,
+      deadline: data.deadline || null,
     };
 
-    createProject(projectData);
+    updateProject(projectData);
+    onClose();
+  };
+
+  const handleClose = () => {
     form.reset();
     onClose();
   };
@@ -117,12 +145,12 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
-            Crear Nuevo Proyecto
+            Editar Proyecto Avanzado
           </DialogTitle>
         </DialogHeader>
         
@@ -434,9 +462,37 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
 
               {/* Pestaña Progreso */}
               <TabsContent value="progress" className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  El progreso inicial se establecerá en 0%. Podrás actualizarlo después de crear el proyecto.
-                </p>
+                <FormField
+                  control={form.control}
+                  name="progress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center justify-between">
+                        <span>Progreso del Proyecto</span>
+                        <Badge variant="outline">{field.value}%</Badge>
+                      </FormLabel>
+                      <FormControl>
+                        <div className="space-y-3">
+                          <Slider
+                            value={[field.value]}
+                            onValueChange={(value) => field.onChange(value[0])}
+                            max={100}
+                            step={5}
+                            className="w-full"
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>0%</span>
+                            <span>25%</span>
+                            <span>50%</span>
+                            <span>75%</span>
+                            <span>100%</span>
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </TabsContent>
 
               {/* Pestaña Recursos */}
@@ -490,11 +546,11 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
             </Tabs>
 
             <div className="flex justify-end space-x-2 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={handleClose}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isCreatingProject}>
-                {isCreatingProject ? 'Creando...' : 'Crear Proyecto'}
+              <Button type="submit" disabled={isUpdatingProject}>
+                {isUpdatingProject ? 'Actualizando...' : 'Actualizar Proyecto'}
               </Button>
             </div>
           </form>
@@ -504,4 +560,4 @@ const CreateProjectModal = ({ isOpen, onClose }: CreateProjectModalProps) => {
   );
 };
 
-export default CreateProjectModal;
+export default AdvancedEditProjectModal;
