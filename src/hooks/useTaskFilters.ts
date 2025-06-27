@@ -1,8 +1,8 @@
-
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Task } from '@/hooks/useTasks';
 import { FilterState } from '@/types/filters';
 import { applySmartFilter } from '@/utils/smartFilters';
+import { useDebounce } from './useDebounce';
 
 export const useTaskFilters = (
   tasks: Task[],
@@ -31,7 +31,10 @@ export const useTaskFilters = (
     }
   });
 
-  const updateFilter = (key: keyof FilterState | string, value: any) => {
+  // Aplicar debouncing al filtro de búsqueda
+  const debouncedSearch = useDebounce(filters.search, 300);
+
+  const updateFilter = useCallback((key: keyof FilterState | string, value: any) => {
     if (key.includes('.')) {
       const [parentKey, childKey] = key.split('.');
       setFilters(prev => ({
@@ -47,9 +50,9 @@ export const useTaskFilters = (
         [key]: value
       }));
     }
-  };
+  }, []);
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setFilters({
       search: '',
       status: [],
@@ -70,9 +73,9 @@ export const useTaskFilters = (
         assignedTo: { type: 'OR' },
       }
     });
-  };
+  }, []);
 
-  const getActiveFiltersCount = () => {
+  const getActiveFiltersCount = useCallback(() => {
     let count = 0;
     if (filters.search) count++;
     if (filters.status?.length > 0) count++;
@@ -85,12 +88,13 @@ export const useTaskFilters = (
     if (filters.hasDependencies !== undefined) count++;
     if (filters.smartFilters?.length > 0) count++;
     return count;
-  };
+  }, [filters]);
 
-  const loadFilter = (filterData: FilterState) => {
+  const loadFilter = useCallback((filterData: FilterState) => {
     setFilters(filterData);
-  };
+  }, []);
 
+  // Memoizar el filtrado de tareas usando debouncedSearch en lugar de filters.search
   const filteredTasks = useMemo(() => {
     let result = [...tasks];
 
@@ -101,9 +105,9 @@ export const useTaskFilters = (
       }
     }
 
-    // Search filter
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
+    // Search filter con debouncing
+    if (debouncedSearch) {
+      const searchTerm = debouncedSearch.toLowerCase();
       result = result.filter(task => {
         const matchesTitle = task.title.toLowerCase().includes(searchTerm);
         const matchesDescription = task.description?.toLowerCase().includes(searchTerm);
@@ -221,8 +225,9 @@ export const useTaskFilters = (
     }
 
     return result;
-  }, [tasks, filters, getSubtasksForTask, taskAssignments, taskDependencies]);
+  }, [tasks, filters, debouncedSearch, getSubtasksForTask, taskAssignments, taskDependencies]);
 
+  // Memoizar las etiquetas disponibles
   const availableTags = useMemo(() => {
     const allTags = tasks.flatMap(task => task.tags || []);
     return [...new Set(allTags)];

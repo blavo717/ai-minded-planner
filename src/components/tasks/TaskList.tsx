@@ -1,8 +1,7 @@
 
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { memo } from 'react';
 import { Task } from '@/hooks/useTasks';
-import TaskCard from './TaskCard';
+import VirtualizedTaskList from './VirtualizedTaskList';
 
 interface TaskListProps {
   tasks: Task[];
@@ -15,7 +14,7 @@ interface TaskListProps {
   onCreateSubtask: (parentTaskId: string, title: string) => void;
 }
 
-const TaskList = ({ 
+const TaskList = memo(({ 
   tasks, 
   getSubtasksForTask, 
   onEditTask, 
@@ -25,38 +24,20 @@ const TaskList = ({
   onArchiveTask,
   onCreateSubtask 
 }: TaskListProps) => {
-  if (tasks.length === 0) {
-    return (
-      <Card className="w-full">
-        <CardContent className="text-center py-12">
-          <div className="text-gray-500 text-lg">No se encontraron tareas</div>
-          <p className="text-gray-400 text-sm mt-2">Crea una nueva tarea para comenzar</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <div className="w-full space-y-4">
-      {tasks.map((task) => {
-        const subtasks = getSubtasksForTask(task.id);
-        
-        return (
-          <TaskCard
-            key={task.id}
-            task={task}
-            subtasks={subtasks}
-            onEditTask={onEditTask}
-            onManageDependencies={onManageDependencies}
-            onAssignTask={onAssignTask}
-            onCompleteTask={onCompleteTask}
-            onArchiveTask={onArchiveTask}
-            onCreateSubtask={onCreateSubtask}
-          />
-        );
-      })}
-    </div>
+    <VirtualizedTaskList
+      tasks={tasks}
+      getSubtasksForTask={getSubtasksForTask}
+      onEditTask={onEditTask}
+      onManageDependencies={onManageDependencies}
+      onAssignTask={onAssignTask}
+      onCompleteTask={onCompleteTask}
+      onArchiveTask={onArchiveTask}
+      onCreateSubtask={onCreateSubtask}
+    />
   );
-};
+});
+
+TaskList.displayName = 'TaskList';
 
 export default TaskList;
