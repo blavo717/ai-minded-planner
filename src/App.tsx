@@ -16,6 +16,7 @@ import Analytics from '@/pages/Analytics';
 import Settings from '@/pages/Settings';
 import AISettings from '@/pages/AISettings';
 import LLMSettings from '@/pages/LLMSettings';
+import TaskTesting from '@/pages/TaskTesting';
 import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
 
@@ -84,6 +85,13 @@ const App = () => (
                 <ProtectedRoute>
                   <MainLayout>
                     <LLMSettings />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/task-testing" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <TaskTesting />
                   </MainLayout>
                 </ProtectedRoute>
               } />
