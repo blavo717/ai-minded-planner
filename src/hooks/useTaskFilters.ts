@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Task } from '@/hooks/useTasks';
 import { FilterState } from '@/types/filters';
 import { applySmartFilter } from '@/utils/smartFilters';
@@ -37,7 +37,7 @@ export const useTaskFilters = (
       setFilters(prev => ({
         ...prev,
         [parentKey]: {
-          ...prev[parentKey as keyof FilterState],
+          ...(prev[parentKey as keyof FilterState] as object),
           [childKey]: value
         }
       }));
@@ -165,13 +165,13 @@ export const useTaskFilters = (
       });
     }
 
-    // Assigned to filter
+    // Assigned to filter - declare assignments here to avoid scoping issues
     if (filters.assignedTo.length > 0) {
       result = result.filter(task => {
-        const taskAssignments = taskAssignments.filter(assignment => assignment.task_id === task.id);
-        if (taskAssignments.length === 0) return false;
+        const currentTaskAssignments = taskAssignments.filter(assignment => assignment.task_id === task.id);
+        if (currentTaskAssignments.length === 0) return false;
         
-        const assignedUserIds = taskAssignments.map(assignment => assignment.assigned_to);
+        const assignedUserIds = currentTaskAssignments.map(assignment => assignment.assigned_to);
         
         if (filters.operators.assignedTo.type === 'OR') {
           return filters.assignedTo.some(userId => assignedUserIds.includes(userId));
@@ -230,6 +230,7 @@ export const useTaskFilters = (
 
   return {
     filters,
+    setFilters,
     updateFilter,
     clearAllFilters,
     getActiveFiltersCount,
