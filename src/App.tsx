@@ -21,6 +21,7 @@ import PricingPage from '@/pages/PricingPage';
 import ProfilePage from '@/pages/ProfilePage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import Phase2Testing from '@/pages/Phase2Testing';
+import LLMSettings from '@/pages/LLMSettings';
 
 const queryClient = new QueryClient();
 
@@ -63,34 +64,6 @@ function App() {
                   </MainLayout>
                 </ProtectedRoute>
               } />
-              <Route path="/analytics" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Analytics />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/team" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Team />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Settings />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/ai-assistant" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <AIAssistantSimple />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
               <Route path="/gantt" element={
                 <ProtectedRoute>
                   <MainLayout>
@@ -105,10 +78,45 @@ function App() {
                   </MainLayout>
                 </ProtectedRoute>
               } />
+              <Route path="/analytics" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <Analytics />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/ai-assistant" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <AIAssistantSimple />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/team" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <Team />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <MainLayout>
                     <ProfilePage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <Settings />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/settings/llm" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <LLMSettings />
                   </MainLayout>
                 </ProtectedRoute>
               } />
