@@ -1,13 +1,13 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, BarChart3, TrendingUp, Clock, Target, Download, Timer, Database, CheckCircle } from 'lucide-react';
+import { Calendar, BarChart3, TrendingUp, Clock, Target, Download, Timer, Database, CheckCircle, AlertTriangle } from 'lucide-react';
 import ProductivityOverview from '@/components/Analytics/ProductivityOverview';
 import TaskCompletionChart from '@/components/Analytics/TaskCompletionChart';
 import TimeDistributionChart from '@/components/Analytics/TimeDistributionChart';
-import ProjectPerformanceChart from '@/components/Analytics/ProjectPerformanceChart';
 import ProductivityHeatmap from '@/components/Analytics/ProductivityHeatmap';
 import ReportGenerator from '@/components/Analytics/ReportGenerator';
 import WorkPatternsAnalysis from '@/components/Analytics/WorkPatternsAnalysis';
@@ -16,11 +16,15 @@ import TaskSessionLogger from '@/components/Analytics/TaskSessionLogger';
 import TestDataGenerator from '@/components/Analytics/TestDataGenerator';
 import KPIDashboard from '@/components/Analytics/KPIDashboard';
 import TaskLevelAnalytics from '@/components/Analytics/TaskLevelAnalytics';
+import GeneralStatsOverview from '@/components/Analytics/GeneralStatsOverview';
+import RealProjectPerformance from '@/components/Analytics/RealProjectPerformance';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { useGeneralStats } from '@/hooks/analytics/useGeneralStats';
 
 const Analytics = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
   const { isLoading } = useAnalytics();
+  const { data: generalStats } = useGeneralStats();
 
   const periodOptions = [
     { value: 'week', label: 'Última semana' },
@@ -44,6 +48,9 @@ const Analytics = () => {
       </div>
     );
   }
+
+  // Mostrar advertencia si no hay datos
+  const showDataWarning = !generalStats?.hasAnyData;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -77,9 +84,39 @@ const Analytics = () => {
         </div>
       </div>
 
+      {/* Advertencia de datos insuficientes */}
+      {showDataWarning && (
+        <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+              <AlertTriangle className="h-5 w-5" />
+              Datos Insuficientes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-yellow-700 dark:text-yellow-300 mb-4">
+              Parece que aún no tienes suficientes datos para generar analytics detallados. 
+              Algunas secciones pueden aparecer vacías o con información limitada.
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline">
+                Crear Proyecto
+              </Button>
+              <Button size="sm" variant="outline">
+                Añadir Tareas
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Content */}
-      <Tabs defaultValue="dashboard" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
+      <Tabs defaultValue="general" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-9">
+          <TabsTrigger value="general" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            General
+          </TabsTrigger>
           <TabsTrigger value="dashboard" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Dashboard
@@ -114,6 +151,10 @@ const Analytics = () => {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="general" className="space-y-6">
+          <GeneralStatsOverview />
+        </TabsContent>
+
         <TabsContent value="dashboard" className="space-y-6">
           <KPIDashboard period={selectedPeriod} />
         </TabsContent>
@@ -144,7 +185,7 @@ const Analytics = () => {
         </TabsContent>
 
         <TabsContent value="projects" className="space-y-6">
-          <ProjectPerformanceChart period={selectedPeriod} />
+          <RealProjectPerformance />
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-6">
