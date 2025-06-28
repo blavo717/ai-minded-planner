@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Task } from '@/hooks/useTasks';
-import { useAIAssistant } from '@/hooks/useAIAssistant';
+import { useAIAssistantSimple } from '@/hooks/useAIAssistantSimple';
 import MicrotaskItem from './MicrotaskItem';
 import TaskCreator from './TaskCreator';
 import TaskCreatorModal from './TaskCreatorModal';
@@ -33,7 +32,7 @@ const MicrotaskList = ({
   onCreateMicrotask,
   parentTask 
 }: MicrotaskListProps) => {
-  const { addSuggestion } = useAIAssistant();
+  const { sendMessage } = useAIAssistantSimple();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'priority' | 'created' | 'duration'>('priority');
@@ -46,14 +45,8 @@ const MicrotaskList = ({
 
   const handleAISuggestions = () => {
     if (parentTask) {
-      addSuggestion(
-        `💡 ¿Necesitas ayuda para dividir "${parentTask.title}" en microtareas más específicas? Puedo sugerir una estructura detallada basada en la descripción de la tarea.`,
-        'medium',
-        { 
-          type: 'microtask_suggestions', 
-          parentTask: parentTask,
-          currentMicrotasks: microtasks 
-        }
+      sendMessage(
+        `💡 ¿Puedes ayudarme a dividir la tarea "${parentTask.title}" en microtareas más específicas? Actualmente tiene ${microtasks.length} microtareas. La descripción de la tarea principal es: "${parentTask.description || 'Sin descripción'}"`
       );
     }
   };

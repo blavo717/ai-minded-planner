@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,8 +13,7 @@ import {
   Database,
   MessageSquare
 } from 'lucide-react';
-import { useAIAssistant } from '@/hooks/useAIAssistant';
-import { useSmartMessaging } from '@/hooks/useSmartMessaging';
+import { useAIAssistantSimple } from '@/hooks/useAIAssistantSimple';
 import { useLLMConfigurations } from '@/hooks/useLLMConfigurations';
 import { toast } from '@/hooks/use-toast';
 
@@ -30,56 +28,39 @@ interface TestResult {
 
 const Phase5TestingSuite = () => {
   const { 
-    addNotification, 
-    addSuggestion, 
-    clearChat, 
-    forceFullReset,
-    syncWithDB,
-    validatePersistence,
-    currentStrategy,
+    sendMessage,
+    clearChat,
     messages,
-    setForcedMemoryStrategy,
-    clearForcedStrategy
-  } = useAIAssistant();
+    connectionStatus
+  } = useAIAssistantSimple();
   
-  const { pauseForTesting, resumeAfterTesting } = useSmartMessaging();
   const { activeConfiguration } = useLLMConfigurations();
   
   const [testResults, setTestResults] = useState<TestResult[]>([
     {
-      name: 'Forzar Estrategia Memoria',
+      name: 'Conexión del Asistente Simple',
       status: 'pending',
-      description: 'FASE 14: Forzar strategy=memory para tests ultra-simples'
+      description: 'FASE 14: Verificar conexión del asistente simplificado'
     },
     {
-      name: 'Reset Memoria Instantáneo',
+      name: 'Envío de Mensaje',
       status: 'pending',
-      description: 'FASE 14: Reset instantáneo en memoria'
+      description: 'FASE 14: Enviar mensaje de prueba al asistente'
     },
     {
-      name: 'Añadir Notificación Memoria',
+      name: 'Recepción de Respuesta',
       status: 'pending',
-      description: 'FASE 14: Crear notificación instantánea'
+      description: 'FASE 14: Verificar respuesta del asistente'
     },
     {
-      name: 'Añadir Sugerencia Memoria',
+      name: 'Limpieza de Chat',
       status: 'pending',
-      description: 'FASE 14: Crear sugerencia instantánea'
+      description: 'FASE 14: Limpiar historial de chat'
     },
     {
-      name: 'Validación Memoria Directa',
+      name: 'Estado Final Limpio',
       status: 'pending',
-      description: 'FASE 14: Validar directamente contra memoria'
-    },
-    {
-      name: 'Limpieza Memoria Instantánea',
-      status: 'pending',
-      description: 'FASE 14: Limpiar memoria instantáneamente'
-    },
-    {
-      name: 'Verificación Final Ultra-Simple',
-      status: 'pending',
-      description: 'FASE 14: Estado final limpio en memoria'
+      description: 'FASE 14: Verificar estado final limpio'
     }
   ]);
 
@@ -93,32 +74,23 @@ const Phase5TestingSuite = () => {
     ));
   }, []);
 
-  // FASE 14: Test 1 - Forzar Estrategia Memoria INSTANTÁNEO
-  const testForceMemoryStrategy = useCallback(async (): Promise<boolean> => {
-    console.log('🧪 FASE 14: TEST 1 - Forzar Estrategia Memoria');
+  // FASE 14: Test 1 - Verificar Conexión
+  const testConnection = useCallback(async (): Promise<boolean> => {
+    console.log('🧪 FASE 14: TEST 1 - Verificar Conexión');
     const startTime = Date.now();
     
     try {
-      // Forzar estrategia memoria
-      setForcedMemoryStrategy();
-      
-      // Pausa Smart Messaging (ya está desactivado)
-      pauseForTesting();
-      
-      // Verificar que la estrategia cambió
-      await new Promise(resolve => setTimeout(resolve, 100)); // 100ms mínimo
-      
       const duration = Date.now() - startTime;
       
-      if (currentStrategy === 'memory') {
+      if (connectionStatus === 'connected' || connectionStatus === 'connecting') {
         updateTestResult(0, 'passed', undefined, [
-          `✅ Estrategia forzada a memoria`,
-          `✅ Smart Messaging desactivado`,
+          `✅ Estado de conexión: ${connectionStatus}`,
+          `✅ Configuración activa disponible`,
           `⏱️ Tiempo: ${duration}ms`
         ], duration);
         return true;
       } else {
-        updateTestResult(0, 'failed', `Estrategia esperada: memory, actual: ${currentStrategy}`);
+        updateTestResult(0, 'failed', `Estado de conexión: ${connectionStatus}`);
         return false;
       }
     } catch (error) {
@@ -126,31 +98,33 @@ const Phase5TestingSuite = () => {
       updateTestResult(0, 'failed', error instanceof Error ? error.message : 'Error desconocido', undefined, duration);
       return false;
     }
-  }, [setForcedMemoryStrategy, pauseForTesting, currentStrategy, updateTestResult]);
+  }, [connectionStatus, updateTestResult]);
 
-  // FASE 14: Test 2 - Reset Memoria INSTANTÁNEO
-  const testMemoryReset = useCallback(async (): Promise<boolean> => {
-    console.log('🧪 FASE 14: TEST 2 - Reset Memoria Instantáneo');
+  // FASE 14: Test 2 - Envío de Mensaje
+  const testSendMessage = useCallback(async (): Promise<boolean> => {
+    console.log('🧪 FASE 14: TEST 2 - Envío de Mensaje');
     const startTime = Date.now();
     
     try {
-      // Reset instantáneo
-      await forceFullReset();
+      const preCount = messages.length;
+      console.log(`📊 Pre-count: ${preCount} mensajes`);
       
-      // Verificar que está limpio (debería ser instantáneo)
-      const isClean = await validatePersistence(0, 'testMemoryReset');
+      await sendMessage('Test message FASE 14 - Sistema simplificado');
+      
+      // Esperar un momento para que el mensaje se procese
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const duration = Date.now() - startTime;
       
-      if (isClean) {
+      if (messages.length > preCount) {
         updateTestResult(1, 'passed', undefined, [
-          `✅ Reset instantáneo exitoso`,
-          `✅ Memoria limpia: 0 mensajes`,
+          `✅ Mensaje enviado exitosamente`,
+          `✅ Mensajes: ${preCount} → ${messages.length}`,
           `⏱️ Tiempo: ${duration}ms`
         ], duration);
         return true;
       } else {
-        updateTestResult(1, 'failed', 'Reset no completó limpieza');
+        updateTestResult(1, 'failed', `No se detectó el envío del mensaje`);
         return false;
       }
     } catch (error) {
@@ -158,73 +132,67 @@ const Phase5TestingSuite = () => {
       updateTestResult(1, 'failed', error instanceof Error ? error.message : 'Error desconocido', undefined, duration);
       return false;
     }
-  }, [forceFullReset, validatePersistence, updateTestResult]);
+  }, [sendMessage, messages.length, updateTestResult]);
 
-  // FASE 14: Test 3 - Añadir Notificación INSTANTÁNEO
-  const testAddNotificationMemory = useCallback(async (): Promise<boolean> => {
-    console.log('🧪 FASE 14: TEST 3 - Añadir Notificación Memoria');
+  // FASE 14: Test 3 - Verificar Respuesta
+  const testReceiveResponse = useCallback(async (): Promise<boolean> => {
+    console.log('🧪 FASE 14: TEST 3 - Verificar Respuesta');
     const startTime = Date.now();
     
     try {
-      const preCount = messages.length;
-      console.log(`📊 Pre-count: ${preCount} mensajes`);
+      // Esperar respuesta del asistente (hasta 10 segundos)
+      let attempts = 0;
+      const maxAttempts = 20;
       
-      await addNotification('🔔 Test notification FASE 14 MEMORY', 'medium', { test: true });
-      
-      // Sync instantáneo en memoria
-      await syncWithDB();
-      
-      // Validar inmediatamente
-      const isValid = await validatePersistence(preCount + 1, 'testAddNotificationMemory');
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const assistantMessages = messages.filter(m => m.type === 'assistant');
+        if (assistantMessages.length > 0) {
+          const duration = Date.now() - startTime;
+          updateTestResult(2, 'passed', undefined, [
+            `✅ Respuesta recibida del asistente`,
+            `✅ Mensajes del asistente: ${assistantMessages.length}`,
+            `⏱️ Tiempo: ${duration}ms`
+          ], duration);
+          return true;
+        }
+        
+        attempts++;
+      }
       
       const duration = Date.now() - startTime;
-      
-      if (isValid) {
-        updateTestResult(2, 'passed', undefined, [
-          `✅ Notificación añadida instantáneamente`,
-          `✅ Memoria actualizada: ${preCount} → ${preCount + 1}`,
-          `⏱️ Tiempo: ${duration}ms`
-        ], duration);
-        return true;
-      } else {
-        updateTestResult(2, 'failed', `Validación memoria falló. Esperado: ${preCount + 1}`);
-        return false;
-      }
+      updateTestResult(2, 'failed', 'No se recibió respuesta del asistente en tiempo esperado');
+      return false;
     } catch (error) {
       const duration = Date.now() - startTime;
       updateTestResult(2, 'failed', error instanceof Error ? error.message : 'Error desconocido', undefined, duration);
       return false;
     }
-  }, [addNotification, messages.length, syncWithDB, validatePersistence, updateTestResult]);
+  }, [messages, updateTestResult]);
 
-  // FASE 14: Test 4 - Añadir Sugerencia INSTANTÁNEO
-  const testAddSuggestionMemory = useCallback(async (): Promise<boolean> => {
-    console.log('🧪 FASE 14: TEST 4 - Añadir Sugerencia Memoria');
+  // FASE 14: Test 4 - Limpiar Chat
+  const testClearChat = useCallback(async (): Promise<boolean> => {
+    console.log('🧪 FASE 14: TEST 4 - Limpiar Chat');
     const startTime = Date.now();
     
     try {
-      const preCount = messages.length;
-      console.log(`📊 Pre-count: ${preCount} mensajes`);
+      await clearChat();
       
-      await addSuggestion('💡 Test suggestion FASE 14 MEMORY', 'low', { test: true });
-      
-      // Sync instantáneo
-      await syncWithDB();
-      
-      // Validar inmediatamente
-      const isValid = await validatePersistence(preCount + 1, 'testAddSuggestionMemory');
+      // Esperar un momento para que se procese la limpieza
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const duration = Date.now() - startTime;
       
-      if (isValid) {
+      if (messages.length === 0) {
         updateTestResult(3, 'passed', undefined, [
-          `✅ Sugerencia añadida instantáneamente`,
-          `✅ Memoria actualizada: ${preCount} → ${preCount + 1}`,
+          `✅ Chat limpiado exitosamente`,
+          `✅ Mensajes: 0`,
           `⏱️ Tiempo: ${duration}ms`
         ], duration);
         return true;
       } else {
-        updateTestResult(3, 'failed', `Validación memoria falló. Esperado: ${preCount + 1}`);
+        updateTestResult(3, 'failed', `Chat no se limpió completamente: ${messages.length} mensajes restantes`);
         return false;
       }
     } catch (error) {
@@ -232,32 +200,29 @@ const Phase5TestingSuite = () => {
       updateTestResult(3, 'failed', error instanceof Error ? error.message : 'Error desconocido', undefined, duration);
       return false;
     }
-  }, [addSuggestion, messages.length, syncWithDB, validatePersistence, updateTestResult]);
+  }, [clearChat, messages.length, updateTestResult]);
 
-  // FASE 14: Test 5 - Validación Memoria Directa INSTANTÁNEO
-  const testMemoryValidation = useCallback(async (): Promise<boolean> => {
-    console.log('🧪 FASE 14: TEST 5 - Validación Memoria Directa');
+  // FASE 14: Test 5 - Estado Final
+  const testFinalState = useCallback(async (): Promise<boolean> => {
+    console.log('🧪 FASE 14: TEST 5 - Estado Final');
     const startTime = Date.now();
     
     try {
-      const currentCount = messages.length;
-      console.log(`📊 Validando memoria directa: ${currentCount} mensajes`);
-      
-      // Validación directa de memoria
-      const isValid = await validatePersistence(currentCount, 'testMemoryValidation');
-      
       const duration = Date.now() - startTime;
       
-      if (isValid) {
+      const finalCount = messages.length;
+      const isClean = finalCount === 0;
+      
+      if (isClean) {
         updateTestResult(4, 'passed', undefined, [
-          `✅ Validación memoria directa exitosa`,
-          `✅ Mensajes validados: ${currentCount}`,
-          `✅ Solo lectura (no modificación)`,
+          `✅ Estado final limpio`,
+          `✅ Mensajes: ${finalCount}`,
+          `✅ Sistema simplificado funcionando`,
           `⏱️ Tiempo: ${duration}ms`
         ], duration);
         return true;
       } else {
-        updateTestResult(4, 'failed', `Validación memoria falló para ${currentCount} mensajes`);
+        updateTestResult(4, 'failed', `Estado final no limpio: ${finalCount} mensajes`);
         return false;
       }
     } catch (error) {
@@ -265,82 +230,7 @@ const Phase5TestingSuite = () => {
       updateTestResult(4, 'failed', error instanceof Error ? error.message : 'Error desconocido', undefined, duration);
       return false;
     }
-  }, [messages.length, validatePersistence, updateTestResult]);
-
-  // FASE 14: Test 6 - Limpieza Memoria INSTANTÁNEO
-  const testMemoryClear = useCallback(async (): Promise<boolean> => {
-    console.log('🧪 FASE 14: TEST 6 - Limpieza Memoria Instantánea');
-    const startTime = Date.now();
-    
-    try {
-      await clearChat();
-      
-      // Sync instantáneo
-      await syncWithDB();
-      
-      // Validar que está limpio
-      const isValid = await validatePersistence(0, 'testMemoryClear');
-      
-      const duration = Date.now() - startTime;
-      
-      if (isValid) {
-        updateTestResult(5, 'passed', undefined, [
-          `✅ Memoria limpiada instantáneamente`,
-          `✅ Memoria completamente vacía`,
-          `✅ Estado sincronizado`,
-          `⏱️ Tiempo: ${duration}ms`
-        ], duration);
-        return true;
-      } else {
-        updateTestResult(5, 'failed', 'Memoria no se limpió completamente');
-        return false;
-      }
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      updateTestResult(5, 'failed', error instanceof Error ? error.message : 'Error desconocido', undefined, duration);
-      return false;
-    }
-  }, [clearChat, syncWithDB, validatePersistence, updateTestResult]);
-
-  // FASE 14: Test 7 - Verificación Final INSTANTÁNEO
-  const testFinalVerificationMemory = useCallback(async (): Promise<boolean> => {
-    console.log('🧪 FASE 14: TEST 7 - Verificación Final Ultra-Simple');
-    const startTime = Date.now();
-    
-    try {
-      // Sync una vez más
-      await syncWithDB();
-      
-      // Validar estado final
-      const finalCount = messages.length;
-      const isValid = await validatePersistence(finalCount, 'testFinalVerificationMemory');
-      
-      // Restaurar estrategia normal
-      clearForcedStrategy();
-      
-      // Reanudar Smart Messaging (ya está desactivado)
-      resumeAfterTesting();
-      
-      const duration = Date.now() - startTime;
-      
-      if (isValid) {
-        updateTestResult(6, 'passed', undefined, [
-          `✅ Estado final consistente`,
-          `✅ Memoria y estado sincronizados: ${finalCount} mensajes`,
-          `✅ Estrategia restaurada`,
-          `⏱️ Tiempo: ${duration}ms`
-        ], duration);
-        return true;
-      } else {
-        updateTestResult(6, 'failed', 'Estado final no es consistente');
-        return false;
-      }
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      updateTestResult(6, 'failed', error instanceof Error ? error.message : 'Error desconocido', undefined, duration);
-      return false;
-    }
-  }, [syncWithDB, messages.length, validatePersistence, clearForcedStrategy, resumeAfterTesting, updateTestResult]);
+  }, [messages.length, updateTestResult]);
 
   const runAllTests = useCallback(async () => {
     if (!activeConfiguration) {
@@ -365,13 +255,11 @@ const Phase5TestingSuite = () => {
     })));
     
     const tests = [
-      testForceMemoryStrategy,
-      testMemoryReset,
-      testAddNotificationMemory,
-      testAddSuggestionMemory,
-      testMemoryValidation,
-      testMemoryClear,
-      testFinalVerificationMemory
+      testConnection,
+      testSendMessage,
+      testReceiveResponse,
+      testClearChat,
+      testFinalState
     ];
     
     let allPassed = true;
@@ -380,7 +268,7 @@ const Phase5TestingSuite = () => {
       setCurrentTest(i);
       updateTestResult(i, 'running');
       
-      console.log(`🧪 FASE 14: Ejecutando test ultra-simple ${i + 1}/${tests.length}`);
+      console.log(`🧪 FASE 14: Ejecutando test simplificado ${i + 1}/${tests.length}`);
       
       const testPassed = await tests[i]();
       
@@ -391,9 +279,9 @@ const Phase5TestingSuite = () => {
         console.log(`✅ FASE 14: Test ${i + 1} exitoso`);
       }
       
-      // Pausa mínima entre tests (100ms)
+      // Pausa entre tests
       if (i < tests.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
     
@@ -404,23 +292,21 @@ const Phase5TestingSuite = () => {
     const passed = testResults.filter(t => t.status === 'passed').length;
     const failed = testResults.filter(t => t.status === 'failed').length;
     
-    console.log(`🏁 FASE 14: Tests ultra-simples completados en ${totalDuration}ms`);
+    console.log(`🏁 FASE 14: Tests simplificados completados en ${totalDuration}ms`);
     console.log(`📊 FASE 14: ${passed} exitosos, ${failed} fallidos`);
     
     toast({
-      title: allPassed ? "🎉 FASE 14: ¡Todos los tests ultra-simples pasaron!" : "❌ FASE 14: Algunos tests fallaron",
+      title: allPassed ? "🎉 FASE 14: ¡Todos los tests pasaron!" : "❌ FASE 14: Algunos tests fallaron",
       description: `${passed} exitosos, ${failed} fallidos. Tiempo total: ${Math.round(totalDuration / 1000)}s`,
       variant: allPassed ? "default" : "destructive"
     });
   }, [
     activeConfiguration,
-    testForceMemoryStrategy,
-    testMemoryReset,
-    testAddNotificationMemory,
-    testAddSuggestionMemory,
-    testMemoryValidation,
-    testMemoryClear,
-    testFinalVerificationMemory,
+    testConnection,
+    testSendMessage,
+    testReceiveResponse,
+    testClearChat,
+    testFinalState,
     testResults,
     overallStartTime
   ]);
@@ -475,7 +361,7 @@ const Phase5TestingSuite = () => {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-green-500" />
-            FASE 14 - ENFOQUE MINIMALISTA TOTAL
+            FASE 14 - SISTEMA SIMPLIFICADO
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="outline">
@@ -506,14 +392,12 @@ const Phase5TestingSuite = () => {
         <Alert className="border-green-200 bg-green-50">
           <Database className="h-4 w-4 text-green-600" />
           <AlertDescription>
-            <div className="font-medium mb-2 text-green-800">FASE 14 - ENFOQUE MINIMALISTA TOTAL:</div>
+            <div className="font-medium mb-2 text-green-800">FASE 14 - SISTEMA SIMPLIFICADO:</div>
             <ul className="list-disc list-inside text-sm space-y-1 text-green-700">
-              <li>✅ Smart Messaging PERMANENTEMENTE desactivado</li>
-              <li>✅ Tests SOLO en memoria: operaciones instantáneas</li>
-              <li>✅ Timeouts ultra-mínimos: 100-500ms máximo</li>
-              <li>✅ Arquitectura minimalista: sin complejidad</li>
-              <li>✅ Validación directa: sin sincronización BD</li>
-              <li>✅ Tests secuenciales aislados: determinísticos</li>
+              <li>✅ Arquitectura limpia: un solo sistema de IA</li>
+              <li>✅ Tests simplificados: funcionalidad básica</li>
+              <li>✅ Sin archivos redundantes: código limpio</li>
+              <li>✅ Preparado para Fase 1: prompts inteligentes</li>
             </ul>
           </AlertDescription>
         </Alert>
@@ -526,8 +410,8 @@ const Phase5TestingSuite = () => {
           </div>
           
           <div className="text-center p-3 bg-green-50 rounded-lg border">
-            <div className="text-lg font-bold text-green-600">{currentStrategy}</div>
-            <div className="text-xs text-muted-foreground">Estrategia activa</div>
+            <div className="text-lg font-bold text-green-600">{connectionStatus}</div>
+            <div className="text-xs text-muted-foreground">Estado conexión</div>
           </div>
           
           <div className="text-center p-3 bg-purple-50 rounded-lg border">
@@ -550,7 +434,7 @@ const Phase5TestingSuite = () => {
             className="flex items-center gap-2"
           >
             <Play className="h-4 w-4" />
-            {isRunning ? 'Ejecutando Tests FASE 14...' : 'Ejecutar Tests Ultra-Simples FASE 14'}
+            {isRunning ? 'Ejecutando Tests...' : 'Ejecutar Tests Simplificados'}
           </Button>
           
           <Button 
@@ -629,13 +513,13 @@ const Phase5TestingSuite = () => {
                 <AlertTriangle className="h-5 w-5 text-yellow-500" />
               )}
               <h4 className="font-medium">
-                {failedTests === 0 ? '🎉 FASE 14: ¡Todos los tests ultra-simples pasaron!' : `❌ FASE 14: ${failedTests} tests fallaron`}
+                {failedTests === 0 ? '🎉 ¡Sistema simplificado funcionando!' : `❌ ${failedTests} tests fallaron`}
               </h4>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {failedTests === 0 
-                ? `Arquitectura minimalista funcionando perfectamente. Tiempo total: ${Math.round(totalDuration / 1000)}s`
-                : 'Si continúan los fallos, procederemos con OPCIÓN B: chatbot básico sin notificaciones.'
+                ? `Arquitectura limpia lista para Fase 1. Tiempo total: ${Math.round(totalDuration / 1000)}s`
+                : 'Revisa los errores antes de continuar con Fase 1.'
               }
             </p>
           </div>
