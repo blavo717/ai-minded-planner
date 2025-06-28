@@ -13,7 +13,8 @@ import {
   LogOut,
   MessageSquare,
   TestTube,
-  Zap
+  Zap,
+  BarChart3
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -48,6 +49,11 @@ const Sidebar = () => {
       title: 'Equipo',
       href: '/team',
       icon: Users,
+    },
+    {
+      title: 'Analíticas',
+      href: '/analytics',
+      icon: BarChart3,
     },
     {
       title: 'IA Asistente',

@@ -9,6 +9,7 @@ import Tasks from '@/pages/Tasks';
 import Projects from '@/pages/Projects';
 import Team from '@/pages/Team';
 import Settings from '@/pages/Settings';
+import Analytics from '@/pages/Analytics';
 import NotFound from '@/pages/NotFound';
 import { useAuth, AuthProvider } from '@/hooks/useAuth';
 import MainLayout from '@/components/Layout/MainLayout';
@@ -67,6 +68,7 @@ const AppContent = () => {
                   <Route path="/tasks" element={<Tasks />} />
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/team" element={<Team />} />
+                  <Route path="/analytics" element={<Analytics />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/llm-settings" element={<LLMSettings />} />
                   <Route path="/ai-assistant-simple" element={<AIAssistantSimple />} />
