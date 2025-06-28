@@ -15,3 +15,15 @@ export type {
   DataCollectionRule,
   DataTrend 
 } from '@/types/contextual-data';
+
+export { usePhase6Advanced } from './usePhase6Advanced';
+export type {
+  AdvancedContext,
+  ContextualRecommendation,
+  AdvancedContextConfig
+} from '@/utils/ai/AdvancedContextEngine';
+export type {
+  ActionableRecommendation,
+  RecommendationFeedback,
+  SmartRecommendationConfig
+} from '@/utils/ai/SmartRecommendationEngine';
