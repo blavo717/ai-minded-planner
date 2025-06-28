@@ -2,34 +2,22 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Shield,
   CheckCircle,
   AlertTriangle,
-  Activity,
-  Brain,
-  Target,
-  Zap,
-  TrendingUp,
-  Clock,
   RefreshCw,
   FileCheck,
-  Database,
   Settings
 } from 'lucide-react';
 import { useAITesting } from '@/hooks/ai/useAITesting';
 import { usePhase6Advanced } from '@/hooks/ai/usePhase6Advanced';
 import { useInsightGeneration } from '@/hooks/ai/useInsightGeneration';
 import { useContextualDataCollector } from '@/hooks/ai/useContextualDataCollector';
-
-interface SystemHealthComponent {
-  status: string;
-  components?: Record<string, any>;
-  metrics?: Record<string, any>;
-}
+import SystemHealthCard from './validation/SystemHealthCard';
+import { SystemHealthComponent } from '@/types/testing';
 
 const AIValidationDashboard = () => {
   const [validationStatus, setValidationStatus] = useState<'idle' | 'running' | 'completed'>('idle');
@@ -110,7 +98,7 @@ const AIValidationDashboard = () => {
     };
 
     evaluateSystemHealth();
-    const interval = setInterval(evaluateSystemHealth, 10000); // Cada 10 segundos
+    const interval = setInterval(evaluateSystemHealth, 10000);
     
     return () => clearInterval(interval);
   }, [phase6, insights, contextualData]);
@@ -124,36 +112,6 @@ const AIValidationDashboard = () => {
     } catch (error) {
       console.error('Error during validation:', error);
       setValidationStatus('idle');
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return 'text-green-600 bg-green-100';
-      case 'warning':
-        return 'text-yellow-600 bg-yellow-100';
-      case 'error':
-        return 'text-red-600 bg-red-100';
-      case 'monitoring':
-        return 'text-blue-600 bg-blue-100';
-      default:
-        return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'warning':
-        return <AlertTriangle className="h-4 w-4" />;
-      case 'error':
-        return <AlertTriangle className="h-4 w-4" />;
-      case 'monitoring':
-        return <Activity className="h-4 w-4" />;
-      default:
-        return <Clock className="h-4 w-4" />;
     }
   };
 
@@ -179,7 +137,6 @@ const AIValidationDashboard = () => {
             variant="outline"
             size="sm"
           >
-            <Zap className="h-4 w-4 mr-2" />
             Test Performance
           </Button>
           <Button 
@@ -204,48 +161,7 @@ const AIValidationDashboard = () => {
       {/* Estado general del sistema */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {Object.entries(systemHealth).map(([key, component]) => (
-          <Card key={key}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  {key === 'aiCore' && <Brain className="h-5 w-5 text-purple-500" />}
-                  {key === 'insights' && <Target className="h-5 w-5 text-blue-500" />}
-                  {key === 'dataCollection' && <Database className="h-5 w-5 text-green-500" />}
-                  {key === 'performance' && <Activity className="h-5 w-5 text-orange-500" />}
-                  <span className="font-medium capitalize">
-                    {key === 'aiCore' ? 'IA Core' : 
-                     key === 'dataCollection' ? 'Datos' : 
-                     key}
-                  </span>
-                </div>
-                <Badge className={getStatusColor(component.status)}>
-                  {getStatusIcon(component.status)}
-                  <span className="ml-1 capitalize">{component.status}</span>
-                </Badge>
-              </div>
-              
-              <div className="space-y-1">
-                {Object.entries(component.components || component.metrics || {}).map(([subKey, value]) => (
-                  <div key={subKey} className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground capitalize">
-                      {subKey.replace(/([A-Z])/g, ' $1').toLowerCase()}
-                    </span>
-                    <span className={typeof value === 'boolean' 
-                      ? (value ? 'text-green-600' : 'text-red-600')
-                      : 'text-blue-600'
-                    }>
-                      {typeof value === 'boolean' 
-                        ? (value ? '✓' : '✗')
-                        : typeof value === 'number' 
-                          ? value 
-                          : value ? '✓' : '✗'
-                      }
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <SystemHealthCard key={key} healthKey={key} component={component} />
         ))}
       </div>
 
@@ -254,7 +170,6 @@ const AIValidationDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-500" />
               Resumen de Validación
             </CardTitle>
           </CardHeader>
@@ -331,85 +246,6 @@ const AIValidationDashboard = () => {
           </Alert>
         )}
       </div>
-
-      {/* Métricas en tiempo real */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-gray-500" />
-            Métricas en Tiempo Real
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <h4 className="font-medium mb-2">Procesamiento Activo</h4>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Generando Contexto</span>
-                  <Badge variant={phase6.isGeneratingContext ? 'default' : 'outline'}>
-                    {phase6.isGeneratingContext ? 'Activo' : 'Inactivo'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Generando Insights</span>
-                  <Badge variant={insights.isGenerating ? 'default' : 'outline'}>
-                    {insights.isGenerating ? 'Activo' : 'Inactivo'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Recolectando Datos</span>
-                  <Badge variant={contextualData.isCollecting ? 'default' : 'outline'}>
-                    {contextualData.isCollecting ? 'Activo' : 'Inactivo'}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="font-medium mb-2">Datos Disponibles</h4>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Insights Generados</span>
-                  <span className="font-medium">{insights.insights.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Recomendaciones</span>
-                  <span className="font-medium">{phase6.smartRecommendations.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Datos Contextuales</span>
-                  <span className="font-medium">{contextualData.contextualData.length}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="font-medium mb-2">Estado del Sistema</h4>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Contexto Avanzado</span>
-                  <Badge variant={phase6.advancedContext ? 'default' : 'outline'}>
-                    {phase6.advancedContext ? 'Disponible' : 'Pendiente'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Análisis de Patrones</span>
-                  <Badge variant={insights.patternAnalysis ? 'default' : 'outline'}>
-                    {insights.patternAnalysis ? 'Disponible' : 'Pendiente'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Trends de Productividad</span>
-                  <Badge variant={contextualData.getProductivityTrends().dataPoints > 0 ? 'default' : 'outline'}>
-                    {contextualData.getProductivityTrends().dataPoints > 0 ? 'Disponible' : 'Pendiente'}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
