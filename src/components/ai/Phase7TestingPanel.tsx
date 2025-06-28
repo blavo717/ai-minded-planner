@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -107,7 +106,7 @@ const Phase7TestingPanel = () => {
         return {
           insightsGenerated: insights.length,
           patternAnalysisAvailable: !!patternAnalysis,
-          hasProductivityInsights: insights.some(i => i.category === 'productivity'),
+          hasPositiveInsights: insights.some(i => i.category === 'positive'),
           hasSuggestions: insights.some(i => i.category === 'suggestion')
         };
       }
@@ -126,7 +125,7 @@ const Phase7TestingPanel = () => {
         
         return {
           dataPointsCollected: contextualData.length,
-          trendsAvailable: trends.length > 0,
+          trendsAvailable: trends.dataPoints > 0,
           dataTypes: [...new Set(contextualData.map(d => d.type))],
           recentDataAvailable: contextualData.some(d => 
             Date.now() - d.timestamp.getTime() < 24 * 60 * 60 * 1000

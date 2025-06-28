@@ -25,9 +25,15 @@ import { usePhase6Advanced } from '@/hooks/ai/usePhase6Advanced';
 import { useInsightGeneration } from '@/hooks/ai/useInsightGeneration';
 import { useContextualDataCollector } from '@/hooks/ai/useContextualDataCollector';
 
+interface SystemHealthComponent {
+  status: string;
+  components?: Record<string, any>;
+  metrics?: Record<string, any>;
+}
+
 const AIValidationDashboard = () => {
   const [validationStatus, setValidationStatus] = useState<'idle' | 'running' | 'completed'>('idle');
-  const [systemHealth, setSystemHealth] = useState<Record<string, any>>({});
+  const [systemHealth, setSystemHealth] = useState<Record<string, SystemHealthComponent>>({});
   
   const {
     isRunning,
@@ -44,7 +50,7 @@ const AIValidationDashboard = () => {
   // Evaluar salud del sistema
   useEffect(() => {
     const evaluateSystemHealth = () => {
-      const health = {
+      const health: Record<string, SystemHealthComponent> = {
         aiCore: {
           status: 'healthy',
           components: {
@@ -65,8 +71,8 @@ const AIValidationDashboard = () => {
           status: 'healthy',
           components: {
             contextualDataPoints: contextualData.contextualData.length,
-            productivityTrends: contextualData.getProductivityTrends().length > 0,
-            behaviorTrends: contextualData.getUserBehaviorTrends().length > 0
+            productivityTrends: contextualData.getProductivityTrends().dataPoints > 0,
+            behaviorTrends: contextualData.getUserBehaviorTrends().dataPoints > 0
           }
         },
         performance: {
@@ -81,20 +87,22 @@ const AIValidationDashboard = () => {
 
       // Evaluar estado general
       Object.keys(health).forEach(key => {
-        const component = health[key as keyof typeof health];
+        const component = health[key];
         if (key === 'performance') return; // Performance siempre en monitoring
         
-        const componentValues = Object.values(component.components);
-        const healthyCount = componentValues.filter(v => 
-          typeof v === 'boolean' ? v : v > 0
-        ).length;
-        
-        if (healthyCount === componentValues.length) {
-          component.status = 'healthy';
-        } else if (healthyCount > componentValues.length / 2) {
-          component.status = 'warning';
-        } else {
-          component.status = 'error';
+        if (component.components) {
+          const componentValues = Object.values(component.components);
+          const healthyCount = componentValues.filter(v => 
+            typeof v === 'boolean' ? v : (typeof v === 'number' && v > 0)
+          ).length;
+          
+          if (healthyCount === componentValues.length) {
+            component.status = 'healthy';
+          } else if (healthyCount > componentValues.length / 2) {
+            component.status = 'warning';
+          } else {
+            component.status = 'error';
+          }
         }
       });
 
@@ -393,8 +401,8 @@ const AIValidationDashboard = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Trends de Productividad</span>
-                  <Badge variant={contextualData.getProductivityTrends().length > 0 ? 'default' : 'outline'}>
-                    {contextualData.getProductivityTrends().length > 0 ? 'Disponible' : 'Pendiente'}
+                  <Badge variant={contextualData.getProductivityTrends().dataPoints > 0 ? 'default' : 'outline'}>
+                    {contextualData.getProductivityTrends().dataPoints > 0 ? 'Disponible' : 'Pendiente'}
                   </Badge>
                 </div>
               </div>
