@@ -466,11 +466,14 @@ export type Database = {
       projects: {
         Row: {
           actual_hours: number | null
+          archived_at: string | null
           budget: number | null
           budget_used: number | null
           category: string | null
           change_reason: string | null
           color: string | null
+          completed_at: string | null
+          completion_notes: string | null
           created_at: string
           custom_fields: Json | null
           deadline: string | null
@@ -483,6 +486,7 @@ export type Database = {
           priority: string | null
           progress: number | null
           start_date: string | null
+          status: string | null
           tags: string[] | null
           template_name: string | null
           updated_at: string
@@ -490,11 +494,14 @@ export type Database = {
         }
         Insert: {
           actual_hours?: number | null
+          archived_at?: string | null
           budget?: number | null
           budget_used?: number | null
           category?: string | null
           change_reason?: string | null
           color?: string | null
+          completed_at?: string | null
+          completion_notes?: string | null
           created_at?: string
           custom_fields?: Json | null
           deadline?: string | null
@@ -507,6 +514,7 @@ export type Database = {
           priority?: string | null
           progress?: number | null
           start_date?: string | null
+          status?: string | null
           tags?: string[] | null
           template_name?: string | null
           updated_at?: string
@@ -514,11 +522,14 @@ export type Database = {
         }
         Update: {
           actual_hours?: number | null
+          archived_at?: string | null
           budget?: number | null
           budget_used?: number | null
           category?: string | null
           change_reason?: string | null
           color?: string | null
+          completed_at?: string | null
+          completion_notes?: string | null
           created_at?: string
           custom_fields?: Json | null
           deadline?: string | null
@@ -531,6 +542,7 @@ export type Database = {
           priority?: string | null
           progress?: number | null
           start_date?: string | null
+          status?: string | null
           tags?: string[] | null
           template_name?: string | null
           updated_at?: string
