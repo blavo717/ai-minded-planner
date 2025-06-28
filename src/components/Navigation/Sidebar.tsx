@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Home, Calendar, ListChecks, Settings, Users, TestTube, BarChart3, FolderOpen, Brain, Bot, User, DollarSign } from 'lucide-react';
+import { Home, Calendar, ListChecks, Settings, Users, TestTube, BarChart3, FolderOpen, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -40,18 +40,6 @@ export const Sidebar = () => {
       description: 'Planificación y gestión de eventos'
     },
     {
-      name: 'Gantt',
-      href: '/gantt',
-      icon: BarChart3,
-      description: 'Vista de diagrama de Gantt'
-    },
-    {
-      name: 'Kanban',
-      href: '/kanban',
-      icon: ListChecks,
-      description: 'Vista de tablero Kanban'
-    },
-    {
       name: 'Analíticas',
       href: '/analytics',
       icon: BarChart3,
@@ -60,8 +48,8 @@ export const Sidebar = () => {
     {
       name: 'Asistente IA',
       href: '/ai-assistant',
-      icon: Bot,
-      description: 'Asistente de inteligencia artificial'
+      icon: Brain,
+      description: 'Asistente de IA y configuración'
     },
     {
       name: 'Equipo',
@@ -70,28 +58,10 @@ export const Sidebar = () => {
       description: 'Colaboración y gestión de equipo'
     },
     {
-      name: 'Perfil',
-      href: '/profile',
-      icon: User,
-      description: 'Configuración de perfil'
-    },
-    {
       name: 'Configuración',
       href: '/settings',
       icon: Settings,
       description: 'Configuración de la aplicación'
-    },
-    {
-      name: 'Config. LLM',
-      href: '/settings/llm',
-      icon: Brain,
-      description: 'Configuración de modelos de IA'
-    },
-    {
-      name: 'Precios',
-      href: '/pricing',
-      icon: DollarSign,
-      description: 'Planes y precios'
     },
     {
       name: 'Phase 2 Testing',

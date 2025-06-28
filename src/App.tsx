@@ -13,15 +13,10 @@ import Analytics from '@/pages/Analytics';
 import Settings from '@/pages/Settings';
 import Team from '@/pages/Team';
 import AIAssistantSimple from '@/pages/AIAssistantSimple';
-import GanttPage from '@/pages/GanttPage';
 import CalendarPage from '@/pages/CalendarPage';
-import KanbanPage from '@/pages/KanbanPage';
 import Auth from '@/pages/Auth';
-import PricingPage from '@/pages/PricingPage';
-import ProfilePage from '@/pages/ProfilePage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import Phase2Testing from '@/pages/Phase2Testing';
-import LLMSettings from '@/pages/LLMSettings';
 
 const queryClient = new QueryClient();
 
@@ -34,7 +29,6 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
-              <Route path="/pricing" element={<PricingPage />} />
               
               <Route path="/" element={
                 <ProtectedRoute>
@@ -64,20 +58,6 @@ function App() {
                   </MainLayout>
                 </ProtectedRoute>
               } />
-              <Route path="/gantt" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <GanttPage />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/kanban" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <KanbanPage />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
               <Route path="/analytics" element={
                 <ProtectedRoute>
                   <MainLayout>
@@ -99,13 +79,6 @@ function App() {
                   </MainLayout>
                 </ProtectedRoute>
               } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <ProfilePage />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
               <Route path="/settings" element={
                 <ProtectedRoute>
                   <MainLayout>
@@ -116,7 +89,7 @@ function App() {
               <Route path="/settings/llm" element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <LLMSettings />
+                    <Settings />
                   </MainLayout>
                 </ProtectedRoute>
               } />
