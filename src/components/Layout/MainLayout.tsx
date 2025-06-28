@@ -4,7 +4,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { LogOut, User } from 'lucide-react';
 import Sidebar from '@/components/Navigation/Sidebar';
-import AIAssistantPanelSimple from '@/components/ai/AIAssistantPanelSimple';
 import ThemeToggle from '@/components/ui/theme-toggle';
 
 interface MainLayoutProps {
@@ -51,8 +50,6 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         <main className="flex-1 overflow-auto p-6">
           {children}
         </main>
-        
-        <AIAssistantPanelSimple />
       </div>
     </div>
   );
