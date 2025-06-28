@@ -10,6 +10,7 @@ export { default as Projects } from '../pages/Projects';
 export { default as Contacts } from '../pages/Contacts';
 export { default as Analytics } from '../pages/Analytics';
 export { default as AISettings } from '../pages/AISettings';
+export { default as AITesting } from '../pages/AITesting';
 export { default as LLMSettings } from '../pages/LLMSettings';
 export { default as Settings } from '../pages/Settings';
 export { default as TaskTesting } from '../pages/TaskTesting';

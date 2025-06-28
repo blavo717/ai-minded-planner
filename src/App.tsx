@@ -15,6 +15,7 @@ import Contacts from '@/pages/Contacts';
 import Analytics from '@/pages/Analytics';
 import Settings from '@/pages/Settings';
 import AISettings from '@/pages/AISettings';
+import AITesting from '@/pages/AITesting';
 import LLMSettings from '@/pages/LLMSettings';
 import TaskTesting from '@/pages/TaskTesting';
 import Auth from '@/pages/Auth';
@@ -78,6 +79,13 @@ const App = () => (
                 <ProtectedRoute>
                   <MainLayout>
                     <AISettings />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/ai-testing" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <AITesting />
                   </MainLayout>
                 </ProtectedRoute>
               } />

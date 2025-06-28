@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
@@ -8,7 +9,8 @@ import {
   Settings,
   Brain,
   BarChart3,
-  Database
+  Database,
+  TestTube
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +24,7 @@ const Sidebar = () => {
     { name: 'Contactos', href: '/contacts', icon: Users, current: location.pathname === '/contacts' },
     { name: 'Analíticas', href: '/analytics', icon: BarChart3, current: location.pathname === '/analytics' },
     { name: 'IA Configuración', href: '/ai-settings', icon: Brain, current: location.pathname === '/ai-settings' },
+    { name: 'IA Testing', href: '/ai-testing', icon: TestTube, current: location.pathname === '/ai-testing' },
     { name: 'LLM Settings', href: '/llm-settings', icon: Settings, current: location.pathname === '/llm-settings' },
     { name: 'Configuración', href: '/settings', icon: Settings, current: location.pathname === '/settings' },
     { name: 'Test Tareas', href: '/task-testing', icon: Database, current: location.pathname === '/task-testing' },
