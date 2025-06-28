@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,7 @@ import {
   Brain,
   Zap
 } from 'lucide-react';
-import { useEnhancedAIAssistant } from '@/hooks/useEnhancedAIAssistant';
+import { useEnhancedAIAssistant } from '@/hooks/ai/useEnhancedAIAssistant';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -246,7 +245,7 @@ const EnhancedAIAssistantPanel = () => {
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
                       <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2 h-2 bg-purple-400 rounded-full" style={{ animationDelay: '0.4s' }}></div>
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                     </div>
                     <span className="text-sm text-purple-600">Generando respuesta...</span>
                   </div>

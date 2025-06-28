@@ -1,26 +1,13 @@
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useLLMService } from '@/hooks/useLLMService';
 import { useSmartPrompts } from '@/hooks/ai/useSmartPrompts';
 import { useAIContext } from '@/hooks/ai/useAIContext';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-
-interface EnhancedMessage {
-  id: string;
-  type: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: Date;
-  metadata?: {
-    model_used?: string;
-    tokens_used?: number;
-    response_time?: number;
-    context_data?: any;
-  };
-}
-
-type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+import { EnhancedMessage, ConnectionStatus } from './types/enhancedAITypes';
+import { messageHistoryService } from './services/messageHistoryService';
+import { messageProcessingService } from './services/messageProcessingService';
 
 export const useEnhancedAIAssistant = () => {
   const [messages, setMessages] = useState<EnhancedMessage[]>([]);
@@ -43,75 +30,11 @@ export const useEnhancedAIAssistant = () => {
   }, [user?.id, isHistoryLoaded]);
 
   const loadConversationHistory = async () => {
-    try {
-      console.log('📚 Cargando historial de conversación...');
-      
-      // Primero limpiar duplicados
-      const { error: cleanError } = await supabase.rpc('clean_duplicate_ai_messages');
-      if (cleanError) {
-        console.warn('Advertencia al limpiar duplicados:', cleanError);
-      }
-
-      const { data: chatMessages, error } = await supabase
-        .from('ai_chat_messages')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: true })
-        .limit(10); // Limitar a los últimos 10 mensajes
-
-      if (error) {
-        console.error('Error loading chat history:', error);
-        setIsHistoryLoaded(true);
-        return;
-      }
-
-      if (chatMessages && chatMessages.length > 0) {
-        const loadedMessages: EnhancedMessage[] = chatMessages.map(msg => ({
-          id: msg.id,
-          type: msg.type as 'user' | 'assistant' | 'system',
-          content: msg.content,
-          timestamp: new Date(msg.created_at),
-          metadata: typeof msg.context_data === 'object' ? msg.context_data as any : {}
-        }));
-
-        // Filtrar duplicados adicionales por contenido y tipo
-        const uniqueMessages = loadedMessages.filter((message, index, array) => {
-          return !array.slice(0, index).some(prevMsg => 
-            prevMsg.content === message.content && 
-            prevMsg.type === message.type &&
-            Math.abs(prevMsg.timestamp.getTime() - message.timestamp.getTime()) < 1000 // menos de 1 segundo de diferencia
-          );
-        });
-
-        setMessages(uniqueMessages);
-        console.log(`✅ Historial cargado: ${uniqueMessages.length} mensajes únicos`);
-      }
-      
-      setIsHistoryLoaded(true);
-    } catch (error) {
-      console.error('Error loading conversation history:', error);
-      setIsHistoryLoaded(true);
-    }
-  };
-
-  const saveMessageToHistory = async (message: EnhancedMessage) => {
-    try {
-      const { error } = await supabase
-        .from('ai_chat_messages')
-        .insert({
-          user_id: user?.id,
-          type: message.type,
-          content: message.content,
-          context_data: message.metadata || {},
-          is_read: true,
-        });
-
-      if (error) {
-        console.error('Error saving message:', error);
-      }
-    } catch (error) {
-      console.error('Error saving message to history:', error);
-    }
+    if (!user?.id) return;
+    
+    const loadedMessages = await messageHistoryService.loadConversationHistory(user.id);
+    setMessages(loadedMessages);
+    setIsHistoryLoaded(true);
   };
 
   const sendMessage = useCallback(async (content: string) => {
@@ -124,7 +47,7 @@ export const useEnhancedAIAssistant = () => {
       return;
     }
 
-    if (!content.trim() || isLoading) return;
+    if (!content.trim() || isLoading || !user?.id) return;
 
     console.log('🤖 Enviando mensaje:', { 
       content: content.substring(0, 50) + '...',
@@ -135,16 +58,11 @@ export const useEnhancedAIAssistant = () => {
     setIsLoading(true);
 
     // Crear mensaje del usuario
-    const userMessage: EnhancedMessage = {
-      id: `user-${Date.now()}-${Math.random()}`,
-      type: 'user',
-      content: content.trim(),
-      timestamp: new Date(),
-    };
+    const userMessage = messageProcessingService.createUserMessage(content);
 
     // Actualizar estado inmediatamente
-    setMessages(prev => [...prev, userMessage]);
-    await saveMessageToHistory(userMessage);
+    setMessages(prev => messageProcessingService.removeDuplicateMessages([...prev, userMessage]));
+    await messageHistoryService.saveMessageToHistory(userMessage, user.id);
 
     try {
       // Refrescar contexto antes de generar respuesta
@@ -172,12 +90,9 @@ export const useEnhancedAIAssistant = () => {
       });
 
       // Crear mensaje del asistente
-      const assistantMessage: EnhancedMessage = {
-        id: `assistant-${Date.now()}-${Math.random()}`,
-        type: 'assistant',
-        content: response.content,
-        timestamp: new Date(),
-        metadata: {
+      const assistantMessage = messageProcessingService.createAssistantMessage(
+        response.content,
+        {
           model_used: response.model_used,
           tokens_used: response.tokens_used,
           response_time: response.response_time,
@@ -187,10 +102,10 @@ export const useEnhancedAIAssistant = () => {
             session_time: currentContext?.currentSession?.timeOfDay,
           }
         }
-      };
+      );
 
-      setMessages(prev => [...prev, assistantMessage]);
-      await saveMessageToHistory(assistantMessage);
+      setMessages(prev => messageProcessingService.removeDuplicateMessages([...prev, assistantMessage]));
+      await messageHistoryService.saveMessageToHistory(assistantMessage, user.id);
       
       setConnectionStatus('connected');
 
@@ -212,18 +127,9 @@ export const useEnhancedAIAssistant = () => {
       });
 
       // Mensaje de error
-      const errorMessage: EnhancedMessage = {
-        id: `error-${Date.now()}-${Math.random()}`,
-        type: 'assistant',
-        content: 'Lo siento, hubo un error procesando tu mensaje. Por favor intenta de nuevo.',
-        timestamp: new Date(),
-        metadata: {
-          context_data: { error_occurred: true, error_message: error.message }
-        }
-      };
-
-      setMessages(prev => [...prev, errorMessage]);
-      await saveMessageToHistory(errorMessage);
+      const errorMessage = messageProcessingService.createErrorMessage(error);
+      setMessages(prev => messageProcessingService.removeDuplicateMessages([...prev, errorMessage]));
+      await messageHistoryService.saveMessageToHistory(errorMessage, user.id);
     } finally {
       setIsLoading(false);
     }
