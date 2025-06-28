@@ -1,10 +1,11 @@
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider } from '@/hooks/useAuth';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { MainLayout } from '@/components/MainLayout';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import MainLayout from '@/components/Layout/MainLayout';
 import Dashboard from '@/pages/Dashboard';
 import Tasks from '@/pages/Tasks';
 import Projects from '@/pages/Projects';
@@ -18,8 +19,6 @@ import Auth from '@/pages/Auth';
 import PricingPage from '@/pages/PricingPage';
 import ProfilePage from '@/pages/ProfilePage';
 import NotFoundPage from '@/pages/NotFoundPage';
-import { useCheckSession } from '@/hooks/useCheckSession';
-import { useEffect } from 'react';
 import Phase2Testing from '@/pages/Phase2Testing';
 
 const queryClient = new QueryClient();
