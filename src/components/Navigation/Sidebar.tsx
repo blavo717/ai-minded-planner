@@ -1,25 +1,20 @@
 
 import React from 'react';
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import ThemeToggle from "@/components/ui/theme-toggle";
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  Calendar,
   ListChecks,
   Settings,
-  User,
-  HelpCircle,
   LogOut,
-  Menu,
-  MessageSquare
+  MessageSquare,
+  TestTube
 } from 'lucide-react';
 
 const Sidebar = () => {
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -32,86 +27,63 @@ const Sidebar = () => {
       title: 'Dashboard',
       href: '/',
       icon: LayoutDashboard,
-      description: 'Resumen general de tu actividad'
     },
     {
       title: 'Tareas',
       href: '/tasks',
       icon: ListChecks,
-      description: 'Gestiona tus tareas y proyectos'
     },
     {
-      title: 'Calendario',
-      href: '/calendar',
-      icon: Calendar,
-      description: 'Visualiza tus tareas en un calendario'
-    },
-    {
-      title: 'IA Asistente Simple',
+      title: 'IA Asistente',
       href: '/ai-assistant-simple',
       icon: MessageSquare,
-      description: 'Asistente de IA simplificado'
     },
     {
-      title: 'Perfil',
-      href: '/profile',
-      icon: User,
-      description: 'Gestiona tu perfil de usuario'
+      title: 'Testing Fase 7',
+      href: '/phase7-testing',
+      icon: TestTube,
     },
     {
       title: 'Configuración',
       href: '/settings',
       icon: Settings,
-      description: 'Ajusta la configuración de la aplicación'
-    },
-    {
-      title: 'Ayuda',
-      href: '/help',
-      icon: HelpCircle,
-      description: 'Obtén ayuda y soporte'
     },
   ];
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="sm" className="md:hidden">
-          <Menu className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent className="w-64 flex flex-col p-4 gap-4">
-        <div className="flex items-center justify-between">
-          <span className="font-bold">Menú</span>
-          <ThemeToggle />
-        </div>
-        <nav className="flex flex-col space-y-2">
-          {navigationItems.map((item) => (
-            <Button
-              key={item.href}
-              variant="ghost"
-              className={cn(
-                "justify-start",
-                isActive(item.href) ? "font-semibold" : "text-muted-foreground"
-              )}
-              onClick={() => navigate(item.href)}
-            >
-              <item.icon className="mr-2 h-4 w-4" />
-              {item.title}
-            </Button>
-          ))}
-        </nav>
-        <div className="mt-auto">
+    <div className="fixed left-0 top-0 h-full w-64 bg-card border-r border-border flex flex-col">
+      <div className="p-6">
+        <h2 className="text-xl font-bold">AI Planner</h2>
+      </div>
+      
+      <nav className="flex-1 px-4 space-y-2">
+        {navigationItems.map((item) => (
           <Button
-            variant="outline"
-            className="w-full justify-start"
-            onClick={() => signOut()}
+            key={item.href}
+            variant="ghost"
+            className={cn(
+              "w-full justify-start",
+              isActive(item.href) && "bg-accent text-accent-foreground"
+            )}
+            onClick={() => navigate(item.href)}
           >
-            <LogOut className="mr-2 h-4 w-4" />
-            Cerrar sesión
+            <item.icon className="mr-2 h-4 w-4" />
+            {item.title}
           </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
+        ))}
+      </nav>
+      
+      <div className="p-4">
+        <Button
+          variant="outline"
+          className="w-full justify-start"
+          onClick={() => signOut()}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Cerrar sesión
+        </Button>
+      </div>
+    </div>
   );
 };
 
