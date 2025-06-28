@@ -3,9 +3,9 @@ import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { LogOut, User } from 'lucide-react';
-import { Sidebar } from '@/components/Navigation/Sidebar';
+import Sidebar from '@/components/Navigation/Sidebar';
 import AIAssistantPanelSimple from '@/components/ai/AIAssistantPanelSimple';
-import ThemeToggle from '@/components/ui/theme-toggle';
+import { ModeToggle } from '@/components/ui/theme-toggle';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -32,7 +32,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 </span>
               </div>
               
-              <ThemeToggle />
+              <ModeToggle />
               
               <Button 
                 variant="outline" 
