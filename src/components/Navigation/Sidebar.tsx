@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Home, Calendar, ListChecks, Settings, Users, TestTube } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface NavItem {
   name: string;
@@ -52,28 +54,42 @@ export const Sidebar = () => {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 border-r py-4">
-      <div className="px-4 mb-4">
-        <h3 className="font-bold text-lg">Navegación</h3>
-      </div>
-      <nav className="flex-1">
-        <ul>
-          {navigationItems.map((item) => (
-            <li key={item.name}>
+    <div className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card">
+      <div className="flex h-full flex-col">
+        {/* Header */}
+        <div className="border-b border-border p-6">
+          <h2 className="text-lg font-semibold text-card-foreground">Navegación</h2>
+        </div>
+        
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1 p-4">
+          {navigationItems.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
               <Link
+                key={item.name}
                 to={item.href}
-                className={`flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-200 ${location.pathname === item.href ? 'bg-gray-200' : ''
-                  }`}
+                className={cn(
+                  "flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "hover:bg-accent hover:text-accent-foreground",
+                  isActive 
+                    ? "bg-accent text-accent-foreground" 
+                    : "text-muted-foreground"
+                )}
               >
-                <item.icon className="mr-2 h-4 w-4" />
+                <item.icon className="mr-3 h-4 w-4" />
                 {item.name}
               </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      <div className="mt-auto px-4 py-2 text-center text-xs text-gray-500">
-        <p>&copy; {new Date().getFullYear()} TaskAI</p>
+            );
+          })}
+        </nav>
+        
+        {/* Footer */}
+        <div className="border-t border-border p-4">
+          <p className="text-center text-xs text-muted-foreground">
+            &copy; {new Date().getFullYear()} TaskAI
+          </p>
+        </div>
       </div>
     </div>
   );

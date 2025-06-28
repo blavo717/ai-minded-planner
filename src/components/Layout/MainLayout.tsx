@@ -20,7 +20,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       
       <div className="flex-1 flex flex-col ml-64">
         {/* Top Header */}
-        <header className="bg-card shadow-sm border-b border-border">
+        <header className="bg-card shadow-sm border-b border-border sticky top-0 z-10">
           <div className="flex justify-between items-center h-16 px-6">
             <div className="flex-1" />
             
@@ -48,7 +48,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto p-6">
           {children}
         </main>
         
