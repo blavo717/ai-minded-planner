@@ -2,7 +2,7 @@
 import React from 'react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/ui/theme-toggle";
+import ThemeToggle from "@/components/ui/theme-toggle";
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from "@/lib/utils";
@@ -82,7 +82,7 @@ const Sidebar = () => {
       <SheetContent className="w-64 flex flex-col p-4 gap-4">
         <div className="flex items-center justify-between">
           <span className="font-bold">Menú</span>
-          <ModeToggle />
+          <ThemeToggle />
         </div>
         <nav className="flex flex-col space-y-2">
           {navigationItems.map((item) => (
