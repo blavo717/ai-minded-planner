@@ -62,7 +62,7 @@ export const useEnhancedAIAssistant = () => {
           type: msg.type as 'user' | 'assistant' | 'system',
           content: msg.content,
           timestamp: new Date(msg.created_at),
-          metadata: msg.context_data || {}
+          metadata: typeof msg.context_data === 'object' ? msg.context_data as any : {}
         }));
 
         setMessages(loadedMessages);
@@ -195,13 +195,15 @@ export const useEnhancedAIAssistant = () => {
         variant: 'destructive',
       });
 
-      // Agregar mensaje de error
+      // Agregar mensaje de error sin metadata inválida
       const errorMessage: EnhancedMessage = {
         id: `error-${Date.now()}`,
         type: 'assistant',
         content: 'Lo siento, hubo un error procesando tu mensaje. He registrado el problema y mi memoria sigue intacta. Por favor intenta de nuevo.',
         timestamp: new Date(),
-        metadata: { error: error.message }
+        metadata: {
+          context_data: { error_occurred: true, error_message: error.message }
+        }
       };
 
       setMessages(prev => [...prev, errorMessage]);

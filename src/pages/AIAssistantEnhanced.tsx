@@ -3,7 +3,7 @@ import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import EnhancedAIAssistantPanel from '@/components/ai/EnhancedAIAssistantPanel';
-import { Brain, Database, Zap, Shield, Memory, TrendingUp, Bot, ArrowLeft } from 'lucide-react';
+import { Brain, Database, Zap, Shield, HardDrive, TrendingUp, Bot, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const AIAssistantEnhanced = () => {
@@ -29,7 +29,7 @@ const AIAssistantEnhanced = () => {
             Contexto completo
           </Badge>
           <Badge variant="outline" className="flex items-center gap-1 border-purple-300 text-purple-700">
-            <Memory className="h-3 w-3" />
+            <HardDrive className="h-3 w-3" />
             Memoria persistente
           </Badge>
           <Badge variant="outline" className="flex items-center gap-1 border-purple-300 text-purple-700">
