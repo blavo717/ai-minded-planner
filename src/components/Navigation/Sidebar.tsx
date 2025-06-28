@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Home, Calendar, ListChecks, Settings, Users, TestTube } from 'lucide-react';
+import { Home, Calendar, ListChecks, Settings, Users, TestTube, BarChart3, FolderOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -22,16 +22,28 @@ export const Sidebar = () => {
       description: 'Resumen general de tu actividad'
     },
     {
+      name: 'Tareas',
+      href: '/tasks',
+      icon: ListChecks,
+      description: 'Gestión de tareas y proyectos'
+    },
+    {
+      name: 'Proyectos',
+      href: '/projects',
+      icon: FolderOpen,
+      description: 'Gestión de proyectos'
+    },
+    {
       name: 'Calendario',
       href: '/calendar',
       icon: Calendar,
       description: 'Planificación y gestión de eventos'
     },
     {
-      name: 'Tareas',
-      href: '/tasks',
-      icon: ListChecks,
-      description: 'Gestión de tareas y proyectos'
+      name: 'Analíticas',
+      href: '/analytics',
+      icon: BarChart3,
+      description: 'Métricas y análisis de productividad'
     },
     {
       name: 'Equipo',

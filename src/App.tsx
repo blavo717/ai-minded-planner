@@ -2,7 +2,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/hooks/useAuth';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import MainLayout from '@/components/Layout/MainLayout';
@@ -11,6 +11,7 @@ import Tasks from '@/pages/Tasks';
 import Projects from '@/pages/Projects';
 import Analytics from '@/pages/Analytics';
 import Settings from '@/pages/Settings';
+import Team from '@/pages/Team';
 import AIAssistantSimple from '@/pages/AIAssistantSimple';
 import GanttPage from '@/pages/GanttPage';
 import CalendarPage from '@/pages/CalendarPage';
@@ -55,10 +56,24 @@ function App() {
                   </MainLayout>
                 </ProtectedRoute>
               } />
+              <Route path="/calendar" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <CalendarPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
               <Route path="/analytics" element={
                 <ProtectedRoute>
                   <MainLayout>
                     <Analytics />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/team" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <Team />
                   </MainLayout>
                 </ProtectedRoute>
               } />
@@ -80,13 +95,6 @@ function App() {
                 <ProtectedRoute>
                   <MainLayout>
                     <GanttPage />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/calendar" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <CalendarPage />
                   </MainLayout>
                 </ProtectedRoute>
               } />
