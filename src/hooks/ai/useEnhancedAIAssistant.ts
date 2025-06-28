@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useLLMService } from '@/hooks/useLLMService';
 import { useSmartPrompts } from '@/hooks/ai/useSmartPrompts';
 import { useAIContext } from '@/hooks/ai/useAIContext';
@@ -14,22 +14,26 @@ export const useEnhancedAIAssistant = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [conversationId] = useState(`conv_${Date.now()}`);
-  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
+  
+  // CORREGIDO: useRef para evitar cargas múltiples
+  const isHistoryLoadedRef = useRef(false);
+  const isSendingRef = useRef(false);
   
   const { user } = useAuth();
   const { makeLLMRequest, hasActiveConfiguration, activeModel } = useLLMService();
-  const { generateSmartPrompt, getContextualSystemPrompt } = useSmartPrompts();
+  const { getContextualSystemPrompt } = useSmartPrompts();
   const { currentContext, refreshContext } = useAIContext();
   const { toast } = useToast();
 
-  // Cargar historial solo una vez al inicializar
+  // CORREGIDO: Cargar historial solo una vez al inicializar
   useEffect(() => {
-    if (user?.id && !isHistoryLoaded) {
+    if (user?.id && !isHistoryLoadedRef.current) {
+      console.log('📚 Cargando historial de conversación...');
       loadConversationHistory();
     }
-  }, [user?.id, isHistoryLoaded]);
+  }, [user?.id]); // Solo depende de user?.id
 
-  // Establecer conexión inicial si hay configuración
+  // CORREGIDO: Establecer conexión inicial si hay configuración
   useEffect(() => {
     if (hasActiveConfiguration) {
       setConnectionStatus('connected');
@@ -39,30 +43,33 @@ export const useEnhancedAIAssistant = () => {
   }, [hasActiveConfiguration]);
 
   const loadConversationHistory = async () => {
-    if (!user?.id) return;
+    if (!user?.id || isHistoryLoadedRef.current) return;
     
     try {
       const loadedMessages = await messageHistoryService.loadConversationHistory(user.id);
-      setMessages(loadedMessages);
-      setIsHistoryLoaded(true);
-      console.log('📚 Historial cargado:', loadedMessages.length, 'mensajes');
+      const uniqueMessages = messageProcessingService.removeDuplicateMessages(loadedMessages);
+      setMessages(uniqueMessages);
+      isHistoryLoadedRef.current = true;
+      console.log('✅ Historial cargado:', uniqueMessages.length, 'mensajes únicos');
     } catch (error) {
-      console.error('Error cargando historial:', error);
-      setIsHistoryLoaded(true);
+      console.error('❌ Error cargando historial:', error);
+      isHistoryLoadedRef.current = true;
     }
   };
 
+  // CORREGIDO: sendMessage con useCallback y dependencias optimizadas
   const sendMessage = useCallback(async (content: string) => {
-    if (!hasActiveConfiguration) {
-      toast({
-        title: 'Configuración requerida',
-        description: 'Ve a Configuración > IA para configurar tu API key.',
-        variant: 'destructive',
-      });
+    // Prevenir envíos múltiples simultáneos
+    if (!hasActiveConfiguration || !content.trim() || isLoading || !user?.id || isSendingRef.current) {
+      if (!hasActiveConfiguration) {
+        toast({
+          title: 'Configuración requerida',
+          description: 'Ve a Configuración > IA para configurar tu API key.',
+          variant: 'destructive',
+        });
+      }
       return;
     }
-
-    if (!content.trim() || isLoading || !user?.id) return;
 
     console.log('🤖 Enviando mensaje:', { 
       content: content.substring(0, 50) + '...',
@@ -70,19 +77,21 @@ export const useEnhancedAIAssistant = () => {
       activeModel: activeModel,
     });
     
+    // Marcar que estamos enviando
+    isSendingRef.current = true;
     setConnectionStatus('connecting');
     setIsLoading(true);
 
-    // Crear mensaje del usuario
+    // Crear mensaje del usuario con ID único
     const userMessage = messageProcessingService.createUserMessage(content);
 
-    // Actualizar estado inmediatamente sin duplicados
-    setMessages(prev => {
-      const filtered = messageProcessingService.removeDuplicateMessages([...prev, userMessage]);
-      return filtered;
-    });
-
     try {
+      // Actualizar estado inmediatamente
+      setMessages(prev => {
+        const newMessages = [...prev, userMessage];
+        return messageProcessingService.removeDuplicateMessages(newMessages);
+      });
+
       // Guardar mensaje del usuario
       await messageHistoryService.saveMessageToHistory(userMessage, user.id);
 
@@ -92,8 +101,9 @@ export const useEnhancedAIAssistant = () => {
       // Generar prompt contextual inteligente
       const contextualSystemPrompt = getContextualSystemPrompt();
       
-      // Crear contexto de conversación reciente (últimos 4 mensajes únicos)
-      const recentMessages = messages.slice(-4);
+      // CORREGIDO: Usar mensajes actuales en lugar de state desactualizado
+      const currentMessages = await messageHistoryService.loadConversationHistory(user.id);
+      const recentMessages = currentMessages.slice(-4);
       const conversationContext = recentMessages.length > 0 
         ? `\n\nContexto de conversación reciente:\n${recentMessages.map(msg => 
             `${msg.type === 'user' ? 'Usuario' : 'Asistente'}: ${msg.content.substring(0, 150)}`
@@ -128,10 +138,10 @@ export const useEnhancedAIAssistant = () => {
         }
       );
 
-      // Actualizar mensajes sin duplicados
+      // Actualizar mensajes
       setMessages(prev => {
-        const filtered = messageProcessingService.removeDuplicateMessages([...prev, assistantMessage]);
-        return filtered;
+        const newMessages = [...prev, assistantMessage];
+        return messageProcessingService.removeDuplicateMessages(newMessages);
       });
 
       // Guardar mensaje del asistente
@@ -162,14 +172,15 @@ export const useEnhancedAIAssistant = () => {
       // Mensaje de error
       const errorMessage = messageProcessingService.createErrorMessage(error);
       setMessages(prev => {
-        const filtered = messageProcessingService.removeDuplicateMessages([...prev, errorMessage]);
-        return filtered;
+        const newMessages = [...prev, errorMessage];
+        return messageProcessingService.removeDuplicateMessages(newMessages);
       });
       await messageHistoryService.saveMessageToHistory(errorMessage, user.id);
     } finally {
       setIsLoading(false);
+      isSendingRef.current = false; // Liberar el lock
     }
-  }, [makeLLMRequest, hasActiveConfiguration, toast, currentContext, getContextualSystemPrompt, refreshContext, user?.id, messages, isLoading, activeModel]);
+  }, [makeLLMRequest, hasActiveConfiguration, toast, currentContext, getContextualSystemPrompt, refreshContext, user?.id, isLoading, activeModel]); // CORREGIDO: Dependencias optimizadas
 
   const clearChat = useCallback(async () => {
     console.log('🧹 Limpiando chat (manteniendo historial en BD)');
