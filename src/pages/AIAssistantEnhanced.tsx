@@ -1,21 +1,17 @@
 
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import EnhancedAIAssistantPanel from '@/components/ai/EnhancedAIAssistantPanel';
-import { Brain, Database, Zap, Shield, HardDrive, TrendingUp, Bot, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Brain, Database, Zap, Shield, HardDrive, TrendingUp } from 'lucide-react';
 
 const AIAssistantEnhanced = () => {
-  const navigate = useNavigate();
-
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-2">
           <Brain className="h-8 w-8 text-purple-600" />
-          <h1 className="text-3xl font-bold">Asistente IA Enriquecido</h1>
+          <h1 className="text-3xl font-bold">Asistente IA</h1>
         </div>
         
         <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -40,28 +36,6 @@ const AIAssistantEnhanced = () => {
             <Shield className="h-3 w-3" />
             Seguro y privado
           </Badge>
-        </div>
-
-        {/* Simple Version Notice */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto">
-          <div className="flex items-center gap-3">
-            <Bot className="h-6 w-6 text-blue-600" />
-            <div className="flex-1 text-left">
-              <h3 className="font-medium text-blue-900">¿Prefieres algo más simple?</h3>
-              <p className="text-sm text-blue-700">
-                También tenemos un asistente básico para consultas rápidas
-              </p>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate('/ai-assistant-simple')}
-              className="border-blue-300 text-blue-700 hover:bg-blue-100"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Simple
-            </Button>
-          </div>
         </div>
       </div>
 
