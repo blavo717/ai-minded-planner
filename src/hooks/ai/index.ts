@@ -27,3 +27,5 @@ export type {
   RecommendationFeedback,
   SmartRecommendationConfig
 } from '@/utils/ai/SmartRecommendationEngine';
+
+export { useAITesting } from './useAITesting';
