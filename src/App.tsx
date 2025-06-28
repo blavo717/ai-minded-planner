@@ -7,16 +7,12 @@ import Auth from '@/pages/Auth';
 import Dashboard from '@/pages/Dashboard';
 import Tasks from '@/pages/Tasks';
 import Projects from '@/pages/Projects';
-import Team from '@/pages/Team';
 import Settings from '@/pages/Settings';
 import Analytics from '@/pages/Analytics';
 import NotFound from '@/pages/NotFound';
 import { useAuth, AuthProvider } from '@/hooks/useAuth';
 import MainLayout from '@/components/Layout/MainLayout';
-import LLMSettings from '@/pages/LLMSettings';
-import AIAssistantSimple from '@/pages/AIAssistantSimple';
 import AIAssistantEnhanced from '@/pages/AIAssistantEnhanced';
-import Phase7Testing from '@/pages/Phase7Testing';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -68,13 +64,9 @@ const AppContent = () => {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/tasks" element={<Tasks />} />
                   <Route path="/projects" element={<Projects />} />
-                  <Route path="/team" element={<Team />} />
                   <Route path="/analytics" element={<Analytics />} />
                   <Route path="/settings" element={<Settings />} />
-                  <Route path="/llm-settings" element={<LLMSettings />} />
-                  <Route path="/ai-assistant-simple" element={<AIAssistantSimple />} />
                   <Route path="/ai-assistant-enhanced" element={<AIAssistantEnhanced />} />
-                  <Route path="/phase7-testing" element={<Phase7Testing />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </MainLayout>

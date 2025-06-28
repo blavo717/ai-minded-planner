@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, MessageSquare, X, Brain } from 'lucide-react';
+import { LogOut, User, X, Brain } from 'lucide-react';
 import Sidebar from '@/components/Navigation/Sidebar';
 import EnhancedAIAssistantPanel from '@/components/ai/EnhancedAIAssistantPanel';
 import ThemeToggle from '@/components/ui/theme-toggle';
@@ -35,7 +35,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               
               <ThemeToggle />
               
-              {/* AI Assistant Pop-up Toggle - Enhanced version */}
+              {/* AI Assistant Pop-up Toggle */}
               <Button 
                 variant="outline" 
                 size="sm"
@@ -43,7 +43,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 className="flex items-center space-x-2 bg-purple-50 border-purple-200 hover:bg-purple-100"
               >
                 <Brain className="h-4 w-4 text-purple-600" />
-                <span className="text-purple-700">IA Enriquecido</span>
+                <span className="text-purple-700">IA</span>
               </Button>
               
               <Button 
@@ -65,14 +65,14 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         </main>
       </div>
 
-      {/* Enhanced AI Assistant Pop-up */}
+      {/* AI Assistant Pop-up */}
       {showAIPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-background rounded-lg shadow-xl max-w-4xl w-full max-h-[85vh] overflow-hidden border-2 border-purple-200">
             <div className="flex items-center justify-between p-4 border-b border-purple-100 bg-purple-50">
               <h2 className="text-lg font-semibold flex items-center gap-2 text-purple-800">
                 <Brain className="h-5 w-5 text-purple-600" />
-                Asistente IA Enriquecido
+                Asistente de IA
                 <span className="text-sm font-normal text-purple-600">
                   Con memoria y contexto completo
                 </span>

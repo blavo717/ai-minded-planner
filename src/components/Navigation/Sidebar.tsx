@@ -8,12 +8,8 @@ import {
   LayoutDashboard,
   ListChecks,
   FolderOpen,
-  Users,
   Settings,
   LogOut,
-  MessageSquare,
-  TestTube,
-  Zap,
   BarChart3,
   Brain
 } from 'lucide-react';
@@ -47,34 +43,14 @@ const Sidebar = () => {
       icon: FolderOpen,
     },
     {
-      title: 'Equipo',
-      href: '/team',
-      icon: Users,
-    },
-    {
       title: 'Analíticas',
       href: '/analytics',
       icon: BarChart3,
     },
     {
-      title: 'IA Simple',
-      href: '/ai-assistant-simple',
-      icon: MessageSquare,
-    },
-    {
-      title: 'IA Enriquecido',
+      title: 'IA',
       href: '/ai-assistant-enhanced',
       icon: Brain,
-    },
-    {
-      title: 'Testing Fase 7',
-      href: '/phase7-testing',
-      icon: TestTube,
-    },
-    {
-      title: 'Configuración LLM',
-      href: '/llm-settings',
-      icon: Zap,
     },
     {
       title: 'Configuración',
