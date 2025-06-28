@@ -30,6 +30,39 @@
 
 ---
 
+### 🧪 **METODOLOGÍA DE VERIFICACIÓN**
+
+**VERIFICACIÓN ENTRE FASES:**
+Para cada fase, utilizaremos verificación sin interacción completa:
+
+1. **Logs del Sistema**: Console logs, edge function logs, database logs
+2. **Consultas Directas**: Queries SQL para verificar datos
+3. **Análisis de Código**: Verificación estática de cambios
+4. **Logs de Edge Functions**: Monitoreo de respuestas y errores
+5. **Estado de Red**: Verificación de requests/responses
+
+**CRITERIOS DE ÉXITO POR FASE:**
+
+**✅ FASE 1 - BACKEND:**
+- Edge function logs muestran metadata completa
+- useLLMService procesa `model_used`, `tokens_used`, `response_time`
+- No hay errores 500 en edge function
+- Respuestas incluyen estructura correcta
+
+**✅ FASE 2 - HOOKS:**
+- Console logs NO muestran "Maximum update depth exceeded"
+- `sendMessage` no se regenera infinitamente
+- Historial carga solo UNA vez al inicializar
+- No hay mensajes duplicados en BD
+
+**✅ FASE 3 - FRONTEND:**
+- MessageDisplay muestra badges de modelo/tokens/tiempo
+- ChatHeader muestra modelo activo correcto
+- Estados de conexión reflejan realidad
+- UI responde a cambios de estado
+
+---
+
 ### 🛠️ **PLAN DE IMPLEMENTACIÓN POR FASES**
 
 ---
@@ -45,6 +78,14 @@
   - Mejorar logging y manejo de errores
   - Validar respuesta antes de envío
 
+**🔍 Verificación Fase 1.1:**
+```
+✓ Edge function logs muestran: "✅ Respuesta completa enviada"
+✓ Response incluye: {response, model_used, tokens_used, response_time}
+✓ No errores 500 en supabase dashboard
+✓ Logs muestran tiempo de respuesta calculado
+```
+
 ### Tarea 1.2: Optimizar `useLLMService`
 - **Problema**: No procesa correctamente las respuestas del backend
 - **Solución**:
@@ -52,6 +93,14 @@
   - Asegurar que todos los metadatos llegan al frontend
   - Implementar mejor manejo de errores
   - Agregar retry automático
+
+**🔍 Verificación Fase 1.2:**
+```
+✓ Console logs muestran: "✅ Respuesta LLM exitosa: {model, tokens, responseTime}"
+✓ useLLMService retorna metadata completa
+✓ No hay errores de mapeo en console
+✓ Retry funciona en caso de fallo temporal
+```
 
 ---
 
@@ -66,6 +115,14 @@
   - Optimizar dependencias de `useEffect`
   - Separar lógica de estado de lógica de efectos
 
+**🔍 Verificación Fase 2.1:**
+```
+✓ Console NO muestra "Maximum update depth exceeded"
+✓ "📚 Cargando historial" aparece solo UNA vez
+✓ sendMessage no se regenera en cada render
+✓ useEffect dependencies están optimizadas
+```
+
 ### Tarea 2.2: Corregir `messageProcessingService`
 - **Problema**: Duplicados no se previenen efectivamente
 - **Solución**:
@@ -74,6 +131,14 @@
   - Agregar filtrado temporal (ventana de tiempo)
   - Optimizar performance del filtrado
 
+**🔍 Verificación Fase 2.2:**
+```
+✓ Query SQL: SELECT COUNT(*) FROM ai_chat_messages WHERE content = 'X' < 2
+✓ Console logs muestran: "Eliminados X duplicados"
+✓ Ventana temporal de 5 segundos funciona
+✓ IDs únicos generados correctamente
+```
+
 ### Tarea 2.3: Optimizar `messageHistoryService`
 - **Problema**: Cargas repetidas y cache ineficiente
 - **Solución**:
@@ -81,6 +146,14 @@
   - Evitar consultas repetidas a la BD
   - Optimizar queries con paginación
   - Agregar índices de base de datos si es necesario
+
+**🔍 Verificación Fase 2.3:**
+```
+✓ Solo UNA query SELECT en supabase logs al cargar
+✓ Cache funciona: segundo acceso sin query
+✓ Paginación: LIMIT 10 en queries
+✓ TTL expira correctamente después de tiempo configurado
+```
 
 ---
 
@@ -95,6 +168,14 @@
   - Mejorar formato visual de la información
   - Agregar tooltips informativos
 
+**🔍 Verificación Fase 3.1:**
+```
+✓ DOM incluye badges con clase "badge" para modelo/tokens/tiempo
+✓ Texto visible contiene nombre del modelo
+✓ Badges muestran "X tokens" y "Yms" o "Ys"
+✓ No hay errores de undefined en console
+```
+
 ### Tarea 3.2: Corregir `ChatHeader`
 - **Problema**: No muestra modelo activo ni estado real
 - **Solución**:
@@ -103,6 +184,14 @@
   - Sincronizar badges con estado actual
   - Mejorar diseño responsive
 
+**🔍 Verificación Fase 3.2:**
+```
+✓ Header muestra badge con nombre del modelo activo
+✓ Estado de conexión cambia de "Conectando..." a "Conectado"
+✓ Color del badge refleja estado real (verde/amarillo/rojo)
+✓ Layout responsive funciona en diferentes tamaños
+```
+
 ### Tarea 3.3: Optimizar `EnhancedAIAssistantPanel`
 - **Problema**: Renders innecesarios y props mal sincronizadas
 - **Solución**:
@@ -110,6 +199,14 @@
   - Optimizar manejo de props
   - Mejorar gestión de estado local
   - Corregir propagación de eventos
+
+**🔍 Verificación Fase 3.3:**
+```
+✓ React DevTools muestra renders optimizados
+✓ Props se propagan correctamente entre componentes
+✓ Estado local sincronizado con hooks
+✓ Eventos no causan renders innecesarios
+```
 
 ---
 
@@ -122,11 +219,27 @@
 - Optimización de queries a BD
 - Lazy loading de historial extenso
 
+**🔍 Verificación Fase 4.1:**
+```
+✓ Cache hit rate > 80% en conversaciones recientes
+✓ Prefetch reduce tiempo de respuesta en 30%
+✓ Queries optimizadas: < 100ms promedio
+✓ Lazy loading funciona con >100 mensajes
+```
+
 ### Tarea 4.2: Optimizar Gestión de Contexto
 - Memoización de `useAIContext`
 - Cache de contexto generado
 - Evitar regeneración innecesaria
 - Optimizar `refreshContext`
+
+**🔍 Verificación Fase 4.2:**
+```
+✓ useAIContext memoizado correctamente
+✓ refreshContext se ejecuta solo cuando necesario
+✓ Contexto cacheado por 5 minutos
+✓ Regeneración solo con cambios significativos
+```
 
 ---
 
@@ -139,6 +252,14 @@
 - Verificar ausencia de loops infinitos
 - Confirmar carga correcta del historial
 
+**🔍 Verificación Fase 5.1:**
+```
+✓ Flujo completo: envío → procesamiento → display < 3s
+✓ Todos los metadatos visibles en UI
+✓ Zero loops infinitos en 10 mensajes consecutivos
+✓ Historial carga correctamente en primera visita
+```
+
 ### Tarea 5.2: Testing de Edge Cases
 - Múltiples usuarios simultáneos
 - Conexión intermitente
@@ -146,11 +267,28 @@
 - Diferentes modelos LLM
 - Errores de API
 
+**🔍 Verificación Fase 5.2:**
+```
+✓ Concurrencia: 5 usuarios simultáneos sin errores
+✓ Reconexión automática tras fallo de red
+✓ Performance estable con 1000+ mensajes
+✓ Cambio de modelo sin pérdida de contexto
+✓ Graceful degradation con errores de API
+```
+
 ### Tarea 5.3: Validación de UI/UX
 - Layout responsive en todos los tamaños
 - Estados visuales correctos
 - Accesibilidad completa
 - Performance en dispositivos lentos
+
+**🔍 Verificación Fase 5.3:**
+```
+✓ Responsive: 320px - 1920px sin problemas
+✓ Estados visuales coherentes y claros
+✓ Score de accesibilidad > 95%
+✓ Performance acceptable en dispositivos de gama baja
+```
 
 ---
 
@@ -162,6 +300,14 @@
 - Crear guías de troubleshooting
 - Documentar APIs y hooks
 - Crear tests automatizados
+
+**🔍 Verificación Fase 6.1:**
+```
+✓ Documentación técnica completa y actualizada
+✓ Guías de troubleshooting probadas
+✓ APIs documentadas con ejemplos
+✓ Tests automatizados con >90% cobertura
+```
 
 ---
 
@@ -230,3 +376,38 @@
 - < 2 segundos tiempo de respuesta promedio
 - 0 duplicados en historial
 - Estado de conexión preciso en tiempo real
+
+---
+
+### 🎯 **COMANDOS DE VERIFICACIÓN RÁPIDA**
+
+**Para verificar Backend (Fase 1):**
+```javascript
+// En console del navegador
+console.log('Verificando edge function...');
+// Revisar Network tab para response structure
+```
+
+**Para verificar Hooks (Fase 2):**
+```javascript
+// En console del navegador
+console.log('Verificando loops infinitos...');
+// Buscar "Maximum update depth exceeded"
+```
+
+**Para verificar Frontend (Fase 3):**
+```javascript
+// En console del navegador
+document.querySelectorAll('[class*="badge"]').length > 0
+// Debe retornar true si hay badges visibles
+```
+
+**Para verificar Base de Datos:**
+```sql
+-- En Supabase SQL Editor
+SELECT user_id, type, content, created_at 
+FROM ai_chat_messages 
+WHERE user_id = 'USER_ID' 
+ORDER BY created_at DESC 
+LIMIT 10;
+```
