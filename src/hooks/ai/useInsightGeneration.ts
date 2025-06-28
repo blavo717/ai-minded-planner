@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AIInsight, InsightGenerationConfig, UserContext, InsightGenerationResult } from '@/types/ai-insights';
 import { PatternAnalysisResult } from '@/types/ai-patterns';
-import { defaultInsightGenerator } from '@/utils/ai/InsightGenerator';
+import { InsightGenerator } from '@/utils/ai/InsightGenerator';
 import { defaultPatternAnalyzer } from '@/utils/ai/PatternAnalyzer';
 import { useTasks } from '@/hooks/useTasks';
 import { useTaskSessions } from '@/hooks/useTaskSessions';
@@ -24,15 +24,15 @@ export const useInsightGeneration = (options: UseInsightGenerationOptions = {}) 
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: tasks = [] } = useTasks();
-  const { data: sessions = [] } = useTaskSessions();
+  const { tasks } = useTasks();
+  const { sessions } = useTaskSessions();
 
   const [insights, setInsights] = useState<AIInsight[]>([]);
   const [lastGeneration, setLastGeneration] = useState<Date | null>(null);
 
   // Configuración del generador
   const [generatorConfig] = useState(() => 
-    new InsightGenerator(config).constructor(config)
+    new InsightGenerator(config)
   );
 
   // Query para obtener análisis de patrones
@@ -102,7 +102,7 @@ export const useInsightGeneration = (options: UseInsightGenerationOptions = {}) 
     return {
       currentTime: new Date(),
       currentTasks: tasks.filter(task => 
-        task.status === 'in_progress' || task.status === 'todo'
+        task.status === 'in_progress' || task.status === 'pending'
       ),
       recentActivity: sessions.slice(-10), // Últimas 10 sesiones
       workingHours: [9, 18], // Default 9 AM - 6 PM
