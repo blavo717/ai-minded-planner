@@ -17,6 +17,7 @@ import TestDataGenerator from '@/components/Analytics/TestDataGenerator';
 import KPIDashboard from '@/components/Analytics/KPIDashboard';
 import TaskLevelAnalytics from '@/components/Analytics/TaskLevelAnalytics';
 import GeneralStatsOverview from '@/components/Analytics/GeneralStatsOverview';
+import InventoryVsActivity from '@/components/Analytics/InventoryVsActivity';
 import RealProjectPerformance from '@/components/Analytics/RealProjectPerformance';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useGeneralStats } from '@/hooks/analytics/useGeneralStats';
@@ -153,6 +154,7 @@ const Analytics = () => {
 
         <TabsContent value="general" className="space-y-6">
           <GeneralStatsOverview />
+          <InventoryVsActivity />
         </TabsContent>
 
         <TabsContent value="dashboard" className="space-y-6">
