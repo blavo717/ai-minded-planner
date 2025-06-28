@@ -1,41 +1,44 @@
-
-import { Toaster } from '@/components/ui/toaster';
-import { Toaster as Sonner } from '@/components/ui/sonner';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from 'next-themes';
-import { AuthProvider } from '@/hooks/useAuth';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import MainLayout from '@/components/Layout/MainLayout';
-import Index from '@/pages/Index';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { MainLayout } from '@/components/MainLayout';
+import Dashboard from '@/pages/Dashboard';
 import Tasks from '@/pages/Tasks';
 import Projects from '@/pages/Projects';
-import Contacts from '@/pages/Contacts';
 import Analytics from '@/pages/Analytics';
 import Settings from '@/pages/Settings';
-import AISettings from '@/pages/AISettings';
-import LLMSettings from '@/pages/LLMSettings';
-import TaskTesting from '@/pages/TaskTesting';
+import AIAssistantSimple from '@/pages/AIAssistantSimple';
+import GanttPage from '@/pages/GanttPage';
+import CalendarPage from '@/pages/CalendarPage';
+import KanbanPage from '@/pages/KanbanPage';
 import Auth from '@/pages/Auth';
-import NotFound from '@/pages/NotFound';
+import PricingPage from '@/pages/PricingPage';
+import ProfilePage from '@/pages/ProfilePage';
+import NotFoundPage from '@/pages/NotFoundPage';
+import { useCheckSession } from '@/hooks/useCheckSession';
+import { useEffect } from 'react';
+import Phase2Testing from '@/pages/Phase2Testing';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <Toaster />
+        <AuthProvider>
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/pricing" element={<PricingPage />} />
+              
               <Route path="/" element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <Index />
+                    <Dashboard />
                   </MainLayout>
                 </ProtectedRoute>
               } />
@@ -53,13 +56,6 @@ const App = () => (
                   </MainLayout>
                 </ProtectedRoute>
               } />
-              <Route path="/contacts" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Contacts />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
               <Route path="/analytics" element={
                 <ProtectedRoute>
                   <MainLayout>
@@ -74,34 +70,56 @@ const App = () => (
                   </MainLayout>
                 </ProtectedRoute>
               } />
-              <Route path="/ai-settings" element={
+              <Route path="/ai-assistant" element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <AISettings />
+                    <AIAssistantSimple />
                   </MainLayout>
                 </ProtectedRoute>
               } />
-              <Route path="/llm-settings" element={
+              <Route path="/gantt" element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <LLMSettings />
+                    <GanttPage />
                   </MainLayout>
                 </ProtectedRoute>
               } />
-              <Route path="/task-testing" element={
+              <Route path="/calendar" element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <TaskTesting />
+                    <CalendarPage />
                   </MainLayout>
                 </ProtectedRoute>
               } />
-              <Route path="*" element={<NotFound />} />
+              <Route path="/kanban" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <KanbanPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <ProfilePage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/phase2-testing" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <Phase2Testing />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

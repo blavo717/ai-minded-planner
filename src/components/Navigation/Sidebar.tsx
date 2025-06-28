@@ -1,66 +1,80 @@
-
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  CheckSquare, 
-  FolderOpen, 
-  Users, 
-  Settings,
-  Brain,
-  BarChart3,
-  Database
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useLocation, Link } from 'react-router-dom';
+import { Home, Calendar, ListChecks, Settings, Users, TestTube } from 'lucide-react';
 
-const Sidebar = () => {
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  description: string;
+}
+
+export const Sidebar = () => {
   const location = useLocation();
-  
-  const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home, current: location.pathname === '/' },
-    { name: 'Tareas', href: '/tasks', icon: CheckSquare, current: location.pathname === '/tasks' },
-    { name: 'Proyectos', href: '/projects', icon: FolderOpen, current: location.pathname === '/projects' },
-    { name: 'Contactos', href: '/contacts', icon: Users, current: location.pathname === '/contacts' },
-    { name: 'Analíticas', href: '/analytics', icon: BarChart3, current: location.pathname === '/analytics' },
-    { name: 'IA Configuración', href: '/ai-settings', icon: Brain, current: location.pathname === '/ai-settings' },
-    { name: 'LLM Settings', href: '/llm-settings', icon: Settings, current: location.pathname === '/llm-settings' },
-    { name: 'Configuración', href: '/settings', icon: Settings, current: location.pathname === '/settings' },
-    { name: 'Test Tareas', href: '/task-testing', icon: Database, current: location.pathname === '/task-testing' },
+
+  const navigationItems: NavItem[] = [
+    {
+      name: 'Dashboard',
+      href: '/',
+      icon: Home,
+      description: 'Resumen general de tu actividad'
+    },
+    {
+      name: 'Calendario',
+      href: '/calendar',
+      icon: Calendar,
+      description: 'Planificación y gestión de eventos'
+    },
+    {
+      name: 'Tareas',
+      href: '/tasks',
+      icon: ListChecks,
+      description: 'Gestión de tareas y proyectos'
+    },
+    {
+      name: 'Equipo',
+      href: '/team',
+      icon: Users,
+      description: 'Colaboración y gestión de equipo'
+    },
+    {
+      name: 'Ajustes',
+      href: '/settings',
+      icon: Settings,
+      description: 'Configuración de la aplicación'
+    },
+    {
+      name: 'Phase 2 Testing',
+      href: '/phase2-testing',
+      icon: TestTube,
+      description: 'Testing completo del Context Engine'
+    },
   ];
 
   return (
-    <div className="flex h-screen w-64 flex-col fixed left-0 top-0 z-40 bg-card border-r border-border">
-      <div className="flex h-16 items-center px-6 border-b border-border">
-        <div className="flex items-center gap-2">
-          <Brain className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold text-foreground">AI Planner</span>
-        </div>
+    <div className="flex flex-col h-full bg-gray-50 border-r py-4">
+      <div className="px-4 mb-4">
+        <h3 className="font-bold text-lg">Navegación</h3>
       </div>
-      
-      <nav className="flex-1 px-4 py-6 space-y-2">
-        {navigation.map((item) => {
-          const IconComponent = item.icon;
-          const isActive = item.current;
-          
-          return (
-            <NavLink
-              key={item.name}
-              to={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <IconComponent className="h-5 w-5" />
-              {item.name}
-            </NavLink>
-          );
-        })}
+      <nav className="flex-1">
+        <ul>
+          {navigationItems.map((item) => (
+            <li key={item.name}>
+              <Link
+                to={item.href}
+                className={`flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-200 ${location.pathname === item.href ? 'bg-gray-200' : ''
+                  }`}
+              >
+                <item.icon className="mr-2 h-4 w-4" />
+                {item.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </nav>
+      <div className="mt-auto px-4 py-2 text-center text-xs text-gray-500">
+        <p>&copy; {new Date().getFullYear()} TaskAI</p>
+      </div>
     </div>
   );
 };
-
-export default Sidebar;
