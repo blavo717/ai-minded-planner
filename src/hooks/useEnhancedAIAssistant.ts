@@ -27,7 +27,7 @@ export const useEnhancedAIAssistant = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [conversationId] = useState(`conv_${Date.now()}`);
-  const conversationHistory = useRef<EnhancedMessage[]>([]);
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
   
   const { user } = useAuth();
   const { makeLLMRequest, hasActiveConfiguration } = useLLMService();
@@ -35,24 +35,33 @@ export const useEnhancedAIAssistant = () => {
   const { currentContext, refreshContext } = useAIContext();
   const { toast } = useToast();
 
-  // Cargar historial de conversación al inicializar
+  // Cargar historial solo una vez al inicializar
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && !isHistoryLoaded) {
       loadConversationHistory();
     }
-  }, [user?.id]);
+  }, [user?.id, isHistoryLoaded]);
 
   const loadConversationHistory = async () => {
     try {
+      console.log('📚 Cargando historial de conversación...');
+      
+      // Primero limpiar duplicados
+      const { error: cleanError } = await supabase.rpc('clean_duplicate_ai_messages');
+      if (cleanError) {
+        console.warn('Advertencia al limpiar duplicados:', cleanError);
+      }
+
       const { data: chatMessages, error } = await supabase
         .from('ai_chat_messages')
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: true })
-        .limit(20);
+        .limit(10); // Limitar a los últimos 10 mensajes
 
       if (error) {
         console.error('Error loading chat history:', error);
+        setIsHistoryLoaded(true);
         return;
       }
 
@@ -65,13 +74,23 @@ export const useEnhancedAIAssistant = () => {
           metadata: typeof msg.context_data === 'object' ? msg.context_data as any : {}
         }));
 
-        setMessages(loadedMessages);
-        conversationHistory.current = loadedMessages;
-        
-        console.log(`📚 Cargado historial: ${loadedMessages.length} mensajes`);
+        // Filtrar duplicados adicionales por contenido y tipo
+        const uniqueMessages = loadedMessages.filter((message, index, array) => {
+          return !array.slice(0, index).some(prevMsg => 
+            prevMsg.content === message.content && 
+            prevMsg.type === message.type &&
+            Math.abs(prevMsg.timestamp.getTime() - message.timestamp.getTime()) < 1000 // menos de 1 segundo de diferencia
+          );
+        });
+
+        setMessages(uniqueMessages);
+        console.log(`✅ Historial cargado: ${uniqueMessages.length} mensajes únicos`);
       }
+      
+      setIsHistoryLoaded(true);
     } catch (error) {
       console.error('Error loading conversation history:', error);
+      setIsHistoryLoaded(true);
     }
   };
 
@@ -99,33 +118,32 @@ export const useEnhancedAIAssistant = () => {
     if (!hasActiveConfiguration) {
       toast({
         title: 'Configuración requerida',
-        description: 'Ve a Configuración > LLM para configurar tu API key.',
+        description: 'Ve a Configuración > IA para configurar tu API key.',
         variant: 'destructive',
       });
       return;
     }
 
-    if (!content.trim()) return;
+    if (!content.trim() || isLoading) return;
 
-    console.log('🤖 Enviando mensaje enriquecido:', { 
+    console.log('🤖 Enviando mensaje:', { 
       content: content.substring(0, 50) + '...',
       contextAvailable: !!currentContext,
-      historyLength: conversationHistory.current.length
     });
     
     setConnectionStatus('connecting');
     setIsLoading(true);
 
-    // Agregar mensaje del usuario
+    // Crear mensaje del usuario
     const userMessage: EnhancedMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${Date.now()}-${Math.random()}`,
       type: 'user',
       content: content.trim(),
       timestamp: new Date(),
     };
 
+    // Actualizar estado inmediatamente
     setMessages(prev => [...prev, userMessage]);
-    conversationHistory.current.push(userMessage);
     await saveMessageToHistory(userMessage);
 
     try {
@@ -135,11 +153,11 @@ export const useEnhancedAIAssistant = () => {
       // Generar prompt contextual inteligente
       const contextualSystemPrompt = getContextualSystemPrompt();
       
-      // Crear contexto de conversación reciente
-      const recentMessages = conversationHistory.current.slice(-6);
-      const conversationContext = recentMessages.length > 1 
+      // Crear contexto de conversación reciente (últimos 4 mensajes)
+      const recentMessages = messages.slice(-4);
+      const conversationContext = recentMessages.length > 0 
         ? `\n\nContexto de conversación reciente:\n${recentMessages.map(msg => 
-            `${msg.type === 'user' ? 'Usuario' : 'Asistente'}: ${msg.content.substring(0, 200)}`
+            `${msg.type === 'user' ? 'Usuario' : 'Asistente'}: ${msg.content.substring(0, 150)}`
           ).join('\n')}`
         : '';
 
@@ -153,9 +171,9 @@ export const useEnhancedAIAssistant = () => {
         maxTokens: 1500,
       });
 
-      // Agregar respuesta del asistente
+      // Crear mensaje del asistente
       const assistantMessage: EnhancedMessage = {
-        id: `assistant-${Date.now()}`,
+        id: `assistant-${Date.now()}-${Math.random()}`,
         type: 'assistant',
         content: response.content,
         timestamp: new Date(),
@@ -164,28 +182,26 @@ export const useEnhancedAIAssistant = () => {
           tokens_used: response.tokens_used,
           response_time: response.response_time,
           context_data: {
-            user_tasks: currentContext.userInfo.pendingTasks,
-            user_projects: currentContext.userInfo.hasActiveProjects,
-            session_time: currentContext.currentSession.timeOfDay,
+            user_tasks: currentContext?.userInfo?.pendingTasks,
+            user_projects: currentContext?.userInfo?.hasActiveProjects,
+            session_time: currentContext?.currentSession?.timeOfDay,
           }
         }
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      conversationHistory.current.push(assistantMessage);
       await saveMessageToHistory(assistantMessage);
       
       setConnectionStatus('connected');
 
-      console.log('✅ Respuesta enriquecida recibida:', { 
+      console.log('✅ Respuesta recibida:', { 
         responseLength: response.content.length,
         model: response.model_used,
         tokensUsed: response.tokens_used,
-        contextUsed: true,
       });
 
     } catch (error: any) {
-      console.error('❌ Error en asistente enriquecido:', error);
+      console.error('❌ Error en asistente:', error);
       
       setConnectionStatus('error');
       
@@ -195,11 +211,11 @@ export const useEnhancedAIAssistant = () => {
         variant: 'destructive',
       });
 
-      // Agregar mensaje de error sin metadata inválida
+      // Mensaje de error
       const errorMessage: EnhancedMessage = {
-        id: `error-${Date.now()}`,
+        id: `error-${Date.now()}-${Math.random()}`,
         type: 'assistant',
-        content: 'Lo siento, hubo un error procesando tu mensaje. He registrado el problema y mi memoria sigue intacta. Por favor intenta de nuevo.',
+        content: 'Lo siento, hubo un error procesando tu mensaje. Por favor intenta de nuevo.',
         timestamp: new Date(),
         metadata: {
           context_data: { error_occurred: true, error_message: error.message }
@@ -207,20 +223,17 @@ export const useEnhancedAIAssistant = () => {
       };
 
       setMessages(prev => [...prev, errorMessage]);
-      conversationHistory.current.push(errorMessage);
       await saveMessageToHistory(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  }, [makeLLMRequest, hasActiveConfiguration, toast, currentContext, getContextualSystemPrompt, refreshContext, user?.id]);
+  }, [makeLLMRequest, hasActiveConfiguration, toast, currentContext, getContextualSystemPrompt, refreshContext, user?.id, messages, isLoading]);
 
   const clearChat = useCallback(async () => {
-    console.log('🧹 Limpiando chat enriquecido (manteniendo historial en BD)');
+    console.log('🧹 Limpiando chat (manteniendo historial en BD)');
     setMessages([]);
-    conversationHistory.current = [];
     setConnectionStatus('disconnected');
     
-    // El historial permanece en la base de datos para futuras sesiones
     toast({
       title: 'Chat limpiado',
       description: 'La conversación se ha limpiado pero el historial se mantiene.',
@@ -231,7 +244,7 @@ export const useEnhancedAIAssistant = () => {
     const exportData = {
       conversationId,
       timestamp: new Date().toISOString(),
-      messages: conversationHistory.current,
+      messages,
       context: currentContext,
     };
     
@@ -242,7 +255,7 @@ export const useEnhancedAIAssistant = () => {
     a.download = `conversation-${conversationId}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [conversationId, currentContext]);
+  }, [conversationId, messages, currentContext]);
 
   return {
     messages,

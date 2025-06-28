@@ -2,7 +2,7 @@
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import EnhancedAIAssistantPanel from '@/components/ai/EnhancedAIAssistantPanel';
-import { Brain, Database, Zap, Shield, HardDrive, TrendingUp } from 'lucide-react';
+import { Brain, Database, Zap, Shield } from 'lucide-react';
 
 const AIAssistantEnhanced = () => {
   return (
@@ -25,12 +25,8 @@ const AIAssistantEnhanced = () => {
             Contexto completo
           </Badge>
           <Badge variant="outline" className="flex items-center gap-1 border-purple-300 text-purple-700">
-            <HardDrive className="h-3 w-3" />
+            <Zap className="h-3 w-3" />
             Memoria persistente
-          </Badge>
-          <Badge variant="outline" className="flex items-center gap-1 border-purple-300 text-purple-700">
-            <TrendingUp className="h-3 w-3" />
-            Análisis inteligente
           </Badge>
           <Badge variant="outline" className="flex items-center gap-1 border-purple-300 text-purple-700">
             <Shield className="h-3 w-3" />
@@ -44,10 +40,13 @@ const AIAssistantEnhanced = () => {
         <EnhancedAIAssistantPanel />
       </div>
 
-      {/* Features */}
+      {/* Features Info */}
       <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-4">
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <h3 className="font-medium text-purple-900 mb-2">🧠 Capacidades Avanzadas</h3>
+          <h3 className="font-medium text-purple-900 mb-2 flex items-center gap-2">
+            <Brain className="h-4 w-4" />
+            Capacidades Avanzadas
+          </h3>
           <ul className="text-sm text-purple-800 space-y-1">
             <li>• Acceso completo a tus tareas y proyectos</li>
             <li>• Análisis de patrones de productividad</li>
@@ -57,7 +56,10 @@ const AIAssistantEnhanced = () => {
         </div>
 
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <h3 className="font-medium text-green-900 mb-2">💡 Ejemplos de uso</h3>
+          <h3 className="font-medium text-green-900 mb-2 flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Ejemplos de uso
+          </h3>
           <ul className="text-sm text-green-800 space-y-1">
             <li>• "¿Cómo va mi progreso esta semana?"</li>
             <li>• "Sugiere cómo organizar mis tareas"</li>

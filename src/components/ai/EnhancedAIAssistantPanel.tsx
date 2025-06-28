@@ -93,8 +93,8 @@ const EnhancedAIAssistantPanel = () => {
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-blue-500" />
-            Asistente IA Enriquecido
+            <Brain className="h-5 w-5 text-purple-500" />
+            Asistente IA
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -102,11 +102,11 @@ const EnhancedAIAssistantPanel = () => {
             <Settings className="h-4 w-4" />
             <AlertDescription>
               <div className="space-y-2">
-                <p>Para usar el asistente IA enriquecido necesitas configurar tu API key.</p>
+                <p>Para usar el asistente IA necesitas configurar tu API key.</p>
                 <Button variant="outline" size="sm" asChild>
-                  <a href="/llm-settings">
+                  <a href="/settings">
                     <Settings className="h-4 w-4 mr-2" />
-                    Configurar LLM
+                    Ir a Configuración
                   </a>
                 </Button>
               </div>
@@ -122,8 +122,8 @@ const EnhancedAIAssistantPanel = () => {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-blue-500" />
-            Asistente IA Enriquecido
+            <Brain className="h-5 w-5 text-purple-500" />
+            Asistente IA
             {contextAvailable && (
               <Badge variant="outline" className="ml-2">
                 <Database className="h-3 w-3 mr-1" />
@@ -172,8 +172,8 @@ const EnhancedAIAssistantPanel = () => {
           <div className="space-y-4 py-4">
             {messages.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
-                <Brain className="h-12 w-12 mx-auto mb-4 text-blue-300" />
-                <p className="text-lg font-medium mb-2">¡Hola! Soy tu asistente IA enriquecido</p>
+                <Brain className="h-12 w-12 mx-auto mb-4 text-purple-300" />
+                <p className="text-lg font-medium mb-2">¡Hola! Soy tu asistente IA</p>
                 <p className="text-sm mb-2">Tengo acceso completo a tus datos y contexto personal.</p>
                 <div className="flex justify-center gap-2 mt-4">
                   <Badge variant="outline">
@@ -189,7 +189,7 @@ const EnhancedAIAssistantPanel = () => {
             ) : (
               messages.map((message) => (
                 <div
-                  key={message.id}
+                  key={`${message.id}-${message.timestamp.getTime()}`}
                   className={`flex gap-3 ${
                     message.type === 'user' ? 'flex-row-reverse' : ''
                   }`}
@@ -246,9 +246,9 @@ const EnhancedAIAssistantPanel = () => {
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
                       <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                      <div className="w-2 h-2 bg-purple-400 rounded-full" style={{ animationDelay: '0.4s' }}></div>
                     </div>
-                    <span className="text-sm text-purple-600">Analizando contexto y generando respuesta...</span>
+                    <span className="text-sm text-purple-600">Generando respuesta...</span>
                   </div>
                 </div>
               </div>
@@ -278,7 +278,7 @@ const EnhancedAIAssistantPanel = () => {
           </div>
           {contextAvailable && (
             <p className="text-xs text-muted-foreground mt-2">
-              💡 Tengo acceso a tus tareas, proyectos y contexto personal para darte respuestas más precisas
+              💡 Tengo acceso a tus tareas, proyectos y contexto personal para respuestas más precisas
             </p>
           )}
         </div>
