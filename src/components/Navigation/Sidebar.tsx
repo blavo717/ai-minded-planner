@@ -1,114 +1,117 @@
-
 import React from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { Home, Calendar, ListChecks, Settings, Users, TestTube, BarChart3, FolderOpen, Brain } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/ModeToggle";
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { cn } from "@/lib/utils";
+import {
+  LayoutDashboard,
+  Calendar,
+  ListChecks,
+  Settings,
+  User,
+  HelpCircle,
+  LogOut,
+  Menu,
+  MessageSquare
+} from 'lucide-react';
 
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  description: string;
-}
-
-export const Sidebar = () => {
+const Sidebar = () => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
 
-  const navigationItems: NavItem[] = [
+  const isActive = (href: string) => {
+    return location.pathname === href;
+  };
+
+  const navigationItems = [
     {
-      name: 'Dashboard',
+      title: 'Dashboard',
       href: '/',
-      icon: Home,
+      icon: LayoutDashboard,
       description: 'Resumen general de tu actividad'
     },
     {
-      name: 'Tareas',
+      title: 'Tareas',
       href: '/tasks',
       icon: ListChecks,
-      description: 'Gestión de tareas y proyectos'
+      description: 'Gestiona tus tareas y proyectos'
     },
     {
-      name: 'Proyectos',
-      href: '/projects',
-      icon: FolderOpen,
-      description: 'Gestión de proyectos'
-    },
-    {
-      name: 'Calendario',
+      title: 'Calendario',
       href: '/calendar',
       icon: Calendar,
-      description: 'Planificación y gestión de eventos'
+      description: 'Visualiza tus tareas en un calendario'
     },
     {
-      name: 'Analíticas',
-      href: '/analytics',
-      icon: BarChart3,
-      description: 'Métricas y análisis de productividad'
+      title: 'IA Asistente Simple',
+      href: '/ai-assistant-simple',
+      icon: MessageSquare,
+      description: 'Asistente de IA simplificado'
     },
     {
-      name: 'Asistente IA',
-      href: '/ai-assistant',
-      icon: Brain,
-      description: 'Asistente de IA y configuración'
+      title: 'Perfil',
+      href: '/profile',
+      icon: User,
+      description: 'Gestiona tu perfil de usuario'
     },
     {
-      name: 'Equipo',
-      href: '/team',
-      icon: Users,
-      description: 'Colaboración y gestión de equipo'
-    },
-    {
-      name: 'Configuración',
+      title: 'Configuración',
       href: '/settings',
       icon: Settings,
-      description: 'Configuración de la aplicación'
+      description: 'Ajusta la configuración de la aplicación'
     },
     {
-      name: 'Phase 2 Testing',
-      href: '/phase2-testing',
-      icon: TestTube,
-      description: 'Testing completo del Context Engine'
+      title: 'Ayuda',
+      href: '/help',
+      icon: HelpCircle,
+      description: 'Obtén ayuda y soporte'
     },
   ];
 
   return (
-    <div className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card">
-      <div className="flex h-full flex-col">
-        {/* Header */}
-        <div className="border-b border-border p-6">
-          <h2 className="text-lg font-semibold text-card-foreground">Navegación</h2>
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="sm" className="md:hidden">
+          <Menu className="h-5 w-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-64 flex flex-col p-4 gap-4">
+        <div className="flex items-center justify-between">
+          <span className="font-bold">Menú</span>
+          <ModeToggle />
         </div>
-        
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
-          {navigationItems.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  "flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  isActive 
-                    ? "bg-accent text-accent-foreground" 
-                    : "text-muted-foreground"
-                )}
-              >
-                <item.icon className="mr-3 h-4 w-4" />
-                {item.name}
-              </Link>
-            );
-          })}
+        <nav className="flex flex-col space-y-2">
+          {navigationItems.map((item) => (
+            <Button
+              key={item.href}
+              variant="ghost"
+              className={cn(
+                "justify-start",
+                isActive(item.href) ? "font-semibold" : "text-muted-foreground"
+              )}
+              onClick={() => navigate(item.href)}
+            >
+              <item.icon className="mr-2 h-4 w-4" />
+              {item.title}
+            </Button>
+          ))}
         </nav>
-        
-        {/* Footer */}
-        <div className="border-t border-border p-4">
-          <p className="text-center text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} TaskAI
-          </p>
+        <div className="mt-auto">
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => signOut()}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Cerrar sesión
+          </Button>
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 };
+
+export default Sidebar;

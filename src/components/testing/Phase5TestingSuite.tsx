@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,27 +41,27 @@ const Phase5TestingSuite = () => {
     {
       name: 'Conexión del Asistente Simple',
       status: 'pending',
-      description: 'FASE 14: Verificar conexión del asistente simplificado'
+      description: 'FASE 5: Verificar conexión del asistente simplificado'
     },
     {
       name: 'Envío de Mensaje',
       status: 'pending',
-      description: 'FASE 14: Enviar mensaje de prueba al asistente'
+      description: 'FASE 5: Enviar mensaje de prueba al asistente'
     },
     {
       name: 'Recepción de Respuesta',
       status: 'pending',
-      description: 'FASE 14: Verificar respuesta del asistente'
+      description: 'FASE 5: Verificar respuesta del asistente'
     },
     {
       name: 'Limpieza de Chat',
       status: 'pending',
-      description: 'FASE 14: Limpiar historial de chat'
+      description: 'FASE 5: Limpiar historial de chat'
     },
     {
       name: 'Estado Final Limpio',
       status: 'pending',
-      description: 'FASE 14: Verificar estado final limpio'
+      description: 'FASE 5: Verificar estado final limpio'
     }
   ]);
 
@@ -74,9 +75,9 @@ const Phase5TestingSuite = () => {
     ));
   }, []);
 
-  // FASE 14: Test 1 - Verificar Conexión
+  // FASE 5: Test 1 - Verificar Conexión
   const testConnection = useCallback(async (): Promise<boolean> => {
-    console.log('🧪 FASE 14: TEST 1 - Verificar Conexión');
+    console.log('🧪 FASE 5: TEST 1 - Verificar Conexión');
     const startTime = Date.now();
     
     try {
@@ -100,16 +101,16 @@ const Phase5TestingSuite = () => {
     }
   }, [connectionStatus, updateTestResult]);
 
-  // FASE 14: Test 2 - Envío de Mensaje
+  // FASE 5: Test 2 - Envío de Mensaje
   const testSendMessage = useCallback(async (): Promise<boolean> => {
-    console.log('🧪 FASE 14: TEST 2 - Envío de Mensaje');
+    console.log('🧪 FASE 5: TEST 2 - Envío de Mensaje');
     const startTime = Date.now();
     
     try {
       const preCount = messages.length;
       console.log(`📊 Pre-count: ${preCount} mensajes`);
       
-      await sendMessage('Test message FASE 14 - Sistema simplificado');
+      await sendMessage('Test message FASE 5 - Sistema simplificado');
       
       // Esperar un momento para que el mensaje se procese
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -134,9 +135,9 @@ const Phase5TestingSuite = () => {
     }
   }, [sendMessage, messages.length, updateTestResult]);
 
-  // FASE 14: Test 3 - Verificar Respuesta
+  // FASE 5: Test 3 - Verificar Respuesta
   const testReceiveResponse = useCallback(async (): Promise<boolean> => {
-    console.log('🧪 FASE 14: TEST 3 - Verificar Respuesta');
+    console.log('🧪 FASE 5: TEST 3 - Verificar Respuesta');
     const startTime = Date.now();
     
     try {
@@ -171,9 +172,9 @@ const Phase5TestingSuite = () => {
     }
   }, [messages, updateTestResult]);
 
-  // FASE 14: Test 4 - Limpiar Chat
+  // FASE 5: Test 4 - Limpiar Chat
   const testClearChat = useCallback(async (): Promise<boolean> => {
-    console.log('🧪 FASE 14: TEST 4 - Limpiar Chat');
+    console.log('🧪 FASE 5: TEST 4 - Limpiar Chat');
     const startTime = Date.now();
     
     try {
@@ -202,9 +203,9 @@ const Phase5TestingSuite = () => {
     }
   }, [clearChat, messages.length, updateTestResult]);
 
-  // FASE 14: Test 5 - Estado Final
+  // FASE 5: Test 5 - Estado Final
   const testFinalState = useCallback(async (): Promise<boolean> => {
-    console.log('🧪 FASE 14: TEST 5 - Estado Final');
+    console.log('🧪 FASE 5: TEST 5 - Estado Final');
     const startTime = Date.now();
     
     try {
@@ -268,15 +269,15 @@ const Phase5TestingSuite = () => {
       setCurrentTest(i);
       updateTestResult(i, 'running');
       
-      console.log(`🧪 FASE 14: Ejecutando test simplificado ${i + 1}/${tests.length}`);
+      console.log(`🧪 FASE 5: Ejecutando test simplificado ${i + 1}/${tests.length}`);
       
       const testPassed = await tests[i]();
       
       if (!testPassed) {
         allPassed = false;
-        console.error(`❌ FASE 14: Test ${i + 1} falló`);
+        console.error(`❌ FASE 5: Test ${i + 1} falló`);
       } else {
-        console.log(`✅ FASE 14: Test ${i + 1} exitoso`);
+        console.log(`✅ FASE 5: Test ${i + 1} exitoso`);
       }
       
       // Pausa entre tests
@@ -292,11 +293,11 @@ const Phase5TestingSuite = () => {
     const passed = testResults.filter(t => t.status === 'passed').length;
     const failed = testResults.filter(t => t.status === 'failed').length;
     
-    console.log(`🏁 FASE 14: Tests simplificados completados en ${totalDuration}ms`);
-    console.log(`📊 FASE 14: ${passed} exitosos, ${failed} fallidos`);
+    console.log(`🏁 FASE 5: Tests simplificados completados en ${totalDuration}ms`);
+    console.log(`📊 FASE 5: ${passed} exitosos, ${failed} fallidos`);
     
     toast({
-      title: allPassed ? "🎉 FASE 14: ¡Todos los tests pasaron!" : "❌ FASE 14: Algunos tests fallaron",
+      title: allPassed ? "🎉 FASE 5: ¡Todos los tests pasaron!" : "❌ FASE 5: Algunos tests fallaron",
       description: `${passed} exitosos, ${failed} fallidos. Tiempo total: ${Math.round(totalDuration / 1000)}s`,
       variant: allPassed ? "default" : "destructive"
     });
@@ -361,7 +362,7 @@ const Phase5TestingSuite = () => {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-green-500" />
-            FASE 14 - SISTEMA SIMPLIFICADO
+            FASE 5 - SISTEMA SIMPLIFICADO
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="outline">
@@ -388,11 +389,11 @@ const Phase5TestingSuite = () => {
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* FASE 14 Alert */}
+        {/* FASE 5 Alert */}
         <Alert className="border-green-200 bg-green-50">
           <Database className="h-4 w-4 text-green-600" />
           <AlertDescription>
-            <div className="font-medium mb-2 text-green-800">FASE 14 - SISTEMA SIMPLIFICADO:</div>
+            <div className="font-medium mb-2 text-green-800">FASE 5 - SISTEMA SIMPLIFICADO:</div>
             <ul className="list-disc list-inside text-sm space-y-1 text-green-700">
               <li>✅ Arquitectura limpia: un solo sistema de IA</li>
               <li>✅ Tests simplificados: funcionalidad básica</li>

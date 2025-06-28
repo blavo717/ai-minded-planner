@@ -1,220 +1,122 @@
 
-import { useState, useCallback, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useState, useCallback } from 'react';
 import { useLLMService } from '@/hooks/useLLMService';
-import { useAIContext } from '@/hooks/ai/useAIContext';
-import { useSmartPrompts } from '@/hooks/ai/useSmartPrompts';
-import { createPromptBuilder } from '@/utils/ai/PromptBuilder';
-import { generateValidUUID } from '@/utils/uuid';
+import { useToast } from '@/hooks/use-toast';
 
-export interface SimpleChatMessage {
+interface SimpleMessage {
   id: string;
   type: 'user' | 'assistant';
   content: string;
   timestamp: Date;
 }
 
+type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+
 export const useAIAssistantSimple = () => {
-  const { user } = useAuth();
-  const { makeLLMRequest, isLoading: isLLMLoading } = useLLMService();
-  const { currentContext, getSimpleContext } = useAIContext({
-    enableRealtimeUpdates: true,
-    includeProductivityMetrics: true,
-    includeWorkPatterns: true,
-    maxRecentTasks: 5,
-    maxRecentProjects: 3,
-  });
-  const { getContextualSystemPrompt } = useSmartPrompts();
+  const [messages, setMessages] = useState<SimpleMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<SimpleChatMessage[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'idle'>('idle');
+  const { makeLLMRequest, hasActiveConfiguration } = useLLMService();
+  const { toast } = useToast();
 
-  // Load messages from localStorage on init
-  useEffect(() => {
-    if (user) {
-      const savedMessages = localStorage.getItem(`ai-chat-${user.id}`);
-      if (savedMessages) {
-        try {
-          const parsed = JSON.parse(savedMessages);
-          const messagesWithDates = parsed.map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          }));
-          setMessages(messagesWithDates);
-        } catch (error) {
-          console.error('Error loading saved messages:', error);
-        }
-      }
+  // Función para enviar mensaje
+  const sendMessage = useCallback(async (content: string) => {
+    if (!hasActiveConfiguration) {
+      toast({
+        title: 'Configuración requerida',
+        description: 'Ve a Configuración > LLM para configurar tu API key.',
+        variant: 'destructive',
+      });
+      return;
     }
-  }, [user]);
 
-  // Save messages to localStorage whenever they change
-  useEffect(() => {
-    if (user && messages.length > 0) {
-      localStorage.setItem(`ai-chat-${user.id}`, JSON.stringify(messages));
-    }
-  }, [user, messages]);
+    if (!content.trim()) return;
 
-  const addMessage = useCallback((message: Omit<SimpleChatMessage, 'id' | 'timestamp'>) => {
-    const newMessage: SimpleChatMessage = {
-      ...message,
-      id: generateValidUUID(),
+    console.log('🤖 Enviando mensaje simple:', { content: content.substring(0, 50) + '...' });
+    
+    setConnectionStatus('connecting');
+    setIsLoading(true);
+
+    // Agregar mensaje del usuario
+    const userMessage: SimpleMessage = {
+      id: `user-${Date.now()}`,
+      type: 'user',
+      content: content.trim(),
       timestamp: new Date(),
     };
-    
-    setMessages(prev => [...prev, newMessage]);
-    return newMessage.id;
-  }, []);
 
-  const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || isLLMLoading || !user) return;
-    
-    // Add user message
-    addMessage({
-      type: 'user',
-      content: content.trim()
-    });
-
-    setIsTyping(true);
-    setConnectionStatus('connecting');
+    setMessages(prev => [...prev, userMessage]);
 
     try {
-      // Generar prompt contextual inteligente
-      const contextualSystemPrompt = getContextualSystemPrompt();
-      
-      // Crear prompt builder para enriquecer el contenido
-      const promptBuilder = createPromptBuilder(user.id, {
-        includeTaskDetails: true,
-        includeProjectContext: true,
-        includeRecentActivity: true,
-        maxTasksToInclude: 3,
-        maxProjectsToInclude: 2,
-      });
-
-      // Construir prompt enriquecido
-      const enrichedPrompt = await promptBuilder.buildEnrichedPrompt(
-        content,
-        getSimpleContext(),
-        {
-          type: 'general',
-          includeData: true,
-          maxDataPoints: 5,
-          tone: 'friendly'
-        }
-      );
-
-      console.log('🧠 Contexto del usuario:', currentContext);
-      console.log('📝 Prompt enriquecido:', enrichedPrompt.content);
+      // Crear contexto simple
+      const systemPrompt = `Eres un asistente de IA simple y útil. 
+Responde de manera clara, concisa y amigable. 
+Mantén tus respuestas enfocadas y prácticas.
+Fecha actual: ${new Date().toLocaleDateString('es-ES')}`;
 
       const response = await makeLLMRequest({
-        systemPrompt: contextualSystemPrompt,
-        userPrompt: enrichedPrompt.content,
-        functionName: 'smart-chat'
+        systemPrompt,
+        userPrompt: content,
+        functionName: 'simple_assistant_chat',
+        temperature: 0.7,
+        maxTokens: 1000,
       });
 
+      // Agregar respuesta del asistente
+      const assistantMessage: SimpleMessage = {
+        id: `assistant-${Date.now()}`,
+        type: 'assistant',
+        content: response.content,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
       setConnectionStatus('connected');
 
-      // Add AI response
-      addMessage({
-        type: 'assistant',
-        content: response.content
+      console.log('✅ Respuesta simple recibida:', { 
+        responseLength: response.content.length,
+        model: response.model_used,
       });
 
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('❌ Error en asistente simple:', error);
+      
       setConnectionStatus('error');
       
-      let errorMessage = 'Lo siento, hubo un error al procesar tu mensaje.';
-      
-      if (error instanceof Error) {
-        if (error.message.includes('Failed to fetch')) {
-          errorMessage = '🔌 No se pudo conectar con el servicio de IA. Verifica tu configuración LLM.';
-        } else if (error.message.includes('No hay configuración LLM activa')) {
-          errorMessage = '⚙️ No hay configuración LLM activa. Ve a Configuración > LLM para configurar tu API key.';
-        } else if (error.message.includes('API key')) {
-          errorMessage = '🔑 Problema con la API key. Verifica tu configuración en OpenRouter.';
-        }
-      }
-      
-      addMessage({
-        type: 'assistant',
-        content: errorMessage
+      toast({
+        title: 'Error en el asistente',
+        description: 'No se pudo procesar tu mensaje. Intenta de nuevo.',
+        variant: 'destructive',
       });
+
+      // Agregar mensaje de error
+      const errorMessage: SimpleMessage = {
+        id: `error-${Date.now()}`,
+        type: 'assistant',
+        content: 'Lo siento, hubo un error procesando tu mensaje. Por favor intenta de nuevo.',
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
-      setIsTyping(false);
-      setTimeout(() => setConnectionStatus('idle'), 1000);
+      setIsLoading(false);
     }
-  }, [addMessage, makeLLMRequest, isLLMLoading, user, getContextualSystemPrompt, currentContext, getSimpleContext]);
+  }, [makeLLMRequest, hasActiveConfiguration, toast]);
 
+  // Función para limpiar chat
   const clearChat = useCallback(() => {
+    console.log('🧹 Limpiando chat simple');
     setMessages([]);
-    if (user) {
-      localStorage.removeItem(`ai-chat-${user.id}`);
-    }
-  }, [user]);
-
-  // Función para obtener sugerencias contextualies
-  const getContextualSuggestions = useCallback(() => {
-    if (!currentContext) return [];
-
-    const suggestions: string[] = [];
-    const { userInfo, currentSession, recentActivity } = currentContext;
-
-    // Sugerencias basadas en tareas pendientes
-    if (userInfo.hasActiveTasks) {
-      suggestions.push('¿Qué tareas debería priorizar hoy?');
-      suggestions.push('Ayúdame a organizar mis tareas pendientes');
-    }
-
-    // Sugerencias basadas en proyectos activos
-    if (userInfo.hasActiveProjects) {
-      suggestions.push('¿Cómo va el progreso de mis proyectos?');
-      suggestions.push('Dame un resumen de mis proyectos activos');
-    }
-
-    // Sugerencias basadas en el momento del día
-    switch (currentSession.timeOfDay) {
-      case 'morning':
-        suggestions.push('Crea un plan para mi día');
-        suggestions.push('¿Qué debería hacer primero hoy?');
-        break;
-      case 'afternoon':
-        suggestions.push('¿Cómo va mi productividad hoy?');
-        suggestions.push('¿Qué tareas me quedan por hacer?');
-        break;
-      case 'evening':
-        suggestions.push('Resume mi día de trabajo');
-        suggestions.push('¿Qué logré hoy?');
-        break;
-    }
-
-    // Sugerencias basadas en patrones de trabajo
-    switch (recentActivity.workPattern) {
-      case 'productive':
-        suggestions.push('¡Sigue así! ¿Cómo mantienes tu productividad?');
-        break;
-      case 'low':
-      case 'inactive':
-        suggestions.push('¿Necesitas motivación para empezar?');
-        suggestions.push('¿Qué está bloqueando tu productividad?');
-        break;
-    }
-
-    return suggestions.slice(0, 4); // Limitar a 4 sugerencias
-  }, [currentContext]);
+    setConnectionStatus('disconnected');
+  }, []);
 
   return {
-    isOpen,
-    setIsOpen,
     messages,
-    isTyping,
-    isLoading: isLLMLoading,
+    isLoading,
     connectionStatus,
     sendMessage,
     clearChat,
-    currentContext,
-    contextualSuggestions: getContextualSuggestions(),
+    hasConfiguration: hasActiveConfiguration,
   };
 };

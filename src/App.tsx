@@ -1,112 +1,78 @@
-
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from '@/components/theme-provider';
-import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import MainLayout from '@/components/Layout/MainLayout';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from "@/components/theme-provider"
+import { Auth } from '@/pages/Auth';
 import Dashboard from '@/pages/Dashboard';
 import Tasks from '@/pages/Tasks';
 import Projects from '@/pages/Projects';
-import Analytics from '@/pages/Analytics';
-import Settings from '@/pages/Settings';
 import Team from '@/pages/Team';
+import Settings from '@/pages/Settings';
+import NotFound from '@/pages/NotFound';
+import { useAuth } from '@/contexts/AuthContext';
+import MainLayout from '@/components/Layout/MainLayout';
+import LLMSettings from '@/pages/LLMSettings';
+import TestingSuite from '@/components/testing/TestingSuite';
+import TaskDetails from '@/components/tasks/TaskDetails';
 import AIAssistantSimple from '@/pages/AIAssistantSimple';
-import CalendarPage from '@/pages/CalendarPage';
-import Auth from '@/pages/Auth';
-import NotFoundPage from '@/pages/NotFoundPage';
-import Phase2Testing from '@/pages/Phase2Testing';
-
-const queryClient = new QueryClient();
 
 function App() {
+  const { isLoggedIn, checkAuth } = useAuth();
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const check = async () => {
+      await checkAuth();
+      setCheckingAuth(false);
+    };
+
+    check();
+  }, [checkAuth]);
+
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    if (checkingAuth) {
+      return <div>Cargando...</div>;
+    }
+
+    if (!isLoggedIn) {
+      return <Navigate to="/auth" replace />;
+    }
+
+    return <>{children}</>;
+  };
+
   return (
-    <QueryClientProvider client={queryClient}>
+    <BrowserRouter>
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-        <Toaster />
         <AuthProvider>
-          <BrowserRouter>
+          <div className="min-h-screen bg-background">
             <Routes>
               <Route path="/auth" element={<Auth />} />
-              
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Dashboard />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/tasks" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Tasks />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/projects" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Projects />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/calendar" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <CalendarPage />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/analytics" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Analytics />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/ai-assistant" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <AIAssistantSimple />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/team" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Team />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Settings />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/settings/llm" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Settings />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/phase2-testing" element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Phase2Testing />
-                  </MainLayout>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="*" element={<NotFoundPage />} />
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/tasks" element={<Tasks />} />
+                        <Route path="/tasks/:taskId" element={<TaskDetails />} />
+                        <Route path="/projects" element={<Projects />} />
+                        <Route path="/team" element={<Team />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/llm-settings" element={<LLMSettings />} />
+                        <Route path="/testing" element={<TestingSuite />} />
+                        <Route path="/ai-assistant-simple" element={<AIAssistantSimple />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
-          </BrowserRouter>
+          </div>
         </AuthProvider>
       </ThemeProvider>
-    </QueryClientProvider>
+    </BrowserRouter>
   );
 }
 
