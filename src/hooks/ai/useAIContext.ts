@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTasks } from '@/hooks/useTasks';
@@ -60,7 +59,7 @@ export const useAIContext = (config: AIContextConfig = {}) => {
   const { projects } = useProjects();
   const { data: generalStats } = useGeneralStats();
   const { data: productivityMetrics } = useProductivityMetrics('week');
-  const { data: workPatterns } = useWorkPatterns();
+  const { data: workPatterns } = useWorkPatterns('week');
 
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
   
@@ -183,21 +182,41 @@ export const useAIContext = (config: AIContextConfig = {}) => {
 
     return {
       weeklyScore: productivityMetrics.completionRate || 0,
-      trendsData: productivityMetrics.trends || [],
+      trendsData: [], // Simplificado ya que 'trends' no existe en el tipo
       completionRate: productivityMetrics.completionRate || 0,
-      averageTaskDuration: productivityMetrics.averageCompletionTime || 0,
+      averageTaskDuration: productivityMetrics.averageTaskTime || 0,
     };
   }, [finalConfig.includeProductivityMetrics, productivityMetrics]);
 
   // Generar contexto de patrones de trabajo
   const generateWorkPatternsContext = useCallback(() => {
-    if (!finalConfig.includeWorkPatterns || !workPatterns) return undefined;
+    if (!finalConfig.includeWorkPatterns || !workPatterns || !Array.isArray(workPatterns)) return undefined;
+
+    // Procesar el array de WorkPattern para extraer patrones útiles
+    const mostProductiveHours = workPatterns
+      .sort((a, b) => b.productivity_score - a.productivity_score)
+      .slice(0, 3)
+      .map(pattern => pattern.hour);
+
+    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const preferredWorkDays = workPatterns
+      .sort((a, b) => b.tasks_completed - a.tasks_completed)
+      .slice(0, 3)
+      .map(pattern => dayNames[pattern.day_of_week]);
+
+    const totalSessions = workPatterns.reduce((sum, pattern) => sum + pattern.total_sessions, 0);
+    const averageSessionLength = totalSessions > 0 ? 
+      workPatterns.reduce((sum, pattern) => sum + pattern.total_sessions, 0) / workPatterns.length : 0;
+
+    const peakPerformanceTimes = mostProductiveHours.map(hour => 
+      `${hour}:00 - ${hour + 1}:00`
+    );
 
     return {
-      mostProductiveHours: workPatterns.peakHours || [],
-      preferredWorkDays: workPatterns.bestDays || [],
-      averageSessionLength: workPatterns.averageSessionDuration || 0,
-      peakPerformanceTimes: workPatterns.peakPerformanceTimes || [],
+      mostProductiveHours,
+      preferredWorkDays,
+      averageSessionLength,
+      peakPerformanceTimes,
     };
   }, [finalConfig.includeWorkPatterns, workPatterns]);
 
