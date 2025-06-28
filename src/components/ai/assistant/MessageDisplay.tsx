@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { User, Brain } from 'lucide-react';
+import { User, Brain, Clock, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { EnhancedMessage } from '@/hooks/ai/types/enhancedAITypes';
@@ -11,6 +11,15 @@ interface MessageDisplayProps {
 }
 
 const MessageDisplay = ({ message }: MessageDisplayProps) => {
+  const formatTokens = (tokens: number) => {
+    return tokens > 1000 ? `${(tokens / 1000).toFixed(1)}k` : tokens.toString();
+  };
+
+  const formatResponseTime = (time?: number) => {
+    if (!time) return '';
+    return time > 1000 ? `${(time / 1000).toFixed(1)}s` : `${time}ms`;
+  };
+
   return (
     <div
       className={`flex gap-3 ${
@@ -39,18 +48,32 @@ const MessageDisplay = ({ message }: MessageDisplayProps) => {
         }`}>
           <p className="whitespace-pre-wrap">{message.content}</p>
         </div>
-        <div className="flex items-center gap-2 mt-1">
+        
+        <div className={`flex items-center gap-2 mt-1 ${
+          message.type === 'user' ? 'justify-end' : 'justify-start'
+        }`}>
           <p className="text-xs text-muted-foreground">
             {format(message.timestamp, 'HH:mm', { locale: es })}
           </p>
+          
           {message.metadata?.model_used && (
-            <Badge variant="outline" className="text-xs py-0">
-              {message.metadata.model_used}
+            <Badge variant="outline" className="text-xs py-0 px-2">
+              <Brain className="h-3 w-3 mr-1" />
+              {message.metadata.model_used.split('/').pop() || message.metadata.model_used}
             </Badge>
           )}
-          {message.metadata?.tokens_used && (
-            <Badge variant="outline" className="text-xs py-0">
-              {message.metadata.tokens_used} tokens
+          
+          {message.metadata?.tokens_used && message.metadata.tokens_used > 0 && (
+            <Badge variant="outline" className="text-xs py-0 px-2">
+              <Zap className="h-3 w-3 mr-1" />
+              {formatTokens(message.metadata.tokens_used)} tokens
+            </Badge>
+          )}
+          
+          {message.metadata?.response_time && (
+            <Badge variant="outline" className="text-xs py-0 px-2">
+              <Clock className="h-3 w-3 mr-1" />
+              {formatResponseTime(message.metadata.response_time)}
             </Badge>
           )}
         </div>

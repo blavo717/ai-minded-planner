@@ -20,6 +20,7 @@ const EnhancedAIAssistantPanel = () => {
     hasConfiguration,
     contextAvailable,
     messageCount,
+    activeModel,
   } = useEnhancedAIAssistant();
 
   const handleSendMessage = async () => {
@@ -44,6 +45,7 @@ const EnhancedAIAssistantPanel = () => {
           onExportConversation={exportConversation}
           isLoading={isLoading}
           hasMessages={messages.length > 0}
+          activeModel={activeModel}
         />
       </CardHeader>
 

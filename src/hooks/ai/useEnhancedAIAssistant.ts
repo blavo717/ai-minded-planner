@@ -17,7 +17,7 @@ export const useEnhancedAIAssistant = () => {
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
   
   const { user } = useAuth();
-  const { makeLLMRequest, hasActiveConfiguration } = useLLMService();
+  const { makeLLMRequest, hasActiveConfiguration, activeModel } = useLLMService();
   const { generateSmartPrompt, getContextualSystemPrompt } = useSmartPrompts();
   const { currentContext, refreshContext } = useAIContext();
   const { toast } = useToast();
@@ -29,12 +29,27 @@ export const useEnhancedAIAssistant = () => {
     }
   }, [user?.id, isHistoryLoaded]);
 
+  // Establecer conexión inicial si hay configuración
+  useEffect(() => {
+    if (hasActiveConfiguration) {
+      setConnectionStatus('connected');
+    } else {
+      setConnectionStatus('disconnected');
+    }
+  }, [hasActiveConfiguration]);
+
   const loadConversationHistory = async () => {
     if (!user?.id) return;
     
-    const loadedMessages = await messageHistoryService.loadConversationHistory(user.id);
-    setMessages(loadedMessages);
-    setIsHistoryLoaded(true);
+    try {
+      const loadedMessages = await messageHistoryService.loadConversationHistory(user.id);
+      setMessages(loadedMessages);
+      setIsHistoryLoaded(true);
+      console.log('📚 Historial cargado:', loadedMessages.length, 'mensajes');
+    } catch (error) {
+      console.error('Error cargando historial:', error);
+      setIsHistoryLoaded(true);
+    }
   };
 
   const sendMessage = useCallback(async (content: string) => {
@@ -52,6 +67,7 @@ export const useEnhancedAIAssistant = () => {
     console.log('🤖 Enviando mensaje:', { 
       content: content.substring(0, 50) + '...',
       contextAvailable: !!currentContext,
+      activeModel: activeModel,
     });
     
     setConnectionStatus('connecting');
@@ -60,18 +76,23 @@ export const useEnhancedAIAssistant = () => {
     // Crear mensaje del usuario
     const userMessage = messageProcessingService.createUserMessage(content);
 
-    // Actualizar estado inmediatamente
-    setMessages(prev => messageProcessingService.removeDuplicateMessages([...prev, userMessage]));
-    await messageHistoryService.saveMessageToHistory(userMessage, user.id);
+    // Actualizar estado inmediatamente sin duplicados
+    setMessages(prev => {
+      const filtered = messageProcessingService.removeDuplicateMessages([...prev, userMessage]);
+      return filtered;
+    });
 
     try {
+      // Guardar mensaje del usuario
+      await messageHistoryService.saveMessageToHistory(userMessage, user.id);
+
       // Refrescar contexto antes de generar respuesta
       refreshContext();
 
       // Generar prompt contextual inteligente
       const contextualSystemPrompt = getContextualSystemPrompt();
       
-      // Crear contexto de conversación reciente (últimos 4 mensajes)
+      // Crear contexto de conversación reciente (últimos 4 mensajes únicos)
       const recentMessages = messages.slice(-4);
       const conversationContext = recentMessages.length > 0 
         ? `\n\nContexto de conversación reciente:\n${recentMessages.map(msg => 
@@ -89,22 +110,31 @@ export const useEnhancedAIAssistant = () => {
         maxTokens: 1500,
       });
 
-      // Crear mensaje del asistente
+      // Crear mensaje del asistente con metadata completa
       const assistantMessage = messageProcessingService.createAssistantMessage(
         response.content,
         {
           model_used: response.model_used,
           tokens_used: response.tokens_used,
+          prompt_tokens: response.prompt_tokens,
+          completion_tokens: response.completion_tokens,
           response_time: response.response_time,
           context_data: {
             user_tasks: currentContext?.userInfo?.pendingTasks,
             user_projects: currentContext?.userInfo?.hasActiveProjects,
             session_time: currentContext?.currentSession?.timeOfDay,
+            active_model: response.model_used,
           }
         }
       );
 
-      setMessages(prev => messageProcessingService.removeDuplicateMessages([...prev, assistantMessage]));
+      // Actualizar mensajes sin duplicados
+      setMessages(prev => {
+        const filtered = messageProcessingService.removeDuplicateMessages([...prev, assistantMessage]);
+        return filtered;
+      });
+
+      // Guardar mensaje del asistente
       await messageHistoryService.saveMessageToHistory(assistantMessage, user.id);
       
       setConnectionStatus('connected');
@@ -113,6 +143,9 @@ export const useEnhancedAIAssistant = () => {
         responseLength: response.content.length,
         model: response.model_used,
         tokensUsed: response.tokens_used,
+        promptTokens: response.prompt_tokens,
+        completionTokens: response.completion_tokens,
+        responseTime: response.response_time,
       });
 
     } catch (error: any) {
@@ -128,23 +161,26 @@ export const useEnhancedAIAssistant = () => {
 
       // Mensaje de error
       const errorMessage = messageProcessingService.createErrorMessage(error);
-      setMessages(prev => messageProcessingService.removeDuplicateMessages([...prev, errorMessage]));
+      setMessages(prev => {
+        const filtered = messageProcessingService.removeDuplicateMessages([...prev, errorMessage]);
+        return filtered;
+      });
       await messageHistoryService.saveMessageToHistory(errorMessage, user.id);
     } finally {
       setIsLoading(false);
     }
-  }, [makeLLMRequest, hasActiveConfiguration, toast, currentContext, getContextualSystemPrompt, refreshContext, user?.id, messages, isLoading]);
+  }, [makeLLMRequest, hasActiveConfiguration, toast, currentContext, getContextualSystemPrompt, refreshContext, user?.id, messages, isLoading, activeModel]);
 
   const clearChat = useCallback(async () => {
     console.log('🧹 Limpiando chat (manteniendo historial en BD)');
     setMessages([]);
-    setConnectionStatus('disconnected');
+    setConnectionStatus(hasActiveConfiguration ? 'connected' : 'disconnected');
     
     toast({
       title: 'Chat limpiado',
       description: 'La conversación se ha limpiado pero el historial se mantiene.',
     });
-  }, [toast]);
+  }, [toast, hasActiveConfiguration]);
 
   const exportConversation = useCallback(() => {
     const exportData = {
@@ -152,6 +188,7 @@ export const useEnhancedAIAssistant = () => {
       timestamp: new Date().toISOString(),
       messages,
       context: currentContext,
+      activeModel: activeModel,
     };
     
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -161,7 +198,7 @@ export const useEnhancedAIAssistant = () => {
     a.download = `conversation-${conversationId}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [conversationId, messages, currentContext]);
+  }, [conversationId, messages, currentContext, activeModel]);
 
   return {
     messages,
@@ -174,5 +211,6 @@ export const useEnhancedAIAssistant = () => {
     conversationId,
     contextAvailable: !!currentContext,
     messageCount: messages.length,
+    activeModel,
   };
 };

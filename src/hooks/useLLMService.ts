@@ -15,6 +15,8 @@ interface LLMResponse {
   content: string;
   model_used?: string;
   tokens_used?: number;
+  prompt_tokens?: number;
+  completion_tokens?: number;
   response_time?: number;
 }
 
@@ -35,8 +37,8 @@ export const useLLMService = () => {
         functionName: params.functionName,
         systemPromptLength: params.systemPrompt.length,
         userPromptLength: params.userPrompt.length,
-        temperature: params.temperature || activeConfiguration.temperature,
-        maxTokens: params.maxTokens || activeConfiguration.max_tokens,
+        temperature: params.temperature ?? activeConfiguration.temperature,
+        maxTokens: params.maxTokens ?? activeConfiguration.max_tokens,
         model: activeConfiguration.model_name,
       });
 
@@ -46,10 +48,9 @@ export const useLLMService = () => {
             { role: 'system', content: params.systemPrompt },
             { role: 'user', content: params.userPrompt }
           ],
-          configId: activeConfiguration.id,
           function_name: params.functionName,
-          temperature: params.temperature || activeConfiguration.temperature,
-          max_tokens: params.maxTokens || activeConfiguration.max_tokens,
+          temperature: params.temperature ?? activeConfiguration.temperature,
+          max_tokens: params.maxTokens ?? activeConfiguration.max_tokens,
         }
       });
 
@@ -70,13 +71,17 @@ export const useLLMService = () => {
         model: data.model_used || activeConfiguration.model_name,
         contentLength: data.response?.length || 0,
         tokensUsed: data.tokens_used,
+        promptTokens: data.prompt_tokens,
+        completionTokens: data.completion_tokens,
       });
 
       return {
         content: data.response,
         model_used: data.model_used || activeConfiguration.model_name,
-        tokens_used: data.tokens_used,
-        response_time: responseTime,
+        tokens_used: data.tokens_used || 0,
+        prompt_tokens: data.prompt_tokens || 0,
+        completion_tokens: data.completion_tokens || 0,
+        response_time: data.response_time || responseTime,
       };
     } catch (error: any) {
       const responseTime = Date.now() - startTime;

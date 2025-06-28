@@ -10,7 +10,9 @@ import {
   Clock, 
   AlertCircle, 
   Trash2, 
-  Download 
+  Download,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { ConnectionStatus } from '@/hooks/ai/types/enhancedAITypes';
 
@@ -22,6 +24,7 @@ interface ChatHeaderProps {
   onExportConversation: () => void;
   isLoading: boolean;
   hasMessages: boolean;
+  activeModel?: string;
 }
 
 const ChatHeader = ({
@@ -31,32 +34,53 @@ const ChatHeader = ({
   onClearChat,
   onExportConversation,
   isLoading,
-  hasMessages
+  hasMessages,
+  activeModel
 }: ChatHeaderProps) => {
   const getConnectionIcon = () => {
     switch (connectionStatus) {
       case 'connected':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <Wifi className="h-4 w-4 text-green-500" />;
       case 'connecting':
         return <Clock className="h-4 w-4 text-yellow-500 animate-pulse" />;
       case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <WifiOff className="h-4 w-4 text-red-500" />;
       default:
-        return <AlertCircle className="h-4 w-4 text-gray-400" />;
+        return <WifiOff className="h-4 w-4 text-gray-400" />;
     }
   };
 
   const getConnectionColor = () => {
     switch (connectionStatus) {
       case 'connected':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 border-green-200';
       case 'connecting':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'error':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 border-red-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  const getConnectionText = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return 'Conectado';
+      case 'connecting':
+        return 'Conectando...';
+      case 'error':
+        return 'Error';
+      default:
+        return 'Desconectado';
+    }
+  };
+
+  const formatModelName = (model?: string) => {
+    if (!model) return '';
+    // Extraer solo el nombre del modelo sin el proveedor
+    const parts = model.split('/');
+    return parts[parts.length - 1] || model;
   };
 
   return (
@@ -70,17 +94,26 @@ const ChatHeader = ({
             Contexto Activo
           </Badge>
         )}
+        {activeModel && (
+          <Badge variant="secondary" className="ml-2">
+            <Brain className="h-3 w-3 mr-1" />
+            {formatModelName(activeModel)}
+          </Badge>
+        )}
       </CardTitle>
+      
       <div className="flex items-center gap-2">
-        <Badge className={getConnectionColor()}>
+        <Badge className={`${getConnectionColor()} border`}>
           {getConnectionIcon()}
-          <span className="ml-1 capitalize">{connectionStatus}</span>
+          <span className="ml-1">{getConnectionText()}</span>
         </Badge>
+        
         {messageCount > 0 && (
           <Badge variant="secondary">
             {messageCount} mensajes
           </Badge>
         )}
+        
         {hasMessages && (
           <div className="flex gap-1">
             <Button
@@ -89,6 +122,7 @@ const ChatHeader = ({
               onClick={onExportConversation}
               disabled={isLoading}
               className="h-8"
+              title="Exportar conversación"
             >
               <Download className="h-4 w-4" />
             </Button>
@@ -98,6 +132,7 @@ const ChatHeader = ({
               onClick={onClearChat}
               disabled={isLoading}
               className="h-8"
+              title="Limpiar chat"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
