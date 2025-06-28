@@ -1,10 +1,8 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, BarChart3, TrendingUp, Clock, Target, Download, Timer, Database, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Calendar, BarChart3, TrendingUp, Clock, Target, Download, Timer, Database, CheckCircle, AlertTriangle, Zap } from 'lucide-react';
 import ProductivityOverview from '@/components/Analytics/ProductivityOverview';
 import TaskCompletionChart from '@/components/Analytics/TaskCompletionChart';
 import TimeDistributionChart from '@/components/Analytics/TimeDistributionChart';
@@ -21,6 +19,9 @@ import InventoryVsActivity from '@/components/Analytics/InventoryVsActivity';
 import RealProjectPerformance from '@/components/Analytics/RealProjectPerformance';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useGeneralStats } from '@/hooks/analytics/useGeneralStats';
+import SmartMetricsGrid from '@/components/Analytics/SmartMetricsGrid';
+import IntelligentInsights from '@/components/Analytics/IntelligentInsights';
+import MetricsLevelIndicator from '@/components/Analytics/MetricsLevelIndicator';
 
 const Analytics = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
@@ -113,10 +114,14 @@ const Analytics = () => {
 
       {/* Main Content */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
             General
+          </TabsTrigger>
+          <TabsTrigger value="smart" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Smart
           </TabsTrigger>
           <TabsTrigger value="dashboard" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
@@ -155,6 +160,18 @@ const Analytics = () => {
         <TabsContent value="general" className="space-y-6">
           <GeneralStatsOverview />
           <InventoryVsActivity />
+        </TabsContent>
+
+        <TabsContent value="smart" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-6">
+              <SmartMetricsGrid period={selectedPeriod} />
+              <IntelligentInsights period={selectedPeriod} />
+            </div>
+            <div>
+              <MetricsLevelIndicator />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="dashboard" className="space-y-6">
