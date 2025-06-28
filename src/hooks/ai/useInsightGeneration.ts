@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AIInsight, InsightGenerationConfig, UserContext, InsightGenerationResult } from '@/types/ai-insights';
 import { PatternAnalysisResult } from '@/types/ai-patterns';
-import { InsightGenerator } from '@/utils/ai/InsightGenerator';
+import { MainInsightGenerator } from '@/utils/ai/insights/MainInsightGenerator';
 import { defaultPatternAnalyzer } from '@/utils/ai/PatternAnalyzer';
 import { useTasks } from '@/hooks/useTasks';
 import { useTaskSessions } from '@/hooks/useTaskSessions';
@@ -32,7 +32,7 @@ export const useInsightGeneration = (options: UseInsightGenerationOptions = {}) 
 
   // Configuración del generador
   const [generatorConfig] = useState(() => 
-    new InsightGenerator(config)
+    new MainInsightGenerator(config)
   );
 
   // Query para obtener análisis de patrones
