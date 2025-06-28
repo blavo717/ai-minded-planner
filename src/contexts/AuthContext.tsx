@@ -1,14 +1,8 @@
 
-import React, { createContext, useContext } from 'react';
-import { useAuth as useSupabaseAuth } from '@/hooks/useAuth';
+import React from 'react';
 
-// Re-exportamos el contexto de autenticación desde useAuth
-const AuthContext = createContext<any>(null);
-
+// Este componente simplemente renderiza los children
+// ya que useAuth maneja su propio contexto internamente
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
-};
-
-export const useAuth = () => {
-  return useSupabaseAuth();
 };
