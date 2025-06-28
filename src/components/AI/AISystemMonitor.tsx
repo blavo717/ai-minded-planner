@@ -107,15 +107,15 @@ export const AISystemMonitor: React.FC = () => {
   // Evaluar salud del sistema
   useEffect(() => {
     const evaluateSystemHealth = () => {
-      const contextHealth = currentContext && 
+      const contextHealth: 'healthy' | 'warning' | 'critical' = currentContext && 
         currentContext.userInfo && 
         currentContext.currentSession ? 'healthy' : 'warning';
       
-      const promptsHealth = currentContext?.userInfo?.id ? 'healthy' : 'warning';
+      const promptsHealth: 'healthy' | 'warning' | 'critical' = currentContext?.userInfo?.id ? 'healthy' : 'warning';
       
-      const llmHealth = hasActiveConfiguration ? 'healthy' : 'critical';
+      const llmHealth: 'healthy' | 'warning' | 'critical' = hasActiveConfiguration ? 'healthy' : 'critical';
       
-      const assistantHealth = connectionStatus === 'connected' ? 'healthy' : 
+      const assistantHealth: 'healthy' | 'warning' | 'critical' = connectionStatus === 'connected' ? 'healthy' : 
         connectionStatus === 'error' ? 'critical' : 'warning';
 
       const components = {
@@ -128,7 +128,7 @@ export const AISystemMonitor: React.FC = () => {
       const criticalCount = Object.values(components).filter(status => status === 'critical').length;
       const warningCount = Object.values(components).filter(status => status === 'warning').length;
 
-      const overall = criticalCount > 0 ? 'critical' : 
+      const overall: 'healthy' | 'warning' | 'critical' = criticalCount > 0 ? 'critical' : 
         warningCount > 0 ? 'warning' : 'healthy';
 
       setSystemHealth({ overall, components });

@@ -29,7 +29,7 @@ export const AIContextTester: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [selectedTest, setSelectedTest] = useState<TestResult | null>(null);
 
-  const runTest = async (name: string, testFn: () => Promise<TestResult>) => {
+  const runTest = async (name: string, testFn: () => Promise<Omit<TestResult, 'name' | 'duration'>>): Promise<TestResult> => {
     const startTime = Date.now();
     try {
       const result = await testFn();
