@@ -1,7 +1,10 @@
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLLMService } from '@/hooks/useLLMService';
+import { useAIContext } from '@/hooks/ai/useAIContext';
+import { useSmartPrompts } from '@/hooks/ai/useSmartPrompts';
+import { createPromptBuilder } from '@/utils/ai/PromptBuilder';
 import { generateValidUUID } from '@/utils/uuid';
 
 export interface SimpleChatMessage {
@@ -14,6 +17,14 @@ export interface SimpleChatMessage {
 export const useAIAssistantSimple = () => {
   const { user } = useAuth();
   const { makeLLMRequest, isLoading: isLLMLoading } = useLLMService();
+  const { currentContext, getSimpleContext } = useAIContext({
+    enableRealtimeUpdates: true,
+    includeProductivityMetrics: true,
+    includeWorkPatterns: true,
+    maxRecentTasks: 5,
+    maxRecentProjects: 3,
+  });
+  const { getContextualSystemPrompt } = useSmartPrompts();
   
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<SimpleChatMessage[]>([]);
@@ -58,7 +69,7 @@ export const useAIAssistantSimple = () => {
   }, []);
 
   const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || isLLMLoading) return;
+    if (!content.trim() || isLLMLoading || !user) return;
     
     // Add user message
     addMessage({
@@ -70,10 +81,37 @@ export const useAIAssistantSimple = () => {
     setConnectionStatus('connecting');
 
     try {
+      // Generar prompt contextual inteligente
+      const contextualSystemPrompt = getContextualSystemPrompt();
+      
+      // Crear prompt builder para enriquecer el contenido
+      const promptBuilder = createPromptBuilder(user.id, {
+        includeTaskDetails: true,
+        includeProjectContext: true,
+        includeRecentActivity: true,
+        maxTasksToInclude: 3,
+        maxProjectsToInclude: 2,
+      });
+
+      // Construir prompt enriquecido
+      const enrichedPrompt = await promptBuilder.buildEnrichedPrompt(
+        content,
+        getSimpleContext(),
+        {
+          type: 'general',
+          includeData: true,
+          maxDataPoints: 5,
+          tone: 'friendly'
+        }
+      );
+
+      console.log('🧠 Contexto del usuario:', currentContext);
+      console.log('📝 Prompt enriquecido:', enrichedPrompt.content);
+
       const response = await makeLLMRequest({
-        systemPrompt: `Eres un asistente de productividad inteligente. Ayudas al usuario con sus tareas, proyectos y planificación de manera concisa, útil y amigable.`,
-        userPrompt: content,
-        functionName: 'simple-chat'
+        systemPrompt: contextualSystemPrompt,
+        userPrompt: enrichedPrompt.content,
+        functionName: 'smart-chat'
       });
 
       setConnectionStatus('connected');
@@ -108,7 +146,7 @@ export const useAIAssistantSimple = () => {
       setIsTyping(false);
       setTimeout(() => setConnectionStatus('idle'), 1000);
     }
-  }, [addMessage, makeLLMRequest, isLLMLoading]);
+  }, [addMessage, makeLLMRequest, isLLMLoading, user, getContextualSystemPrompt, currentContext, getSimpleContext]);
 
   const clearChat = useCallback(() => {
     setMessages([]);
@@ -116,6 +154,56 @@ export const useAIAssistantSimple = () => {
       localStorage.removeItem(`ai-chat-${user.id}`);
     }
   }, [user]);
+
+  // Función para obtener sugerencias contextualies
+  const getContextualSuggestions = useCallback(() => {
+    if (!currentContext) return [];
+
+    const suggestions: string[] = [];
+    const { userInfo, currentSession, recentActivity } = currentContext;
+
+    // Sugerencias basadas en tareas pendientes
+    if (userInfo.hasActiveTasks) {
+      suggestions.push('¿Qué tareas debería priorizar hoy?');
+      suggestions.push('Ayúdame a organizar mis tareas pendientes');
+    }
+
+    // Sugerencias basadas en proyectos activos
+    if (userInfo.hasActiveProjects) {
+      suggestions.push('¿Cómo va el progreso de mis proyectos?');
+      suggestions.push('Dame un resumen de mis proyectos activos');
+    }
+
+    // Sugerencias basadas en el momento del día
+    switch (currentSession.timeOfDay) {
+      case 'morning':
+        suggestions.push('Crea un plan para mi día');
+        suggestions.push('¿Qué debería hacer primero hoy?');
+        break;
+      case 'afternoon':
+        suggestions.push('¿Cómo va mi productividad hoy?');
+        suggestions.push('¿Qué tareas me quedan por hacer?');
+        break;
+      case 'evening':
+        suggestions.push('Resume mi día de trabajo');
+        suggestions.push('¿Qué logré hoy?');
+        break;
+    }
+
+    // Sugerencias basadas en patrones de trabajo
+    switch (recentActivity.workPattern) {
+      case 'productive':
+        suggestions.push('¡Sigue así! ¿Cómo mantienes tu productividad?');
+        break;
+      case 'low':
+      case 'inactive':
+        suggestions.push('¿Necesitas motivación para empezar?');
+        suggestions.push('¿Qué está bloqueando tu productividad?');
+        break;
+    }
+
+    return suggestions.slice(0, 4); // Limitar a 4 sugerencias
+  }, [currentContext]);
 
   return {
     isOpen,
@@ -125,6 +213,8 @@ export const useAIAssistantSimple = () => {
     isLoading: isLLMLoading,
     connectionStatus,
     sendMessage,
-    clearChat
+    clearChat,
+    currentContext,
+    contextualSuggestions: getContextualSuggestions(),
   };
 };

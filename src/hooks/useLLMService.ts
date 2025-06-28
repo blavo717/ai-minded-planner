@@ -7,11 +7,15 @@ interface LLMRequestParams {
   systemPrompt: string;
   userPrompt: string;
   functionName: string;
+  temperature?: number;
+  maxTokens?: number;
 }
 
 interface LLMResponse {
   content: string;
   model_used?: string;
+  tokens_used?: number;
+  response_time?: number;
 }
 
 export const useLLMService = () => {
@@ -24,8 +28,17 @@ export const useLLMService = () => {
     }
 
     setIsLoading(true);
+    const startTime = Date.now();
 
     try {
+      console.log('🚀 Iniciando solicitud LLM:', {
+        functionName: params.functionName,
+        systemPromptLength: params.systemPrompt.length,
+        userPromptLength: params.userPrompt.length,
+        temperature: params.temperature || activeConfiguration.temperature,
+        maxTokens: params.maxTokens || activeConfiguration.max_tokens,
+      });
+
       const { data, error } = await supabase.functions.invoke('openrouter-chat', {
         body: {
           messages: [
@@ -33,22 +46,44 @@ export const useLLMService = () => {
             { role: 'user', content: params.userPrompt }
           ],
           configId: activeConfiguration.id,
-          functionName: params.functionName
+          functionName: params.functionName,
+          // Permitir override de parámetros específicos
+          temperature: params.temperature || activeConfiguration.temperature,
+          max_tokens: params.maxTokens || activeConfiguration.max_tokens,
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error en edge function:', error);
+        throw error;
+      }
 
       if (!data?.success) {
+        console.error('❌ Respuesta sin éxito:', data);
         throw new Error(data?.error || 'Error en la llamada al LLM');
       }
 
+      const responseTime = Date.now() - startTime;
+      
+      console.log('✅ Respuesta LLM exitosa:', {
+        responseTime: `${responseTime}ms`,
+        model: data.model_used || activeConfiguration.model_name,
+        contentLength: data.response?.length || 0,
+      });
+
       return {
         content: data.response,
-        model_used: data.model_used || activeConfiguration.model_name
+        model_used: data.model_used || activeConfiguration.model_name,
+        tokens_used: data.tokens_used,
+        response_time: responseTime,
       };
     } catch (error) {
-      console.error('Error in LLM request:', error);
+      const responseTime = Date.now() - startTime;
+      console.error('❌ Error en solicitud LLM:', {
+        error: error.message,
+        responseTime: `${responseTime}ms`,
+        functionName: params.functionName,
+      });
       throw error;
     } finally {
       setIsLoading(false);
@@ -58,6 +93,7 @@ export const useLLMService = () => {
   return {
     makeLLMRequest,
     isLoading,
-    hasActiveConfiguration: !!activeConfiguration
+    hasActiveConfiguration: !!activeConfiguration,
+    activeModel: activeConfiguration?.model_name,
   };
 };
