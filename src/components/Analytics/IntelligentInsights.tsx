@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -152,10 +151,8 @@ const IntelligentInsights = ({ period }: IntelligentInsightsProps) => {
 
   const getInsightVariant = (type: string) => {
     switch (type) {
-      case 'success': return 'default';
       case 'warning': return 'destructive';
-      case 'tip': return 'default';
-      default: return 'secondary';
+      default: return 'default'; // This covers success, tip, and info
     }
   };
 
