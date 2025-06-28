@@ -1,8 +1,12 @@
 
 import React from 'react';
+import { AuthProvider as UseAuthProvider } from '@/hooks/useAuth';
 
-// Este componente simplemente renderiza los children
-// ya que useAuth maneja su propio contexto internamente
+// Usamos el AuthProvider que está definido en useAuth.tsx
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  return <>{children}</>;
+  return (
+    <UseAuthProvider>
+      {children}
+    </UseAuthProvider>
+  );
 };
