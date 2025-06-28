@@ -15,13 +15,16 @@ import {
   CheckCircle,
   Clock,
   Settings,
+  Download,
+  Database,
+  Brain,
   Zap
 } from 'lucide-react';
-import { useAIAssistantSimple } from '@/hooks/useAIAssistantSimple';
+import { useEnhancedAIAssistant } from '@/hooks/useEnhancedAIAssistant';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const AIAssistantPanelSimple = () => {
+const EnhancedAIAssistantPanel = () => {
   const [inputMessage, setInputMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -31,8 +34,11 @@ const AIAssistantPanelSimple = () => {
     connectionStatus,
     sendMessage,
     clearChat,
+    exportConversation,
     hasConfiguration,
-  } = useAIAssistantSimple();
+    contextAvailable,
+    messageCount,
+  } = useEnhancedAIAssistant();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -87,8 +93,8 @@ const AIAssistantPanelSimple = () => {
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-blue-500" />
-            Asistente IA Simple
+            <Brain className="h-5 w-5 text-blue-500" />
+            Asistente IA Enriquecido
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -96,7 +102,7 @@ const AIAssistantPanelSimple = () => {
             <Settings className="h-4 w-4" />
             <AlertDescription>
               <div className="space-y-2">
-                <p>Para usar el asistente de IA necesitas configurar tu API key.</p>
+                <p>Para usar el asistente IA enriquecido necesitas configurar tu API key.</p>
                 <Button variant="outline" size="sm" asChild>
                   <a href="/llm-settings">
                     <Settings className="h-4 w-4 mr-2" />
@@ -116,28 +122,46 @@ const AIAssistantPanelSimple = () => {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-blue-500" />
-            Asistente IA Simple
-            <Badge variant="outline" className="ml-2">
-              <Zap className="h-3 w-3 mr-1" />
-              Rápido
-            </Badge>
+            <Brain className="h-5 w-5 text-blue-500" />
+            Asistente IA Enriquecido
+            {contextAvailable && (
+              <Badge variant="outline" className="ml-2">
+                <Database className="h-3 w-3 mr-1" />
+                Contexto Activo
+              </Badge>
+            )}
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge className={getConnectionColor()}>
               {getConnectionIcon()}
               <span className="ml-1 capitalize">{connectionStatus}</span>
             </Badge>
+            {messageCount > 0 && (
+              <Badge variant="secondary">
+                {messageCount} mensajes
+              </Badge>
+            )}
             {messages.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearChat}
-                disabled={isLoading}
-                className="h-8"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportConversation}
+                  disabled={isLoading}
+                  className="h-8"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearChat}
+                  disabled={isLoading}
+                  className="h-8"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -148,13 +172,17 @@ const AIAssistantPanelSimple = () => {
           <div className="space-y-4 py-4">
             {messages.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
-                <Bot className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg font-medium mb-2">¡Hola! Soy tu asistente simple</p>
-                <p className="text-sm">Pregúntame lo que necesites y te ayudaré.</p>
+                <Brain className="h-12 w-12 mx-auto mb-4 text-blue-300" />
+                <p className="text-lg font-medium mb-2">¡Hola! Soy tu asistente IA enriquecido</p>
+                <p className="text-sm mb-2">Tengo acceso completo a tus datos y contexto personal.</p>
                 <div className="flex justify-center gap-2 mt-4">
                   <Badge variant="outline">
                     <Zap className="h-3 w-3 mr-1" />
-                    Respuestas rápidas
+                    Memoria persistente
+                  </Badge>
+                  <Badge variant="outline">
+                    <Database className="h-3 w-3 mr-1" />
+                    Contexto inteligente
                   </Badge>
                 </div>
               </div>
@@ -169,12 +197,12 @@ const AIAssistantPanelSimple = () => {
                   <div className={`flex-shrink-0 ${
                     message.type === 'user' 
                       ? 'bg-blue-100 text-blue-600' 
-                      : 'bg-gray-100 text-gray-600'
+                      : 'bg-purple-100 text-purple-600'
                   } rounded-full p-2`}>
                     {message.type === 'user' ? (
                       <User className="h-4 w-4" />
                     ) : (
-                      <Bot className="h-4 w-4" />
+                      <Brain className="h-4 w-4" />
                     )}
                   </div>
                   
@@ -184,13 +212,25 @@ const AIAssistantPanelSimple = () => {
                     <div className={`inline-block p-3 rounded-lg ${
                       message.type === 'user'
                         ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-900'
+                        : 'bg-purple-50 text-purple-900 border border-purple-200'
                     }`}>
                       <p className="whitespace-pre-wrap">{message.content}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {format(message.timestamp, 'HH:mm', { locale: es })}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-xs text-muted-foreground">
+                        {format(message.timestamp, 'HH:mm', { locale: es })}
+                      </p>
+                      {message.metadata?.model_used && (
+                        <Badge variant="outline" className="text-xs py-0">
+                          {message.metadata.model_used}
+                        </Badge>
+                      )}
+                      {message.metadata?.tokens_used && (
+                        <Badge variant="outline" className="text-xs py-0">
+                          {message.metadata.tokens_used} tokens
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
@@ -198,17 +238,17 @@ const AIAssistantPanelSimple = () => {
             
             {isLoading && (
               <div className="flex gap-3">
-                <div className="bg-gray-100 text-gray-600 rounded-full p-2">
-                  <Bot className="h-4 w-4" />
+                <div className="bg-purple-100 text-purple-600 rounded-full p-2">
+                  <Brain className="h-4 w-4" />
                 </div>
-                <div className="bg-gray-100 rounded-lg p-3">
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                   <div className="flex items-center gap-2">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                     </div>
-                    <span className="text-sm text-gray-500">Escribiendo...</span>
+                    <span className="text-sm text-purple-600">Analizando contexto y generando respuesta...</span>
                   </div>
                 </div>
               </div>
@@ -221,7 +261,7 @@ const AIAssistantPanelSimple = () => {
         <div className="border-t p-4">
           <div className="flex gap-2">
             <Input
-              placeholder="Escribe tu mensaje..."
+              placeholder="Pregúntame cualquier cosa sobre tu trabajo..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -236,10 +276,15 @@ const AIAssistantPanelSimple = () => {
               <Send className="h-4 w-4" />
             </Button>
           </div>
+          {contextAvailable && (
+            <p className="text-xs text-muted-foreground mt-2">
+              💡 Tengo acceso a tus tareas, proyectos y contexto personal para darte respuestas más precisas
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
   );
 };
 
-export default AIAssistantPanelSimple;
+export default EnhancedAIAssistantPanel;

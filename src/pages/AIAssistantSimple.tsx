@@ -1,10 +1,14 @@
 
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import AIAssistantPanelSimple from '@/components/ai/AIAssistantPanelSimple';
-import { Bot, Zap, Shield, Gauge } from 'lucide-react';
+import { Bot, Zap, Shield, Gauge, Brain, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const AIAssistantSimple = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Header */}
@@ -32,6 +36,28 @@ const AIAssistantSimple = () => {
             <Gauge className="h-3 w-3" />
             Interfaz limpia
           </Badge>
+        </div>
+
+        {/* Upgrade Notice */}
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 max-w-2xl mx-auto">
+          <div className="flex items-center gap-3">
+            <Brain className="h-6 w-6 text-purple-600" />
+            <div className="flex-1 text-left">
+              <h3 className="font-medium text-purple-900">¿Necesitas más poder?</h3>
+              <p className="text-sm text-purple-700">
+                Prueba el Asistente IA Enriquecido con memoria persistente y contexto completo
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/ai-assistant-enhanced')}
+              className="border-purple-300 text-purple-700 hover:bg-purple-100"
+            >
+              Probar
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
         </div>
       </div>
 

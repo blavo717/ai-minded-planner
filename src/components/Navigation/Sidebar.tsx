@@ -14,7 +14,8 @@ import {
   MessageSquare,
   TestTube,
   Zap,
-  BarChart3
+  BarChart3,
+  Brain
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -56,9 +57,14 @@ const Sidebar = () => {
       icon: BarChart3,
     },
     {
-      title: 'IA Asistente',
+      title: 'IA Simple',
       href: '/ai-assistant-simple',
       icon: MessageSquare,
+    },
+    {
+      title: 'IA Enriquecido',
+      href: '/ai-assistant-enhanced',
+      icon: Brain,
     },
     {
       title: 'Testing Fase 7',
@@ -90,7 +96,8 @@ const Sidebar = () => {
             variant="ghost"
             className={cn(
               "w-full justify-start",
-              isActive(item.href) && "bg-accent text-accent-foreground"
+              isActive(item.href) && "bg-accent text-accent-foreground",
+              item.href === '/ai-assistant-enhanced' && "text-purple-700 hover:text-purple-800 hover:bg-purple-100"
             )}
             onClick={() => navigate(item.href)}
           >

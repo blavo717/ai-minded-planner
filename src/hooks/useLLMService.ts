@@ -20,10 +20,10 @@ interface LLMResponse {
 
 export const useLLMService = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { activeConfiguration } = useLLMConfigurations();
+  const { activeConfiguration, hasActiveConfiguration } = useLLMConfigurations();
 
   const makeLLMRequest = async (params: LLMRequestParams): Promise<LLMResponse> => {
-    if (!activeConfiguration) {
+    if (!hasActiveConfiguration || !activeConfiguration) {
       throw new Error('No hay configuración LLM activa. Ve a Configuración > LLM para configurar tu API key.');
     }
 
@@ -37,6 +37,7 @@ export const useLLMService = () => {
         userPromptLength: params.userPrompt.length,
         temperature: params.temperature || activeConfiguration.temperature,
         maxTokens: params.maxTokens || activeConfiguration.max_tokens,
+        model: activeConfiguration.model_name,
       });
 
       const { data, error } = await supabase.functions.invoke('openrouter-chat', {
@@ -46,8 +47,7 @@ export const useLLMService = () => {
             { role: 'user', content: params.userPrompt }
           ],
           configId: activeConfiguration.id,
-          functionName: params.functionName,
-          // Permitir override de parámetros específicos
+          function_name: params.functionName,
           temperature: params.temperature || activeConfiguration.temperature,
           max_tokens: params.maxTokens || activeConfiguration.max_tokens,
         }
@@ -55,7 +55,7 @@ export const useLLMService = () => {
 
       if (error) {
         console.error('❌ Error en edge function:', error);
-        throw error;
+        throw new Error(error.message || 'Error en la conexión con el servicio LLM');
       }
 
       if (!data?.success) {
@@ -69,6 +69,7 @@ export const useLLMService = () => {
         responseTime: `${responseTime}ms`,
         model: data.model_used || activeConfiguration.model_name,
         contentLength: data.response?.length || 0,
+        tokensUsed: data.tokens_used,
       });
 
       return {
@@ -77,7 +78,7 @@ export const useLLMService = () => {
         tokens_used: data.tokens_used,
         response_time: responseTime,
       };
-    } catch (error) {
+    } catch (error: any) {
       const responseTime = Date.now() - startTime;
       console.error('❌ Error en solicitud LLM:', {
         error: error.message,
@@ -93,7 +94,8 @@ export const useLLMService = () => {
   return {
     makeLLMRequest,
     isLoading,
-    hasActiveConfiguration: !!activeConfiguration,
+    hasActiveConfiguration,
     activeModel: activeConfiguration?.model_name,
+    activeConfiguration,
   };
 };

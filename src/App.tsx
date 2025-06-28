@@ -15,6 +15,7 @@ import { useAuth, AuthProvider } from '@/hooks/useAuth';
 import MainLayout from '@/components/Layout/MainLayout';
 import LLMSettings from '@/pages/LLMSettings';
 import AIAssistantSimple from '@/pages/AIAssistantSimple';
+import AIAssistantEnhanced from '@/pages/AIAssistantEnhanced';
 import Phase7Testing from '@/pages/Phase7Testing';
 
 // Create QueryClient instance
@@ -72,6 +73,7 @@ const AppContent = () => {
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/llm-settings" element={<LLMSettings />} />
                   <Route path="/ai-assistant-simple" element={<AIAssistantSimple />} />
+                  <Route path="/ai-assistant-enhanced" element={<AIAssistantEnhanced />} />
                   <Route path="/phase7-testing" element={<Phase7Testing />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

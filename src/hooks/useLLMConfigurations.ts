@@ -37,5 +37,6 @@ export const useLLMConfigurations = () => {
     isUpdating,
     isDeleting,
     isTesting,
+    hasActiveConfiguration: !!activeConfiguration,
   };
 };
