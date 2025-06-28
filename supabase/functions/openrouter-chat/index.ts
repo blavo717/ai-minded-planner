@@ -171,18 +171,27 @@ serve(async (req) => {
       response_time: responseTime
     })
 
-    // Retornar respuesta completa con metadata
+    // CORREGIDO: Retornar respuesta completa con metadata estructurada
+    const completeResponse = {
+      success: true,
+      response: responseContent,
+      model_used: data.model || config.model_name,
+      tokens_used: data.usage?.total_tokens || 0,
+      prompt_tokens: data.usage?.prompt_tokens || 0,
+      completion_tokens: data.usage?.completion_tokens || 0,
+      response_time: responseTime,
+      usage: data.usage || {}
+    }
+
+    console.log('✅ Respuesta completa enviada:', {
+      success: completeResponse.success,
+      model_used: completeResponse.model_used,
+      tokens_used: completeResponse.tokens_used,
+      response_time: completeResponse.response_time
+    })
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        response: responseContent,
-        model_used: data.model || config.model_name,
-        tokens_used: data.usage?.total_tokens || 0,
-        prompt_tokens: data.usage?.prompt_tokens || 0,
-        completion_tokens: data.usage?.completion_tokens || 0,
-        response_time: responseTime,
-        usage: data.usage
-      }),
+      JSON.stringify(completeResponse),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
