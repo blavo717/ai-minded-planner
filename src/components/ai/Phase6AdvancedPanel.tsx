@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,11 +63,32 @@ const Phase6AdvancedPanel = () => {
 
     setIsGenerating(true);
     try {
+      // Crear un objeto de datos contextuales agregados para el motor de contexto avanzado
+      const aggregatedContextualData = {
+        id: 'aggregated-context',
+        type: 'productivity_metrics' as const,
+        category: 'historical' as const,
+        data: {
+          totalDataPoints: contextualData.length,
+          recentActivity: contextualData.slice(-10),
+          productivityTrends: getProductivityTrends(),
+          behaviorTrends: getUserBehaviorTrends(),
+        },
+        timestamp: new Date(),
+        relevanceScore: 0.9,
+        source: 'contextual-aggregator',
+        metadata: {
+          collectionMethod: 'automatic' as const,
+          confidence: 0.85,
+          dataSources: ['user_behavior', 'task_patterns', 'productivity_metrics'],
+        },
+      };
+
       const context = await defaultAdvancedContextEngine.generateAdvancedContext(
         tasks,
         sessions,
         patternAnalysis,
-        contextualData,
+        aggregatedContextualData,
         insights
       );
       setAdvancedContext(context);
@@ -104,6 +124,24 @@ const Phase6AdvancedPanel = () => {
       generateAdvancedContext();
     }
   }, [patternAnalysis, tasks.length]);
+
+  // Handler para el botón de recopilar datos
+  const handleCollectData = async () => {
+    try {
+      await collectData();
+    } catch (error) {
+      console.error('Error collecting data:', error);
+    }
+  };
+
+  // Handler para el botón de generar insights
+  const handleGenerateInsights = async () => {
+    try {
+      await generateInsights();
+    } catch (error) {
+      console.error('Error generating insights:', error);
+    }
+  };
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -470,7 +508,7 @@ const Phase6AdvancedPanel = () => {
         </div>
         <div className="flex gap-2">
           <Button 
-            onClick={collectData} 
+            onClick={handleCollectData} 
             disabled={isCollecting} 
             variant="outline" 
             size="sm"
@@ -479,7 +517,7 @@ const Phase6AdvancedPanel = () => {
             Recopilar Datos
           </Button>
           <Button 
-            onClick={generateInsights} 
+            onClick={handleGenerateInsights} 
             disabled={isGeneratingInsights} 
             size="sm"
           >

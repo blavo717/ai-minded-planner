@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { AdvancedContext, defaultAdvancedContextEngine } from '@/utils/ai/AdvancedContextEngine';
@@ -56,11 +55,32 @@ export const usePhase6Advanced = (config: Partial<Phase6Config> = {}) => {
         throw new Error('Datos insuficientes para análisis');
       }
 
+      // Crear un objeto de datos contextuales agregados
+      const aggregatedContextualData = {
+        id: 'aggregated-context',
+        type: 'productivity_metrics' as const,
+        category: 'historical' as const,
+        data: {
+          totalDataPoints: contextualData.length,
+          recentActivity: contextualData.slice(-10),
+          productivityTrends: getProductivityTrends(),
+          behaviorTrends: getUserBehaviorTrends(),
+        },
+        timestamp: new Date(),
+        relevanceScore: 0.9,
+        source: 'contextual-aggregator',
+        metadata: {
+          collectionMethod: 'automatic' as const,
+          confidence: 0.85,
+          dataSources: ['user_behavior', 'task_patterns', 'productivity_metrics'],
+        },
+      };
+
       return await defaultAdvancedContextEngine.generateAdvancedContext(
         tasks,
         sessions,
         patternAnalysis,
-        contextualData,
+        aggregatedContextualData,
         insights
       );
     },
