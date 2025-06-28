@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, MessageSquare, X } from 'lucide-react';
 import Sidebar from '@/components/Navigation/Sidebar';
+import AIAssistantPanelSimple from '@/components/ai/AIAssistantPanelSimple';
 import ThemeToggle from '@/components/ui/theme-toggle';
 
 interface MainLayoutProps {
@@ -12,6 +13,7 @@ interface MainLayoutProps {
 
 const MainLayout = ({ children }: MainLayoutProps) => {
   const { user, signOut } = useAuth();
+  const [showAIPopup, setShowAIPopup] = useState(false);
 
   return (
     <div className="min-h-screen bg-background flex w-full">
@@ -33,6 +35,17 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               
               <ThemeToggle />
               
+              {/* AI Assistant Pop-up Toggle */}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowAIPopup(true)}
+                className="flex items-center space-x-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>IA Asistente</span>
+              </Button>
+              
               <Button 
                 variant="outline" 
                 size="sm"
@@ -51,6 +64,30 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           {children}
         </main>
       </div>
+
+      {/* AI Assistant Pop-up */}
+      {showAIPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-blue-500" />
+                Asistente IA
+              </h2>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowAIPopup(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-4">
+              <AIAssistantPanelSimple />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

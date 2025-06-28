@@ -7,10 +7,13 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   ListChecks,
+  FolderOpen,
+  Users,
   Settings,
   LogOut,
   MessageSquare,
-  TestTube
+  TestTube,
+  Zap
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -19,6 +22,9 @@ const Sidebar = () => {
   const location = useLocation();
 
   const isActive = (href: string) => {
+    if (href === '/') {
+      return location.pathname === '/';
+    }
     return location.pathname === href;
   };
 
@@ -34,6 +40,16 @@ const Sidebar = () => {
       icon: ListChecks,
     },
     {
+      title: 'Proyectos',
+      href: '/projects',
+      icon: FolderOpen,
+    },
+    {
+      title: 'Equipo',
+      href: '/team',
+      icon: Users,
+    },
+    {
       title: 'IA Asistente',
       href: '/ai-assistant-simple',
       icon: MessageSquare,
@@ -42,6 +58,11 @@ const Sidebar = () => {
       title: 'Testing Fase 7',
       href: '/phase7-testing',
       icon: TestTube,
+    },
+    {
+      title: 'Configuración LLM',
+      href: '/llm-settings',
+      icon: Zap,
     },
     {
       title: 'Configuración',
