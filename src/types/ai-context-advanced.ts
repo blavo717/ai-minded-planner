@@ -35,3 +35,26 @@ export interface ContextTrend {
   period: string;
   significance: 'low' | 'medium' | 'high';
 }
+
+// NUEVO: Interfaz AIContext que faltaba
+export interface AIContext {
+  userInfo?: {
+    pendingTasks?: number;
+    hasActiveProjects?: boolean;
+    currentFocusArea?: string;
+  };
+  currentSession?: {
+    timeOfDay?: string;
+    workingHours?: boolean;
+    productivity?: number;
+  };
+  contextQuality?: {
+    score: number;
+    completeness: number;
+    freshness: number;
+  };
+  insights?: ContextInsight[];
+  suggestions?: SmartContextSuggestion[];
+  trends?: ContextTrend[];
+  metrics?: AdvancedContextMetrics;
+}

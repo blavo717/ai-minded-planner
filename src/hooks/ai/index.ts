@@ -1,4 +1,5 @@
-export { useAIContext, useSimpleAIContext } from './useAIContext';
+
+export { useAIContext } from './useAIContext';
 export { useInsightGeneration } from './useInsightGeneration';
 export { useProactiveNotifications } from './useProactiveNotifications';
 export { createManualContext } from '@/utils/ai/contextConfig';
