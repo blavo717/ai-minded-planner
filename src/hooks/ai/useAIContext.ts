@@ -1,181 +1,109 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useTasks } from '@/hooks/useTasks';
-import { useProjects } from '@/hooks/useProjects';
-import { useGeneralStats } from '@/hooks/analytics/useGeneralStats';
-import { useProductivityMetrics } from '@/hooks/analytics/useProductivityMetrics';
-import { useWorkPatterns } from '@/hooks/analytics/useWorkPatterns';
-import { SmartPromptContext } from '@/types/ai-prompts';
-import { AIContextConfig, ExtendedAIContext } from '@/types/ai-context';
-import { DEFAULT_AI_CONTEXT_CONFIG } from '@/utils/ai/contextConfig';
-import {
-  generateUserContext,
-  generateSessionContext,
-  generateRecentActivity,
-  generateProductivityContext,
-  generateWorkPatternsContext,
-} from '@/utils/ai/contextGenerators';
-import { getRecentTasks, getRecentProjects } from '@/utils/ai/dataHelpers';
+import { AdvancedContextEngine } from '@/utils/ai/AdvancedContextEngine';
+import { AIContext } from '@/types/ai-context-advanced';
 
-export const useAIContext = (config: AIContextConfig = {}) => {
+export const useAIContext = () => {
+  const [currentContext, setCurrentContext] = useState<AIContext | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  
+  // CORREGIDO: useRef para evitar regeneración constante
+  const contextEngineRef = useRef<AdvancedContextEngine | null>(null);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isRefreshingRef = useRef(false);
+  
   const { user } = useAuth();
-  const { mainTasks } = useTasks();
-  const { projects } = useProjects();
-  const { data: generalStats } = useGeneralStats();
-  const { data: productivityMetrics } = useProductivityMetrics('week');
-  const { data: workPatterns } = useWorkPatterns('week');
 
-  const finalConfig = { ...DEFAULT_AI_CONTEXT_CONFIG, ...config };
-  
-  const [contextCache, setContextCache] = useState<ExtendedAIContext | null>(null);
-  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
-  const [isUpdating, setIsUpdating] = useState(false);
+  // CORREGIDO: Inicializar ContextEngine solo una vez
+  useEffect(() => {
+    if (user?.id && !contextEngineRef.current) {
+      console.log('🔧 Inicializando AdvancedContextEngine...');
+      contextEngineRef.current = new AdvancedContextEngine();
+    }
+  }, [user?.id]); // Solo depende de user?.id
 
-  // Generar contexto completo
-  const generateFullContext = useCallback((): ExtendedAIContext => {
-    const baseContext: SmartPromptContext = {
-      userInfo: generateUserContext(user, generalStats),
-      currentSession: generateSessionContext(),
-      recentActivity: generateRecentActivity(mainTasks),
-    };
+  // CORREGIDO: refreshContext memoizado para evitar regeneración
+  const refreshContext = useCallback(async () => {
+    if (!user?.id || !contextEngineRef.current || isRefreshingRef.current) {
+      return;
+    }
 
-    return {
-      ...baseContext,
-      productivity: generateProductivityContext(
-        productivityMetrics, 
-        finalConfig.includeProductivityMetrics || false
-      ),
-      workPatterns: generateWorkPatternsContext(
-        workPatterns, 
-        finalConfig.includeWorkPatterns || false
-      ),
-      recentTasks: getRecentTasks(mainTasks, finalConfig.maxRecentTasks || 10),
-      recentProjects: getRecentProjects(projects, finalConfig.maxRecentProjects || 5),
-    };
-  }, [
-    user,
-    generalStats,
-    mainTasks,
-    productivityMetrics,
-    workPatterns,
-    projects,
-    finalConfig.includeProductivityMetrics,
-    finalConfig.includeWorkPatterns,
-    finalConfig.maxRecentTasks,
-    finalConfig.maxRecentProjects,
-  ]);
-
-  // Actualizar contexto
-  const updateContext = useCallback(async () => {
-    setIsUpdating(true);
+    // Evitar múltiples refreshes simultáneos
+    isRefreshingRef.current = true;
+    
     try {
-      const newContext = generateFullContext();
-      setContextCache(newContext);
-      setLastUpdateTime(new Date());
+      console.log('🔄 Refrescando contexto AI...');
+      setIsLoading(true);
+      
+      const newContext = await contextEngineRef.current.generateContext(user.id);
+      
+      setCurrentContext(newContext);
+      setLastRefresh(new Date());
+      
+      console.log('✅ Contexto AI actualizado:', {
+        userTasks: newContext.userInfo?.pendingTasks,
+        userProjects: newContext.userInfo?.hasActiveProjects,
+        contextQuality: newContext.contextQuality?.score
+      });
+      
     } catch (error) {
-      console.error('Error updating AI context:', error);
+      console.error('❌ Error refrescando contexto:', error);
     } finally {
-      setIsUpdating(false);
+      setIsLoading(false);
+      isRefreshingRef.current = false;
     }
-  }, [generateFullContext]);
+  }, [user?.id]); // Solo depende de user?.id
 
-  // Forzar actualización del contexto
-  const refreshContext = useCallback(() => {
-    updateContext();
-  }, [updateContext]);
-
-  // Verificar si el contexto necesita actualización
-  const needsUpdate = useMemo(() => {
-    if (!contextCache) return true;
-    
-    const timeSinceUpdate = new Date().getTime() - lastUpdateTime.getTime();
-    const updateInterval = finalConfig.contextRefreshInterval! * 1000;
-    
-    return timeSinceUpdate > updateInterval;
-  }, [contextCache, lastUpdateTime, finalConfig.contextRefreshInterval]);
-
-  // Obtener contexto optimizado (con cache)
-  const getOptimizedContext = useCallback((): ExtendedAIContext => {
-    if (needsUpdate || !contextCache) {
-      // Si necesita actualización, generar contexto fresco
-      return generateFullContext();
-    }
-    
-    // Usar contexto en cache pero actualizar información temporal
-    return {
-      ...contextCache,
-      currentSession: generateSessionContext(),
-    };
-  }, [needsUpdate, contextCache, generateFullContext]);
-
-  // Auto-actualización periódica
+  // CORREGIDO: Cargar contexto inicial solo una vez
   useEffect(() => {
-    if (!finalConfig.enableRealtimeUpdates) return;
+    if (user?.id && !currentContext && !isLoading && !isRefreshingRef.current) {
+      console.log('🚀 Cargando contexto inicial...');
+      refreshContext();
+    }
+  }, [user?.id, currentContext, isLoading, refreshContext]);
 
-    const interval = setInterval(() => {
-      if (needsUpdate) {
-        updateContext();
+  // CORREGIDO: Auto-refresh con cleanup adecuado
+  useEffect(() => {
+    if (!user?.id || !currentContext) return;
+
+    // Limpiar timeout previo
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+
+    // Auto-refresh cada 5 minutos
+    refreshTimeoutRef.current = setTimeout(() => {
+      console.log('⏰ Auto-refresh de contexto...');
+      refreshContext();
+    }, 5 * 60 * 1000);
+
+    // Cleanup al desmontar
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
       }
-    }, 30000); // Verificar cada 30 segundos
+    };
+  }, [user?.id, currentContext, refreshContext]);
 
-    return () => clearInterval(interval);
-  }, [finalConfig.enableRealtimeUpdates, needsUpdate, updateContext]);
-
-  // Actualización inicial
+  // CORREGIDO: Cleanup general al desmontar
   useEffect(() => {
-    updateContext();
-  }, [user?.id]); // Solo cuando cambie el usuario
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      isRefreshingRef.current = false;
+    };
+  }, []);
 
-  // Detectar cambios en datos relevantes
-  useEffect(() => {
-    if (finalConfig.enableRealtimeUpdates) {
-      updateContext();
-    }
-  }, [mainTasks.length, projects.length, generalStats, updateContext, finalConfig.enableRealtimeUpdates]);
-
-  // API para componentes externos
   return {
-    // Contexto actual
-    currentContext: getOptimizedContext(),
-    
-    // Estado de actualización
-    isUpdating,
-    lastUpdateTime,
-    
-    // Controles manuales
-    refreshContext,
-    
-    // Información de configuración
-    config: finalConfig,
-    
-    // Utilidades de contexto
-    getBaseContext: () => ({
-      userInfo: generateUserContext(user, generalStats),
-      currentSession: generateSessionContext(),
-      recentActivity: generateRecentActivity(mainTasks),
-    }),
-    
-    // Verificaciones de estado
-    hasActiveContext: !!contextCache,
-    needsUpdate,
-    
-    // Contexto simplificado para prompts básicos
-    getSimpleContext: (): SmartPromptContext => ({
-      userInfo: generateUserContext(user, generalStats),
-      currentSession: generateSessionContext(),
-      recentActivity: generateRecentActivity(mainTasks),
-    }),
+    currentContext,
+    isLoading,
+    lastRefresh,
+    refreshContext, // Esta función ahora está memoizada
+    contextAvailable: !!currentContext,
+    contextQuality: currentContext?.contextQuality?.score || 0,
   };
-};
-
-// Hook simplificado para casos básicos
-export const useSimpleAIContext = (): SmartPromptContext => {
-  const { getSimpleContext } = useAIContext({ 
-    enableRealtimeUpdates: false,
-    includeProductivityMetrics: false,
-    includeWorkPatterns: false,
-  });
-  
-  return getSimpleContext();
 };
