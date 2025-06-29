@@ -30,3 +30,6 @@ export type {
 } from '@/utils/ai/SmartRecommendationEngine';
 
 export { useAITesting } from './useAITesting';
+
+// NUEVO: Exportar tipos de contexto real
+export type { AIContext } from '@/types/ai-context-advanced';

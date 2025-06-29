@@ -58,6 +58,13 @@ const EnhancedAIAssistantPanel = () => {
           isLoading={isLoading}
           contextAvailable={contextAvailable}
         />
+        
+        {/* NUEVO: Indicador de datos reales */}
+        {contextAvailable && (
+          <div className="px-4 py-1 text-xs text-green-600 bg-green-50 border-t">
+            ✅ Utilizando datos reales de Supabase
+          </div>
+        )}
       </CardContent>
     </Card>
   );

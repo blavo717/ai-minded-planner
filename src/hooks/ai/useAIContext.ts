@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { AdvancedContextEngine } from '@/utils/ai/AdvancedContextEngine';
+import { useContextualData } from './useContextualData';
 import { AIContext } from '@/types/ai-context-advanced';
 
 export const useAIContext = () => {
@@ -10,23 +10,31 @@ export const useAIContext = () => {
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   
   // CORREGIDO: useRef para evitar regeneración constante
-  const contextEngineRef = useRef<AdvancedContextEngine | null>(null);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isRefreshingRef = useRef(false);
   
   const { user } = useAuth();
 
-  // CORREGIDO: Inicializar ContextEngine solo una vez
-  useEffect(() => {
-    if (user?.id && !contextEngineRef.current) {
-      console.log('🔧 Inicializando AdvancedContextEngine...');
-      contextEngineRef.current = new AdvancedContextEngine();
-    }
-  }, [user?.id]); // Solo depende de user?.id
+  // NUEVO: Usar useContextualData para obtener datos reales de Supabase
+  const {
+    context: realContext,
+    analysis,
+    isLoading: isContextLoading,
+    lastUpdate,
+    dataQuality,
+    recommendations,
+    updateContextualData,
+    hasHighQualityData,
+  } = useContextualData({
+    enableAnalysis: true,
+    refreshInterval: 60000, // 1 minuto
+    priorityThreshold: 50,
+    maxDataPoints: 50,
+  });
 
-  // CORREGIDO: refreshContext memoizado para evitar regeneración
+  // CORREGIDO: refreshContext memoizado que usa datos reales
   const refreshContext = useCallback(async () => {
-    if (!user?.id || !contextEngineRef.current || isRefreshingRef.current) {
+    if (!user?.id || isRefreshingRef.current) {
       return;
     }
 
@@ -34,36 +42,11 @@ export const useAIContext = () => {
     isRefreshingRef.current = true;
     
     try {
-      console.log('🔄 Refrescando contexto AI...');
+      console.log('🔄 Refrescando contexto AI con datos reales...');
       setIsLoading(true);
       
-      // CORREGIDO: Generar contexto simple sin parámetros complejos
-      const simpleContext: AIContext = {
-        userInfo: {
-          pendingTasks: Math.floor(Math.random() * 10) + 1,
-          hasActiveProjects: true,
-          currentFocusArea: 'productivity'
-        },
-        currentSession: {
-          timeOfDay: new Date().getHours() < 12 ? 'morning' : 'afternoon',
-          workingHours: true,
-          productivity: 0.8
-        },
-        contextQuality: {
-          score: 0.85,
-          completeness: 0.9,
-          freshness: 0.8
-        }
-      };
-      
-      setCurrentContext(simpleContext);
-      setLastRefresh(new Date());
-      
-      console.log('✅ Contexto AI actualizado:', {
-        userTasks: simpleContext.userInfo?.pendingTasks,
-        userProjects: simpleContext.userInfo?.hasActiveProjects,
-        contextQuality: simpleContext.contextQuality?.score
-      });
+      // Actualizar datos contextuales reales
+      await updateContextualData();
       
     } catch (error) {
       console.error('❌ Error refrescando contexto:', error);
@@ -71,15 +54,60 @@ export const useAIContext = () => {
       setIsLoading(false);
       isRefreshingRef.current = false;
     }
-  }, [user?.id]); // Solo depende de user?.id
+  }, [user?.id, updateContextualData]);
 
-  // CORREGIDO: Cargar contexto inicial solo una vez
+  // NUEVO: Mapear el contexto real al formato AIContext
   useEffect(() => {
-    if (user?.id && !currentContext && !isLoading && !isRefreshingRef.current) {
-      console.log('🚀 Cargando contexto inicial...');
-      refreshContext();
+    if (realContext && !isContextLoading) {
+      const mappedContext: AIContext = {
+        userInfo: {
+          pendingTasks: realContext.userInfo?.pendingTasks || 0,
+          hasActiveProjects: realContext.userInfo?.hasActiveProjects || false,
+          currentFocusArea: realContext.userInfo?.currentFocusArea || 'productivity'
+        },
+        currentSession: {
+          timeOfDay: realContext.currentSession?.timeOfDay || 'morning',
+          workingHours: realContext.currentSession?.isWeekend === false,
+          productivity: realContext.productivity?.completionRate || 0
+        },
+        contextQuality: {
+          score: dataQuality / 100,
+          completeness: hasHighQualityData ? 0.9 : 0.5,
+          freshness: lastUpdate ? 0.8 : 0.3
+        },
+        insights: analysis?.insights || [],
+        suggestions: recommendations.map(rec => ({
+          id: `suggestion-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          type: 'task' as const,
+          title: rec,
+          description: rec,
+          priority: 50,
+          estimatedTime: 15,
+          benefits: []
+        })) || [],
+        trends: analysis?.trends || [],
+        metrics: {
+          contextProcessingTime: 0,
+          analysisAccuracy: dataQuality / 100,
+          recommendationRelevance: hasHighQualityData ? 0.8 : 0.5,
+          cacheEfficiency: 0.75
+        }
+      };
+
+      setCurrentContext(mappedContext);
+      setLastRefresh(new Date());
+
+      console.log('✅ Contexto AI actualizado con datos REALES:', {
+        userTasks: mappedContext.userInfo?.pendingTasks,
+        userProjects: mappedContext.userInfo?.hasActiveProjects,
+        contextQuality: mappedContext.contextQuality?.score,
+        dataSource: 'SUPABASE_REAL_DATA',
+        hasRealTasks: realContext.recentTasks?.length > 0,
+        hasRealProjects: realContext.recentProjects?.length > 0,
+        totalRecommendations: recommendations.length
+      });
     }
-  }, [user?.id, currentContext, isLoading, refreshContext]);
+  }, [realContext, isContextLoading, dataQuality, hasHighQualityData, lastUpdate, recommendations, analysis]);
 
   // CORREGIDO: Auto-refresh con cleanup adecuado
   useEffect(() => {
@@ -92,7 +120,7 @@ export const useAIContext = () => {
 
     // Auto-refresh cada 5 minutos
     refreshTimeoutRef.current = setTimeout(() => {
-      console.log('⏰ Auto-refresh de contexto...');
+      console.log('⏰ Auto-refresh de contexto con datos reales...');
       refreshContext();
     }, 5 * 60 * 1000);
 
@@ -117,10 +145,15 @@ export const useAIContext = () => {
 
   return {
     currentContext,
-    isLoading,
-    lastRefresh,
-    refreshContext, // Esta función ahora está memoizada
-    contextAvailable: !!currentContext,
+    isLoading: isLoading || isContextLoading,
+    lastRefresh: lastRefresh || lastUpdate,
+    refreshContext,
+    contextAvailable: !!currentContext && hasHighQualityData,
     contextQuality: currentContext?.contextQuality?.score || 0,
+    
+    // NUEVO: Información adicional sobre la calidad de datos reales
+    dataSource: 'SUPABASE',
+    hasRealData: hasHighQualityData,
+    realDataQuality: dataQuality,
   };
 };
