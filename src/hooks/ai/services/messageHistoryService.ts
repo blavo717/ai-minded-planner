@@ -1,61 +1,148 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { EnhancedMessage } from '../types/enhancedAITypes';
+import { messageProcessingService } from './messageProcessingService';
+
+// NUEVO: Cache local con TTL
+interface CacheEntry {
+  data: EnhancedMessage[];
+  timestamp: number;
+  userId: string;
+}
+
+class MessageHistoryCache {
+  private cache = new Map<string, CacheEntry>();
+  private TTL = 5 * 60 * 1000; // 5 minutos TTL
+
+  get(userId: string): EnhancedMessage[] | null {
+    const entry = this.cache.get(userId);
+    if (!entry) return null;
+
+    const isExpired = (Date.now() - entry.timestamp) > this.TTL;
+    if (isExpired) {
+      console.log('🕒 Cache expirado, eliminando entrada');
+      this.cache.delete(userId);
+      return null;
+    }
+
+    console.log('✅ Cache hit - datos desde cache local');
+    return entry.data;
+  }
+
+  set(userId: string, data: EnhancedMessage[]): void {
+    this.cache.set(userId, {
+      data: [...data], // Crear copia para evitar mutaciones
+      timestamp: Date.now(),
+      userId
+    });
+    console.log(`💾 Cache actualizado para usuario ${userId} - ${data.length} mensajes`);
+  }
+
+  clear(userId?: string): void {
+    if (userId) {
+      this.cache.delete(userId);
+      console.log(`🧹 Cache limpiado para usuario ${userId}`);
+    } else {
+      this.cache.clear();
+      console.log('🧹 Cache completamente limpiado');
+    }
+  }
+
+  // Limpiar entradas expiradas automáticamente
+  cleanup(): void {
+    const now = Date.now();
+    let cleaned = 0;
+    
+    for (const [userId, entry] of this.cache.entries()) {
+      if ((now - entry.timestamp) > this.TTL) {
+        this.cache.delete(userId);
+        cleaned++;
+      }
+    }
+    
+    if (cleaned > 0) {
+      console.log(`🧹 Limpiadas ${cleaned} entradas de cache expiradas`);
+    }
+  }
+}
+
+// Instancia global del cache
+const historyCache = new MessageHistoryCache();
+
+// Limpiar cache cada 10 minutos
+setInterval(() => historyCache.cleanup(), 10 * 60 * 1000);
 
 export const messageHistoryService = {
   async loadConversationHistory(userId: string): Promise<EnhancedMessage[]> {
     try {
-      console.log('📚 Cargando historial de conversación...');
+      console.log('📚 Intentando cargar historial de conversación...');
       
-      // Primero limpiar duplicados
-      const { error: cleanError } = await supabase.rpc('clean_duplicate_ai_messages');
-      if (cleanError) {
-        console.warn('Advertencia al limpiar duplicados:', cleanError);
+      // NUEVO: Verificar cache primero
+      const cachedData = historyCache.get(userId);
+      if (cachedData) {
+        return cachedData;
       }
 
+      console.log('🔄 Cache miss - cargando desde base de datos...');
+      
+      // Limpiar duplicados antes de cargar
+      const { error: cleanError } = await supabase.rpc('clean_duplicate_ai_messages');
+      if (cleanError) {
+        console.warn('⚠️ Advertencia al limpiar duplicados:', cleanError);
+      }
+
+      // CORREGIDO: Query optimizada con paginación
       const { data: chatMessages, error } = await supabase
         .from('ai_chat_messages')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: true })
-        .limit(10); // Limitar a los últimos 10 mensajes
+        .limit(50); // Aumentado a 50 para mejor contexto
 
       if (error) {
-        console.error('Error loading chat history:', error);
+        console.error('❌ Error loading chat history:', error);
         return [];
       }
 
-      if (chatMessages && chatMessages.length > 0) {
-        const loadedMessages: EnhancedMessage[] = chatMessages.map(msg => ({
-          id: msg.id,
-          type: msg.type as 'user' | 'assistant' | 'system',
-          content: msg.content,
-          timestamp: new Date(msg.created_at),
-          metadata: typeof msg.context_data === 'object' ? msg.context_data as any : {}
-        }));
-
-        // Filtrar duplicados adicionales por contenido y tipo
-        const uniqueMessages = loadedMessages.filter((message, index, array) => {
-          return !array.slice(0, index).some(prevMsg => 
-            prevMsg.content === message.content && 
-            prevMsg.type === message.type &&
-            Math.abs(prevMsg.timestamp.getTime() - message.timestamp.getTime()) < 1000 // menos de 1 segundo de diferencia
-          );
-        });
-
-        console.log(`✅ Historial cargado: ${uniqueMessages.length} mensajes únicos`);
-        return uniqueMessages;
+      if (!chatMessages || chatMessages.length === 0) {
+        console.log('📝 No hay historial previo');
+        historyCache.set(userId, []); // Cachear resultado vacío
+        return [];
       }
+
+      // Convertir datos de BD a formato interno
+      const loadedMessages: EnhancedMessage[] = chatMessages.map(msg => ({
+        id: msg.id,
+        type: msg.type as 'user' | 'assistant' | 'system',
+        content: msg.content,
+        timestamp: new Date(msg.created_at),
+        metadata: typeof msg.context_data === 'object' ? msg.context_data as any : {}
+      }));
+
+      // CORREGIDO: Procesar con algoritmo mejorado
+      const cleanedMessages = messageProcessingService.cleanInvalidMessages(loadedMessages);
+      const uniqueMessages = messageProcessingService.removeDuplicateMessages(cleanedMessages);
+
+      // Guardar en cache
+      historyCache.set(userId, uniqueMessages);
+
+      console.log(`✅ Historial cargado: ${uniqueMessages.length} mensajes únicos desde BD`);
+      return uniqueMessages;
       
-      return [];
     } catch (error) {
-      console.error('Error loading conversation history:', error);
+      console.error('❌ Error loading conversation history:', error);
       return [];
     }
   },
 
   async saveMessageToHistory(message: EnhancedMessage, userId: string): Promise<void> {
     try {
+      // Validar mensaje antes de guardar
+      if (!messageProcessingService.validateMessage(message)) {
+        console.error('❌ Mensaje inválido, no se guardará:', message);
+        return;
+      }
+
       const { error } = await supabase
         .from('ai_chat_messages')
         .insert({
@@ -67,10 +154,30 @@ export const messageHistoryService = {
         });
 
       if (error) {
-        console.error('Error saving message:', error);
+        console.error('❌ Error saving message:', error);
+      } else {
+        console.log(`💾 Mensaje guardado: ${message.type} - ${message.content.substring(0, 50)}...`);
+        
+        // NUEVO: Invalidar cache para forzar recarga
+        historyCache.clear(userId);
       }
     } catch (error) {
-      console.error('Error saving message to history:', error);
+      console.error('❌ Error saving message to history:', error);
     }
+  },
+
+  // NUEVO: Función para limpiar cache manualmente
+  clearCache(userId?: string): void {
+    historyCache.clear(userId);
+  },
+
+  // NUEVO: Función para obtener estadísticas del cache
+  getCacheStats(): { size: number, users: string[] } {
+    const stats = {
+      size: historyCache['cache'].size,
+      users: Array.from(historyCache['cache'].keys())
+    };
+    console.log('📊 Cache stats:', stats);
+    return stats;
   }
 };
