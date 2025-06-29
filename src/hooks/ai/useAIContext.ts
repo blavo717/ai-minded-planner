@@ -63,7 +63,8 @@ export const useAIContext = () => {
         userInfo: {
           pendingTasks: realContext.userInfo?.pendingTasks || 0,
           hasActiveProjects: realContext.userInfo?.hasActiveProjects || false,
-          currentFocusArea: realContext.userInfo?.currentFocusArea || 'productivity'
+          // CORREGIDO: Mapear currentFocusArea desde los datos disponibles
+          currentFocusArea: realContext.userInfo?.hasActiveTasks ? 'productivity' : 'planning'
         },
         currentSession: {
           timeOfDay: realContext.currentSession?.timeOfDay || 'morning',
@@ -75,7 +76,15 @@ export const useAIContext = () => {
           completeness: hasHighQualityData ? 0.9 : 0.5,
           freshness: lastUpdate ? 0.8 : 0.3
         },
-        insights: analysis?.insights || [],
+        // CORREGIDO: Generar insights basados en el análisis disponible
+        insights: analysis ? [{
+          type: 'opportunity' as const,
+          title: 'Análisis de Productividad',
+          description: `Calidad de datos: ${dataQuality}%. ${hasHighQualityData ? 'Datos suficientes para análisis avanzado.' : 'Se necesitan más datos para análisis completo.'}`,
+          confidence: dataQuality / 100,
+          actionRequired: !hasHighQualityData,
+          suggestedActions: recommendations.slice(0, 3)
+        }] : [],
         suggestions: recommendations.map(rec => ({
           id: `suggestion-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
           type: 'task' as const,
@@ -85,7 +94,14 @@ export const useAIContext = () => {
           estimatedTime: 15,
           benefits: []
         })) || [],
-        trends: analysis?.trends || [],
+        // CORREGIDO: Generar trends basados en datos de productividad
+        trends: realContext.productivity ? [{
+          metric: 'Tasa de Completación',
+          direction: realContext.productivity.completionRate > 70 ? 'up' as const : 'down' as const,
+          change: realContext.productivity.completionRate,
+          period: 'semana',
+          significance: realContext.productivity.completionRate > 70 ? 'high' as const : 'medium' as const
+        }] : [],
         metrics: {
           contextProcessingTime: 0,
           analysisAccuracy: dataQuality / 100,
