@@ -31,6 +31,19 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
     removeFromExpansion
   } = useSubtaskExpansion();
 
+  // Debug: Log subtasks and microtasks info
+  console.log('🔍 SubtaskList Debug:', {
+    parentTaskId: parentTask.id,
+    parentTitle: parentTask.title,
+    subtasksCount: subtasks.length,
+    subtasks: subtasks.map(s => ({
+      id: s.id,
+      title: s.title,
+      task_level: s.task_level,
+      parent_task_id: s.parent_task_id
+    }))
+  });
+
   const handleCreateSubtask = (data: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; estimated_duration?: number }) => {
     if (data.title && data.title.trim()) {
       onCreateSubtask(data.title.trim());
@@ -51,6 +64,8 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
   };
 
   const handleCreateMicrotask = (subtaskId: string, data: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; estimated_duration?: number }) => {
+    console.log('🔧 Creating microtask:', { subtaskId, data });
+    
     if (data.title && data.title.trim()) {
       createMicrotask(subtaskId, data.title.trim(), data.description);
       toast({
@@ -122,6 +137,18 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
             const microtasks = getMicrotasksForSubtask(subtask.id);
             const isExpanded = isSubtaskExpanded(subtask.id);
             
+            // Debug: Log microtasks for each subtask
+            console.log(`🔍 Microtasks for subtask ${subtask.id} (${subtask.title}):`, {
+              microtasksCount: microtasks.length,
+              microtasks: microtasks.map(m => ({
+                id: m.id,
+                title: m.title,
+                task_level: m.task_level,
+                parent_task_id: m.parent_task_id
+              })),
+              isExpanded
+            });
+            
             return (
               <CompactSubtaskItem
                 key={subtask.id}
@@ -132,6 +159,13 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
                 onUpdateTask={updateTask}
                 onDeleteTask={handleDeleteSubtask}
               >
+                {/* Debug indicator */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="text-xs text-gray-400 px-2">
+                    🔍 DEBUG: {microtasks.length} microtareas, expandida: {isExpanded ? 'Sí' : 'No'}
+                  </div>
+                )}
+                
                 <MicrotaskList
                   microtasks={microtasks}
                   isExpanded={isExpanded}

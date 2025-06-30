@@ -14,7 +14,8 @@ import {
   Edit,
   X,
   Check,
-  Timer
+  Timer,
+  Plus
 } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 
@@ -168,33 +169,44 @@ const CompactSubtaskItem = ({
             {getStatusText(subtask.status)}
           </Badge>
           
-          {microtasks.length > 0 && (
-            <>
+          {/* Mejorar indicador de microtareas */}
+          {microtasks.length > 0 ? (
+            <div className="flex items-center gap-1">
               <Badge variant="outline" className="text-xs h-4 px-1 bg-purple-100 text-purple-800 border-purple-300">
-                {completedMicrotasks}/{microtasks.length}
+                {completedMicrotasks}/{microtasks.length} µ
               </Badge>
               
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={onToggleExpanded}
-                className="h-5 w-5 p-0"
+                className="h-5 w-5 p-0 text-purple-600 hover:text-purple-700"
                 title={isExpanded ? "Ocultar microtareas" : "Ver microtareas"}
               >
                 {isExpanded ? (
-                  <ChevronDown className="h-2 w-2" />
+                  <ChevronDown className="h-3 w-3" />
                 ) : (
-                  <ChevronRight className="h-2 w-2" />
+                  <ChevronRight className="h-3 w-3" />
                 )}
               </Button>
-            </>
+            </div>
+          ) : (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onToggleExpanded}
+              className="h-5 w-5 p-0 text-purple-400 hover:text-purple-600"
+              title="Añadir microtareas"
+            >
+              <Plus className="h-2 w-2" />
+            </Button>
           )}
           
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsEditing(true)}
-            className="h-5 w-5 p-0 opacity-60 hover:opacity-100"
+            className="h-5 w-5 p-0 opacity-60 hover:opacity-100 text-blue-600"
             title="Editar"
           >
             <Edit className="h-2 w-2" />

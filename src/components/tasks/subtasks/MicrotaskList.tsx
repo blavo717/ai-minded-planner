@@ -38,16 +38,34 @@ const MicrotaskList = ({
   const [sortBy, setSortBy] = useState<'priority' | 'created' | 'duration'>('priority');
   const [showCompleted, setShowCompleted] = useState(true);
 
+  // Debug: Log microtasks data
+  console.log('🔍 MicrotaskList Debug:', {
+    isExpanded,
+    microtasksCount: microtasks.length,
+    parentTaskId: parentTask?.id,
+    parentTaskTitle: parentTask?.title,
+    microtasks: microtasks.map(m => ({
+      id: m.id,
+      title: m.title,
+      task_level: m.task_level,
+      parent_task_id: m.parent_task_id,
+      status: m.status
+    }))
+  });
+
   const handleCreateMicrotask = (data: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; estimated_duration?: number }) => {
+    console.log('🔧 MicrotaskList handleCreateMicrotask:', data);
     onCreateMicrotask(data);
     setIsCreateModalOpen(false);
   };
 
   const handleCreateMicrotaskSimple = (title: string) => {
+    console.log('🔧 MicrotaskList handleCreateMicrotaskSimple:', title);
     onCreateMicrotask({ title });
   };
 
   const handleDeleteMicrotask = async (taskId: string) => {
+    console.log('🗑️ MicrotaskList handleDeleteMicrotask:', taskId);
     await onDeleteTask(taskId);
   };
 
@@ -59,7 +77,10 @@ const MicrotaskList = ({
     }
   };
 
-  if (!isExpanded) return null;
+  if (!isExpanded) {
+    console.log('🔍 MicrotaskList not expanded, returning null');
+    return null;
+  }
 
   const filteredMicrotasks = microtasks
     .filter(task => {
@@ -85,9 +106,15 @@ const MicrotaskList = ({
   const completedCount = microtasks.filter(t => t.status === 'completed').length;
   const totalCount = microtasks.length;
 
+  console.log('🔍 MicrotaskList rendering:', { 
+    totalCount, 
+    filteredCount: filteredMicrotasks.length,
+    isExpanded 
+  });
+
   return (
     <div className="mt-1 ml-3 pl-2 border-l border-purple-200 space-y-1">
-      {/* Header ultra-compacto de Microtareas */}
+      {/* Header ultra-compacto de Microtareas - Siempre visible cuando expandido */}
       <div className="bg-purple-50 rounded-sm px-2 py-1 border border-purple-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
@@ -95,24 +122,30 @@ const MicrotaskList = ({
             <h6 className="text-xs font-medium text-purple-800">
               Microtareas
             </h6>
-            {totalCount > 0 && (
-              <Badge variant="outline" className="text-xs h-3 px-1">
-                {completedCount}/{totalCount}
-              </Badge>
+            <Badge variant="outline" className="text-xs h-3 px-1">
+              {completedCount}/{totalCount}
+            </Badge>
+            {/* Debug info en desarrollo */}
+            {process.env.NODE_ENV === 'development' && (
+              <span className="text-xs text-purple-600">
+                🔍 {microtasks.length} encontradas
+              </span>
             )}
           </div>
           
-          {totalCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleAISuggestions}
-              className="h-4 px-1 text-xs text-purple-700 hover:bg-purple-100"
-            >
-              <Sparkles className="h-2 w-2 mr-1" />
-              IA
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {totalCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleAISuggestions}
+                className="h-4 px-1 text-xs text-purple-700 hover:bg-purple-100"
+              >
+                <Sparkles className="h-2 w-2 mr-1" />
+                IA
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -167,7 +200,7 @@ const MicrotaskList = ({
         </div>
       )}
 
-      {/* Mensaje cuando no hay resultados */}
+      {/* Mensaje cuando no hay resultados de búsqueda */}
       {totalCount > 0 && filteredMicrotasks.length === 0 && (
         <div className="bg-gray-50 rounded-sm p-1 text-center">
           <p className="text-xs text-gray-500">
@@ -176,7 +209,19 @@ const MicrotaskList = ({
         </div>
       )}
 
-      {/* Creador inline ultra-compacto */}
+      {/* Mensaje cuando no hay microtareas */}
+      {totalCount === 0 && (
+        <div className="bg-purple-50 rounded-sm p-2 text-center border border-dashed border-purple-300">
+          <p className="text-xs text-purple-600 mb-1">
+            No hay microtareas aún
+          </p>
+          <p className="text-xs text-purple-500">
+            Las microtareas te ayudan a dividir las subtareas en pasos más pequeños
+          </p>
+        </div>
+      )}
+
+      {/* Creador inline ultra-compacto - Siempre visible */}
       <div className="bg-gray-50 rounded-sm border border-dashed border-gray-300">
         <InlineTaskCreator
           placeholder="Añadir microtarea..."
