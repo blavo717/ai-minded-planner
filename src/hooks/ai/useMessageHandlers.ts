@@ -110,10 +110,11 @@ export const useMessageHandlers = ({
         
         const startTime = Date.now();
 
-        // Enviar mensaje al LLM con contexto usando el parámetro correcto
+        // Enviar mensaje al LLM con contexto usando los parámetros correctos
         const llmResponse = await makeLLMRequest({
-          message: content,
-          context: currentContext || undefined,
+          systemPrompt: currentContext || 'Eres un asistente de IA útil.',
+          userPrompt: content,
+          functionName: 'enhanced-ai-assistant',
         });
         
         const responseTime = Date.now() - startTime;
