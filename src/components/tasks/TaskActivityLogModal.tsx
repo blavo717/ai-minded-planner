@@ -37,6 +37,7 @@ const TaskActivityLogModal: React.FC<TaskActivityLogModalProps> = ({
   const { logs, isLoading } = useTaskLogs(taskId);
   const { createLog, isCreatingLog } = useTaskLogMutations();
 
+  // ✅ CORRECCIÓN: Manejar evento correctamente sin doble click
   const handleAddLog = async (logData: { type: string; description: string }) => {
     try {
       await createLog({
@@ -46,9 +47,11 @@ const TaskActivityLogModal: React.FC<TaskActivityLogModalProps> = ({
         content: logData.description,
         metadata: { type: logData.type }
       });
+      // ✅ Solo cerrar DESPUÉS de éxito
       setShowAddForm(false);
     } catch (error) {
       console.error('Error al añadir log:', error);
+      // No cerrar formulario si hay error
     }
   };
 
@@ -162,7 +165,7 @@ const TaskActivityLogModal: React.FC<TaskActivityLogModalProps> = ({
   );
 };
 
-// Componente para cada entrada de log
+// ✅ CORRECCIÓN: LogEntry mejorado con UX directa
 interface LogEntryProps {
   log: TaskLog;
   isLast: boolean;
@@ -197,21 +200,21 @@ const LogEntry: React.FC<LogEntryProps> = ({ log, isLast }) => {
     }
   };
 
-  const getLogTypeLabel = () => {
+  const getLogTypeIcon = () => {
     const metadata = log.metadata as Record<string, any> || {};
     const type = metadata.type || log.log_type;
     
-    const labels: Record<string, string> = {
-      'progreso': '📈 Progreso',
-      'bloqueo': '🚫 Bloqueo', 
-      'nota': '📝 Nota',
-      'milestone': '🎯 Milestone',
-      'status_change': '🔄 Estado',
-      'creation': '✨ Creación',
-      'completion': '✅ Completado',
-      'manual': '💬 Manual'
+    const icons: Record<string, string> = {
+      'progreso': '📈',
+      'bloqueo': '🚫', 
+      'nota': '📝',
+      'milestone': '🎯',
+      'status_change': '🔄',
+      'creation': '✨',
+      'completion': '✅',
+      'manual': '💬'
     };
-    return labels[type] || '📝 Log';
+    return icons[type] || '📝';
   };
 
   const getBorderColor = () => {
@@ -237,22 +240,24 @@ const LogEntry: React.FC<LogEntryProps> = ({ log, isLast }) => {
       {/* Contenido */}
       <div className={`flex-1 border-l-4 ${getBorderColor()} pl-4 pb-2`}>
         <div className="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
-              {getLogTypeLabel()}
-            </span>
-            <span className="text-xs text-gray-400">
-              {new Date(log.created_at).toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
-            </span>
-          </div>
+          {/* ✅ DESCRIPCIÓN COMO TÍTULO PRINCIPAL */}
+          <p className="font-medium text-gray-900 mb-1">
+            {getLogTypeIcon()} {log.content || log.title}
+          </p>
           
-          <h5 className="font-medium text-gray-900 mb-1">{log.title}</h5>
-          {log.content && (
-            <p className="text-sm text-gray-700 leading-relaxed">{log.content}</p>
-          )}
+          {/* ✅ METADATA COMO SUBTÍTULO */}
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <span>{new Date(log.created_at).toLocaleString('es-ES', { 
+              weekday: 'short',
+              day: '2-digit', 
+              month: '2-digit',
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}</span>
+            {log.log_type === 'status_change' && log.metadata && (
+              <span>• Estado: {(log.metadata as any).from} → {(log.metadata as any).to}</span>
+            )}
+          </div>
         </div>
       </div>
     </div>

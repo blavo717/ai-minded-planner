@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useMemo } from 'react';
 
 export interface Task {
   id: string;
@@ -69,6 +70,7 @@ export interface UpdateTaskData {
 export const useTasks = () => {
   const { user } = useAuth();
 
+  // ✅ OPTIMIZACIÓN: Reducir refetch automático
   const { data: tasks = [], isLoading: tasksLoading, error: tasksError } = useQuery({
     queryKey: ['tasks', user?.id],
     queryFn: async () => {
@@ -85,6 +87,8 @@ export const useTasks = () => {
       return data as Task[];
     },
     enabled: !!user,
+    staleTime: 30000, // ✅ Reducir refetch automático
+    refetchOnWindowFocus: false, // ✅ No refetch al cambiar ventana
   });
 
   const { data: archivedTasks = [], isLoading: archivedLoading } = useQuery({
@@ -103,62 +107,85 @@ export const useTasks = () => {
       return data as Task[];
     },
     enabled: !!user,
+    staleTime: 60000, // ✅ Archived tasks change less frequently
   });
 
-  // Separar por niveles de jerarquía (solo tareas activas)
-  const mainTasks = tasks.filter(task => task.task_level === 1);
-  const subtasks = tasks.filter(task => task.task_level === 2);
-  const microtasks = tasks.filter(task => task.task_level === 3);
-
-  const getSubtasksForTask = (taskId: string) => {
-    const result = tasks.filter(task => task.parent_task_id === taskId);
-    console.log('getSubtasksForTask called:', {
-      taskId,
-      allTasks: tasks.length,
-      filteredTasks: result.length,
-      result: result.map(t => ({ id: t.id, title: t.title, task_level: t.task_level, parent_task_id: t.parent_task_id }))
-    });
-    return result;
-  };
-
-  const getMicrotasksForSubtask = (subtaskId: string) => {
-    return microtasks.filter(microtask => microtask.parent_task_id === subtaskId);
-  };
-
-  const getTasksByLevel = (level: 1 | 2 | 3) => {
-    return tasks.filter(task => task.task_level === level);
-  };
-
-  const getTasksNeedingFollowup = () => {
-    return tasks.filter(task => task.needs_followup === true);
-  };
-
-  const getTasksWithoutRecentActivity = (daysSince: number = 7) => {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysSince);
+  // ✅ OPTIMIZACIÓN: Memoizar separación por niveles
+  const { mainTasks, subtasks, microtasks } = useMemo(() => {
+    const main = tasks.filter(task => task.task_level === 1);
+    const sub = tasks.filter(task => task.task_level === 2);
+    const micro = tasks.filter(task => task.task_level === 3);
     
-    return tasks.filter(task => {
-      const lastActivity = task.last_worked_at || task.last_communication_at;
-      if (!lastActivity) return true;
-      return new Date(lastActivity) < cutoffDate;
-    });
-  };
-
-  const getTaskHierarchy = (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return null;
-
-    const subtasks = getSubtasksForTask(taskId);
-    const taskWithSubtasks = subtasks.map(subtask => ({
-      ...subtask,
-      microtasks: getMicrotasksForSubtask(subtask.id)
-    }));
-
     return {
-      ...task,
-      subtasks: taskWithSubtasks
+      mainTasks: main,
+      subtasks: sub,
+      microtasks: micro
     };
-  };
+  }, [tasks]);
+
+  // ✅ OPTIMIZACIÓN: Memoizar getSubtasksForTask
+  const getSubtasksForTask = useMemo(() => {
+    return (taskId: string) => {
+      const result = tasks.filter(task => task.parent_task_id === taskId);
+      console.log('getSubtasksForTask called:', {
+        taskId,
+        allTasks: tasks.length,
+        filteredTasks: result.length,
+        result: result.map(t => ({ id: t.id, title: t.title, task_level: t.task_level, parent_task_id: t.parent_task_id }))
+      });
+      return result;
+    };
+  }, [tasks]);
+
+  // ✅ OPTIMIZACIÓN: Memoizar getMicrotasksForSubtask
+  const getMicrotasksForSubtask = useMemo(() => {
+    return (subtaskId: string) => {
+      return microtasks.filter(microtask => microtask.parent_task_id === subtaskId);
+    };
+  }, [microtasks]);
+
+  const getTasksByLevel = useMemo(() => {
+    return (level: 1 | 2 | 3) => {
+      return tasks.filter(task => task.task_level === level);
+    };
+  }, [tasks]);
+
+  const getTasksNeedingFollowup = useMemo(() => {
+    return () => {
+      return tasks.filter(task => task.needs_followup === true);
+    };
+  }, [tasks]);
+
+  const getTasksWithoutRecentActivity = useMemo(() => {
+    return (daysSince: number = 7) => {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysSince);
+      
+      return tasks.filter(task => {
+        const lastActivity = task.last_worked_at || task.last_communication_at;
+        if (!lastActivity) return true;
+        return new Date(lastActivity) < cutoffDate;
+      });
+    };
+  }, [tasks]);
+
+  const getTaskHierarchy = useMemo(() => {
+    return (taskId: string) => {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return null;
+
+      const subtasks = getSubtasksForTask(taskId);
+      const taskWithSubtasks = subtasks.map(subtask => ({
+        ...subtask,
+        microtasks: getMicrotasksForSubtask(subtask.id)
+      }));
+
+      return {
+        ...task,
+        subtasks: taskWithSubtasks
+      };
+    };
+  }, [tasks, getSubtasksForTask, getMicrotasksForSubtask]);
 
   return {
     tasks,

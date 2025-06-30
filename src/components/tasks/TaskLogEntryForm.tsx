@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 
 interface TaskLogEntryFormProps {
   taskId: string;
@@ -50,11 +51,14 @@ const TaskLogEntryForm: React.FC<TaskLogEntryFormProps> = ({
 
   const currentType = logTypes.find(t => t.value === type);
 
+  // ✅ CORRECCIÓN: Evitar doble click con stopPropagation y disabled
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (description.trim()) {
+    e.stopPropagation(); // ✅ Evitar event bubbling
+    
+    if (description.trim() && !isSubmitting) {
       onSubmit({ type, description: description.trim() });
-      setDescription('');
+      setDescription(''); // ✅ Limpiar después de enviar
     }
   };
 
@@ -96,7 +100,7 @@ const TaskLogEntryForm: React.FC<TaskLogEntryFormProps> = ({
           <label className="text-sm font-medium mb-2 block text-gray-700">
             Tipo de entrada
           </label>
-          <Select value={type} onValueChange={setType}>
+          <Select value={type} onValueChange={setType} disabled={isSubmitting}>
             <SelectTrigger className="bg-white">
               <SelectValue />
             </SelectTrigger>
@@ -120,11 +124,12 @@ const TaskLogEntryForm: React.FC<TaskLogEntryFormProps> = ({
             placeholder={currentType?.placeholder || 'Describe la actividad...'}
             rows={3}
             className="bg-white resize-none"
+            disabled={isSubmitting}
           />
         </div>
 
         {/* Templates rápidos */}
-        {getQuickTemplates().length > 0 && (
+        {getQuickTemplates().length > 0 && !isSubmitting && (
           <div>
             <label className="text-xs font-medium mb-1 block text-gray-600">
               Templates rápidos:
@@ -138,6 +143,7 @@ const TaskLogEntryForm: React.FC<TaskLogEntryFormProps> = ({
                   size="sm"
                   className="text-xs h-6 px-2"
                   onClick={() => setDescription(template)}
+                  disabled={isSubmitting}
                 >
                   {template}
                 </Button>
@@ -161,7 +167,15 @@ const TaskLogEntryForm: React.FC<TaskLogEntryFormProps> = ({
             disabled={!description.trim() || isSubmitting}
             size="sm"
           >
-            {isSubmitting ? 'Añadiendo...' : 'Añadir Entrada'}
+            {/* ✅ LOADING STATE VISUAL */}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                Añadiendo...
+              </>
+            ) : (
+              'Añadir Entrada'
+            )}
           </Button>
         </div>
       </form>
