@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,6 +33,7 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
+// Esquema corregido para manejar valores nulos correctamente
 const projectSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   description: z.string().optional(),
@@ -43,9 +43,15 @@ const projectSchema = z.object({
   deadline: z.string().optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
   progress: z.number().min(0).max(100).default(0),
-  budget: z.number().optional(),
+  budget: z.union([z.number().min(0), z.literal(''), z.null()]).optional().transform(val => {
+    if (val === '' || val === null || val === undefined) return null;
+    return typeof val === 'number' ? val : parseFloat(val as string) || null;
+  }),
   category: z.string().optional(),
-  estimated_hours: z.number().optional(),
+  estimated_hours: z.union([z.number().min(0), z.literal(''), z.null()]).optional().transform(val => {
+    if (val === '' || val === null || val === undefined) return null;
+    return typeof val === 'number' ? val : parseInt(val as string) || null;
+  }),
   tags: z.array(z.string()).default([]),
 });
 
@@ -84,9 +90,9 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
       deadline: '',
       priority: 'medium',
       progress: 0,
-      budget: undefined,
+      budget: null,
       category: '',
-      estimated_hours: undefined,
+      estimated_hours: null,
       tags: [],
     },
   });
@@ -122,8 +128,7 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
       return;
     }
 
-    console.log('📝 Datos del formulario antes de enviar:', data);
-    console.log('🎯 ID del proyecto:', project.id);
+    console.log('📝 Datos del formulario antes de procesar:', data);
 
     try {
       const projectData: UpdateProjectData = {
@@ -136,9 +141,9 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
         deadline: data.deadline || null,
         priority: data.priority,
         progress: data.progress,
-        budget: data.budget || null,
+        budget: data.budget,
         category: data.category || null,
-        estimated_hours: data.estimated_hours || null,
+        estimated_hours: data.estimated_hours,
         tags: data.tags,
       };
 
@@ -178,17 +183,6 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
     form.setValue('tags', currentTags.filter(tag => tag !== tagToRemove));
   };
 
-  // Verificar si el formulario es válido
-  const isFormValid = form.formState.isValid;
-  const formErrors = form.formState.errors;
-
-  console.log('🔍 Estado del formulario:', {
-    isValid: isFormValid,
-    errors: formErrors,
-    isDirty: form.formState.isDirty,
-    isSubmitting: form.formState.isSubmitting
-  });
-
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -200,14 +194,7 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
-            console.error('❌ Errores de validación del formulario:', errors);
-            toast({
-              title: "Error de validación",
-              description: "Por favor, corrige los errores en el formulario",
-              variant: "destructive",
-            });
-          })} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Tabs defaultValue="basic" className="w-full">
               <TabsList className="grid grid-cols-4 w-full">
                 <TabsTrigger value="basic">Básico</TabsTrigger>
@@ -568,7 +555,8 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
                             type="number"
                             placeholder="0.00"
                             {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
@@ -590,7 +578,8 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
                             type="number"
                             placeholder="0"
                             {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
