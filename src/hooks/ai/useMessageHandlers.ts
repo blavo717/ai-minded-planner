@@ -33,7 +33,7 @@ export const useMessageHandlers = ({
   onSetConnected,
   onSetError,
 }: UseMessageHandlersProps) => {
-  const { sendMessage: sendToLLM } = useLLMService();
+  const { makeLLMRequest } = useLLMService();
   const { currentContext } = useAIContext();
   const { toast } = useToast();
 
@@ -86,7 +86,7 @@ export const useMessageHandlers = ({
           content: content.trim(),
           timestamp: new Date(),
           metadata: { 
-            model: activeModel,
+            model_used: activeModel,
             contextUsed: !!currentContext,
             userId: userId 
           },
@@ -111,7 +111,10 @@ export const useMessageHandlers = ({
         const startTime = Date.now();
 
         // Enviar mensaje al LLM con contexto
-        const llmResponse = await sendToLLM(content, currentContext || undefined);
+        const llmResponse = await makeLLMRequest({
+          message: content,
+          context: currentContext || undefined,
+        });
         
         const responseTime = Date.now() - startTime;
 
@@ -133,9 +136,9 @@ export const useMessageHandlers = ({
             content: llmResponse.content,
             timestamp: new Date(),
             metadata: {
-              model: llmResponse.model || activeModel,
-              tokensUsed: llmResponse.tokensUsed,
-              responseTime: responseTime,
+              model_used: llmResponse.model || activeModel,
+              tokens_used: llmResponse.tokensUsed,
+              response_time: responseTime,
               contextUsed: !!currentContext,
               prefetchUsed: !!prefetchedData,
               userId: userId
@@ -187,7 +190,7 @@ export const useMessageHandlers = ({
       isLoading,
       activeModel,
       currentContext,
-      sendToLLM,
+      makeLLMRequest,
       toast,
       onMessagesUpdate,
       onSetLoading,

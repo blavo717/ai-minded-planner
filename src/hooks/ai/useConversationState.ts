@@ -14,8 +14,8 @@ export const useConversationState = () => {
     setMessages(prev => [...prev, message]);
   };
 
-  const updateMessages = (newMessages: EnhancedMessage[]) => {
-    setMessages(newMessages);
+  const updateMessages = (updater: (prev: EnhancedMessage[]) => EnhancedMessage[]) => {
+    setMessages(updater);
   };
 
   const clearMessages = () => {

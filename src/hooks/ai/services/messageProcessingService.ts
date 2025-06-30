@@ -2,6 +2,17 @@
 import { EnhancedMessage } from '../types/enhancedAITypes';
 
 export const messageProcessingService = {
+  generateUniqueId(): string {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substr(2, 12);
+    return `msg-${timestamp}-${random}`;
+  },
+
+  processNewMessage(existingMessages: EnhancedMessage[], newMessage: EnhancedMessage): EnhancedMessage[] {
+    const updatedMessages = [...existingMessages, newMessage];
+    return this.removeDuplicateMessages(updatedMessages);
+  },
+
   createUserMessage(content: string): EnhancedMessage {
     // Generar ID más robusto con timestamp preciso y mayor aleatoriedad
     const timestamp = Date.now();
