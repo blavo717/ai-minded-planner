@@ -150,12 +150,28 @@ const CompactSubtaskList = memo(({
                 </div>
               </div>
 
-              {isExpanded && hasMicrotasks && (
+              {/* Mostrar microtareas cuando está expandida O añadir botón si no hay microtareas */}
+              {(isExpanded || (!hasMicrotasks && expandedSubtasks.has(subtask.id))) && (
                 <CompactMicrotaskList
                   parentSubtask={subtask}
                   microtasks={microtasks}
                   onEditTask={onEditTask}
                 />
+              )}
+              
+              {/* Botón para expandir y mostrar opción de crear microtareas */}
+              {!hasMicrotasks && !expandedSubtasks.has(subtask.id) && (
+                <div className="ml-8">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleSubtaskExpansion(subtask.id)}
+                    className="h-5 text-xs text-gray-400 hover:text-gray-600 justify-start"
+                  >
+                    <Plus className="h-2 w-2 mr-1" />
+                    Añadir microtarea
+                  </Button>
+                </div>
               )}
             </div>
           );
