@@ -14,6 +14,7 @@ const TaskLogIcon: React.FC<TaskLogIconProps> = ({ taskId, className = '', onCli
       onClick={onClick}
       className={`p-1 rounded hover:bg-gray-100 transition-colors ${className}`}
       title="Ver historial"
+      aria-label={`Ver historial de actividad para la tarea ${taskId}`}
     >
       <FileText className="h-4 w-4 text-gray-500" />
     </button>

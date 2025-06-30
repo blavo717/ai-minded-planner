@@ -26,29 +26,40 @@ export interface CreateTaskAssignmentData {
 export const useTaskAssignments = () => {
   const { user } = useAuth();
 
-  const { data: taskAssignments = [], isLoading: assignmentsLoading } = useQuery({
+  const { data: taskAssignments = [], isLoading: assignmentsLoading, error } = useQuery({
     queryKey: ['task_assignments', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
-      const { data, error } = await supabase
-        .from('task_assignments')
-        .select(`
-          *,
-          assigned_to_profile:assigned_to(id, full_name, email, role),
-          assigned_by_profile:assigned_by(id, full_name, email, role),
-          task:task_id(id, title, status, priority)
-        `)
-        .order('created_at', { ascending: false });
+      console.log('🔍 Fetching task assignments for user:', user.id);
+      
+      try {
+        // Query simplificado - solo seleccionar columnas que existen
+        const { data, error } = await supabase
+          .from('task_assignments')
+          .select('id, task_id, assigned_to, assigned_by, role_in_task, assigned_at, due_date, notes, created_at')
+          .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data as TaskAssignment[];
+        if (error) {
+          console.error('❌ Error fetching task assignments:', error);
+          throw error;
+        }
+
+        console.log('✅ Task assignments fetched successfully:', data?.length || 0);
+        return data as TaskAssignment[];
+      } catch (error) {
+        console.error('❌ Task assignments query failed:', error);
+        throw error;
+      }
     },
     enabled: !!user,
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutos
   });
 
   return {
     taskAssignments,
     isLoading: assignmentsLoading,
+    error,
   };
 };

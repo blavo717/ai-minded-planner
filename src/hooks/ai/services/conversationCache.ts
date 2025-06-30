@@ -1,5 +1,7 @@
-
 import { EnhancedMessage } from '../types/enhancedAITypes';
+
+// TEMPORALMENTE DESHABILITADO - No necesario para gestión de tareas
+// Este servicio está siendo comentado para evitar inicializaciones innecesarias
 
 // Configuración del cache
 interface CacheConfig {
@@ -34,7 +36,7 @@ interface CacheStats {
   newestEntry: number; // timestamp
 }
 
-// Clase principal del cache de conversaciones
+// Clase principal del cache de conversaciones - TEMPORALMENTE DESHABILITADA
 class ConversationCache {
   private cache = new Map<string, ConversationCacheEntry>();
   private hitCount = 0;
@@ -52,8 +54,8 @@ class ConversationCache {
       ...config,
     };
 
-    this.startCleanupTimer();
-    console.log('🚀 ConversationCache inicializado:', this.config);
+    // NO INICIALIZAR TIMER AUTOMÁTICAMENTE
+    console.log('⚠️ ConversationCache creado pero no inicializado (deshabilitado temporalmente)');
   }
 
   // Generar clave del cache
@@ -308,13 +310,16 @@ class ConversationCache {
   }
 }
 
-// Instancia singleton del cache
+// Instancia singleton del cache - TEMPORALMENTE DESHABILITADA
 export const conversationCache = new ConversationCache({
-  maxConversations: 30,
-  conversationTTL: 30 * 60 * 1000, // 30 minutos
-  globalTTL: 2 * 60 * 60 * 1000, // 2 horas
-  maxMessagesPerConversation: 150,
-  enableCompression: true,
+  maxConversations: 0, // Deshabilitado
+  conversationTTL: 0,
+  globalTTL: 0,
+  maxMessagesPerConversation: 0,
+  enableCompression: false,
 });
+
+// NO INICIALIZAR AUTOMÁTICAMENTE
+console.log('⚠️ ConversationCache deshabilitado para optimización');
 
 export default ConversationCache;

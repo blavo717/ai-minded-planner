@@ -17,10 +17,13 @@ const TaskActivityLogModal: React.FC<TaskActivityLogModalProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl" aria-describedby="task-log-description">
         <DialogHeader>
           <DialogTitle>Historial - {taskTitle}</DialogTitle>
         </DialogHeader>
+        <div id="task-log-description" className="sr-only">
+          Modal para mostrar el historial de actividad de la tarea {taskTitle}
+        </div>
         <div className="p-4">
           <p className="text-sm text-gray-500">
             Historial de actividad para la tarea: {taskTitle}
