@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -191,26 +192,95 @@ export const useTaskMutations = () => {
 
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
-      console.log('🗑️ Iniciando eliminación de tarea:', taskId);
+      console.log('🗑️ Iniciando eliminación completa de tarea:', taskId);
       
       try {
-        // Primero eliminar todas las microtareas (task_level = 3) de las subtareas de esta tarea
+        // 1. Eliminar task_sessions relacionadas
+        console.log('🔄 Eliminando task_sessions...');
+        const { error: sessionsError } = await supabase
+          .from('task_sessions')
+          .delete()
+          .eq('task_id', taskId);
+
+        if (sessionsError) {
+          console.error('❌ Error al eliminar task_sessions:', sessionsError);
+          throw new Error(`Error eliminando sesiones: ${sessionsError.message}`);
+        }
+
+        // 2. Eliminar ai_task_monitoring relacionados
+        console.log('🔄 Eliminando ai_task_monitoring...');
+        const { error: monitoringError } = await supabase
+          .from('ai_task_monitoring')
+          .delete()
+          .eq('task_id', taskId);
+
+        if (monitoringError) {
+          console.error('❌ Error al eliminar ai_task_monitoring:', monitoringError);
+          throw new Error(`Error eliminando monitoreo: ${monitoringError.message}`);
+        }
+
+        // 3. Eliminar task_assignments relacionadas
+        console.log('🔄 Eliminando task_assignments...');
+        const { error: assignmentsError } = await supabase
+          .from('task_assignments')
+          .delete()
+          .eq('task_id', taskId);
+
+        if (assignmentsError) {
+          console.error('❌ Error al eliminar task_assignments:', assignmentsError);
+          throw new Error(`Error eliminando asignaciones: ${assignmentsError.message}`);
+        }
+
+        // 4. Eliminar task_dependencies (tanto como dependencia como dependiente)
+        console.log('🔄 Eliminando task_dependencies...');
+        const { error: deps1Error } = await supabase
+          .from('task_dependencies')
+          .delete()
+          .eq('task_id', taskId);
+
+        if (deps1Error) {
+          console.error('❌ Error al eliminar task_dependencies (task_id):', deps1Error);
+          throw new Error(`Error eliminando dependencias: ${deps1Error.message}`);
+        }
+
+        const { error: deps2Error } = await supabase
+          .from('task_dependencies')
+          .delete()
+          .eq('depends_on_task_id', taskId);
+
+        if (deps2Error) {
+          console.error('❌ Error al eliminar task_dependencies (depends_on_task_id):', deps2Error);
+          throw new Error(`Error eliminando dependencias inversas: ${deps2Error.message}`);
+        }
+
+        // 5. Obtener todas las subtareas y microtareas en jerarquía
+        console.log('🔄 Obteniendo jerarquía de tareas...');
         const { data: subtasks, error: subtasksError } = await supabase
           .from('tasks')
           .select('id')
-          .eq('parent_task_id', taskId)
-          .eq('task_level', 2);
+          .eq('parent_task_id', taskId);
 
         if (subtasksError) {
           console.error('❌ Error al obtener subtareas:', subtasksError);
-          throw subtasksError;
+          throw new Error(`Error obteniendo subtareas: ${subtasksError.message}`);
         }
 
-        console.log('📋 Subtareas encontradas:', subtasks.length);
+        console.log(`📋 Encontradas ${subtasks.length} subtareas`);
 
-        // Eliminar microtareas de cada subtarea
+        // 6. Para cada subtarea, eliminar sus microtareas y registros relacionados
         for (const subtask of subtasks) {
-          console.log('🔄 Eliminando microtareas de subtarea:', subtask.id);
+          console.log('🔄 Procesando subtarea:', subtask.id);
+          
+          // Eliminar registros relacionados de la subtarea
+          await Promise.all([
+            supabase.from('task_sessions').delete().eq('task_id', subtask.id),
+            supabase.from('ai_task_monitoring').delete().eq('task_id', subtask.id),
+            supabase.from('task_assignments').delete().eq('task_id', subtask.id),
+            supabase.from('task_dependencies').delete().eq('task_id', subtask.id),
+            supabase.from('task_dependencies').delete().eq('depends_on_task_id', subtask.id)
+          ]);
+
+          // Eliminar microtareas de esta subtarea
           const { error: microtasksError } = await supabase
             .from('tasks')
             .delete()
@@ -219,24 +289,23 @@ export const useTaskMutations = () => {
 
           if (microtasksError) {
             console.error('❌ Error al eliminar microtareas:', microtasksError);
-            throw microtasksError;
+            throw new Error(`Error eliminando microtareas: ${microtasksError.message}`);
           }
         }
 
-        // Luego eliminar todas las subtareas (task_level = 2)
+        // 7. Eliminar todas las subtareas
         console.log('🔄 Eliminando subtareas...');
         const { error: subtasksDeleteError } = await supabase
           .from('tasks')
           .delete()
-          .eq('parent_task_id', taskId)
-          .eq('task_level', 2);
+          .eq('parent_task_id', taskId);
 
         if (subtasksDeleteError) {
           console.error('❌ Error al eliminar subtareas:', subtasksDeleteError);
-          throw subtasksDeleteError;
+          throw new Error(`Error eliminando subtareas: ${subtasksDeleteError.message}`);
         }
 
-        // Finalmente eliminar la tarea principal
+        // 8. Finalmente eliminar la tarea principal
         console.log('🔄 Eliminando tarea principal...');
         const { error: taskError } = await supabase
           .from('tasks')
@@ -245,10 +314,11 @@ export const useTaskMutations = () => {
 
         if (taskError) {
           console.error('❌ Error al eliminar tarea principal:', taskError);
-          throw taskError;
+          throw new Error(`Error eliminando tarea principal: ${taskError.message}`);
         }
 
-        console.log('✅ Tarea eliminada completamente:', taskId);
+        console.log('✅ Eliminación completa exitosa:', taskId);
+
       } catch (error) {
         console.error('💥 Error durante la eliminación:', error);
         throw error;
@@ -260,7 +330,7 @@ export const useTaskMutations = () => {
       queryClient.invalidateQueries({ queryKey: ['archived-tasks', user?.id] });
       toast({
         title: "Tarea eliminada",
-        description: "La tarea se ha eliminado exitosamente.",
+        description: "La tarea se ha eliminado exitosamente junto con todos sus registros relacionados.",
       });
     },
     onError: (error) => {
