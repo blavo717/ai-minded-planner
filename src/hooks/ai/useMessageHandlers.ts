@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { useLLMService } from '@/hooks/useLLMService';
 import { useAIContext } from '@/hooks/ai/useAIContext';
@@ -6,6 +7,7 @@ import { messageProcessingService } from '@/hooks/ai/services/messageProcessingS
 import { messagePrefetcher } from '@/hooks/ai/services/messagePrefetcher';
 import { EnhancedMessage } from '@/hooks/ai/types/enhancedAITypes';
 import { useToast } from '@/hooks/use-toast';
+import { AIContext } from '@/types/ai-context-advanced';
 
 interface UseMessageHandlersProps {
   userId?: string;
@@ -18,6 +20,53 @@ interface UseMessageHandlersProps {
   onSetConnecting: () => void;
   onSetConnected: () => void;
   onSetError: (error: string) => void;
+}
+
+// Función auxiliar para convertir AIContext a string
+function convertContextToPrompt(context: AIContext | string | null): string {
+  if (typeof context === 'string') return context;
+  if (!context) return 'Eres un asistente de IA útil.';
+
+  // Construir prompt basado en el contexto disponible
+  let prompt = 'Eres un asistente de IA inteligente con acceso al contexto del usuario. ';
+  
+  if (context.userInfo) {
+    const { pendingTasks, hasActiveProjects, currentFocusArea } = context.userInfo;
+    if (pendingTasks) {
+      prompt += `El usuario tiene ${pendingTasks} tareas pendientes. `;
+    }
+    if (hasActiveProjects) {
+      prompt += `El usuario tiene proyectos activos. `;
+    }
+    if (currentFocusArea) {
+      prompt += `Su área de enfoque actual es: ${currentFocusArea}. `;
+    }
+  }
+
+  if (context.currentSession) {
+    const { timeOfDay, workingHours, productivity } = context.currentSession;
+    if (timeOfDay) {
+      prompt += `Es ${timeOfDay === 'morning' ? 'por la mañana' : timeOfDay === 'afternoon' ? 'por la tarde' : 'por la noche'}. `;
+    }
+    if (workingHours !== undefined) {
+      prompt += workingHours ? 'Es horario laboral. ' : 'Es fuera del horario laboral. ';
+    }
+    if (productivity !== undefined) {
+      prompt += `El nivel de productividad actual es ${productivity * 100}%. `;
+    }
+  }
+
+  if (context.insights && context.insights.length > 0) {
+    prompt += `Insights disponibles: ${context.insights.map(i => i.title).join(', ')}. `;
+  }
+
+  if (context.suggestions && context.suggestions.length > 0) {
+    prompt += `Tienes ${context.suggestions.length} sugerencias contextuales disponibles. `;
+  }
+
+  prompt += 'Usa esta información para proporcionar respuestas más precisas y útiles.';
+  
+  return prompt;
 }
 
 export const useMessageHandlers = ({
@@ -109,10 +158,8 @@ export const useMessageHandlers = ({
         
         const startTime = Date.now();
 
-        // Convertir currentContext a string para systemPrompt
-        const systemPrompt = typeof currentContext === 'string' 
-          ? currentContext 
-          : currentContext?.content || 'Eres un asistente de IA útil.';
+        // Convertir currentContext usando la función auxiliar
+        const systemPrompt = convertContextToPrompt(currentContext);
 
         // Enviar mensaje al LLM con contexto usando los parámetros correctos
         const llmResponse = await makeLLMRequest({
