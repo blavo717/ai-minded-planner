@@ -1,0 +1,199 @@
+
+import React, { memo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { 
+  MoreHorizontal,
+  ChevronRight,
+  ChevronDown,
+  Plus,
+  X,
+  Check
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Task } from '@/hooks/useTasks';
+import { useTaskMutations } from '@/hooks/useTaskMutations';
+import CompactMicrotaskList from './CompactMicrotaskList';
+
+interface CompactSubtaskListProps {
+  parentTask: Task;
+  subtasks: Task[];
+  onCreateSubtask: (parentTaskId: string, title: string) => void;
+  getSubtasksForTask: (taskId: string) => Task[];
+}
+
+const CompactSubtaskList = memo(({ 
+  parentTask, 
+  subtasks, 
+  onCreateSubtask,
+  getSubtasksForTask 
+}: CompactSubtaskListProps) => {
+  const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
+  const [isCreating, setIsCreating] = useState(false);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const { updateTask, deleteTask } = useTaskMutations();
+
+  const toggleSubtaskExpansion = (subtaskId: string) => {
+    const newExpanded = new Set(expandedSubtasks);
+    if (newExpanded.has(subtaskId)) {
+      newExpanded.delete(subtaskId);
+    } else {
+      newExpanded.add(subtaskId);
+    }
+    setExpandedSubtasks(newExpanded);
+  };
+
+  const handleCreateSubtask = () => {
+    if (newSubtaskTitle.trim()) {
+      onCreateSubtask(parentTask.id, newSubtaskTitle.trim());
+      setNewSubtaskTitle('');
+      setIsCreating(false);
+    }
+  };
+
+  const handleToggleSubtaskComplete = (subtask: Task, checked: boolean) => {
+    updateTask({
+      id: subtask.id,
+      status: checked ? 'completed' : 'pending',
+      completed_at: checked ? new Date().toISOString() : null
+    });
+  };
+
+  return (
+    <div className="ml-6 border-l-2 border-gray-200 pl-4 space-y-1">
+      {subtasks.map((subtask) => {
+        const microtasks = getSubtasksForTask(subtask.id);
+        const hasMicrotasks = microtasks.length > 0;
+        const isExpanded = expandedSubtasks.has(subtask.id);
+        const completedMicrotasks = microtasks.filter(m => m.status === 'completed').length;
+        const isCompleted = subtask.status === 'completed';
+
+        return (
+          <div key={subtask.id} className="space-y-1">
+            <div className={`py-2 px-4 rounded-md transition-colors ${
+              isCompleted ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
+            }`}>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={isCompleted}
+                  onCheckedChange={(checked) => handleToggleSubtaskComplete(subtask, checked as boolean)}
+                  className="h-3 w-3"
+                />
+
+                {hasMicrotasks && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleSubtaskExpansion(subtask.id)}
+                    className="h-3 w-3 p-0 text-gray-400"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-2 w-2" />
+                    ) : (
+                      <ChevronRight className="h-2 w-2" />
+                    )}
+                  </Button>
+                )}
+
+                <span className={`font-normal text-sm flex-1 truncate ${
+                  isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'
+                }`}>
+                  {subtask.title}
+                </span>
+
+                {hasMicrotasks && (
+                  <div className="text-xs text-gray-500 bg-gray-100 px-1 py-0.5 rounded">
+                    {completedMicrotasks}/{microtasks.length}
+                  </div>
+                )}
+
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100">
+                      <MoreHorizontal className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40 bg-white shadow-lg border">
+                    <DropdownMenuItem onClick={() => updateTask({ id: subtask.id, title: 'Nuevo título' })}>
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => deleteTask(subtask.id)}
+                      className="text-red-600"
+                    >
+                      Eliminar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            {isExpanded && hasMicrotasks && (
+              <CompactMicrotaskList
+                parentSubtask={subtask}
+                microtasks={microtasks}
+              />
+            )}
+          </div>
+        );
+      })}
+
+      {/* Creador de subtareas compacto */}
+      <div className="py-1">
+        {isCreating ? (
+          <div className="flex items-center gap-2 py-2 px-4 bg-gray-50 rounded-md">
+            <Input
+              value={newSubtaskTitle}
+              onChange={(e) => setNewSubtaskTitle(e.target.value)}
+              placeholder="Nueva subtarea..."
+              className="h-6 text-sm flex-1"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreateSubtask();
+                if (e.key === 'Escape') setIsCreating(false);
+              }}
+            />
+            <Button
+              size="sm"
+              onClick={handleCreateSubtask}
+              className="h-6 w-6 p-0"
+              disabled={!newSubtaskTitle.trim()}
+            >
+              <Check className="h-3 w-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsCreating(false)}
+              className="h-6 w-6 p-0"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCreating(true)}
+            className="h-6 text-xs text-gray-500 hover:text-gray-700 justify-start w-full"
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Añadir subtarea
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+});
+
+CompactSubtaskList.displayName = 'CompactSubtaskList';
+
+export default CompactSubtaskList;

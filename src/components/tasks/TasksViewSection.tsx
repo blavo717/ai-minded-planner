@@ -2,18 +2,16 @@
 import React from 'react';
 import { Task } from '@/hooks/useTasks';
 import { Project } from '@/hooks/useProjects';
-import KanbanBoard from '@/components/tasks/KanbanBoard';
-import TaskList from '@/components/tasks/TaskList';
-import TimelineView from '@/components/tasks/views/TimelineView';
-import CalendarView from '@/components/tasks/views/CalendarView';
-import EisenhowerMatrix from '@/components/tasks/views/EisenhowerMatrix';
-import TaskViewControls from '@/components/tasks/TaskViewControls';
-
-type ViewMode = 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower';
+import TaskViewControls from './TaskViewControls';
+import CompactTaskList from './CompactTaskList';
+import KanbanBoard from './KanbanBoard';
+import CalendarView from './views/CalendarView';
+import TimelineView from './views/TimelineView';
+import EisenhowerMatrix from './views/EisenhowerMatrix';
 
 interface TasksViewSectionProps {
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
+  viewMode: string;
+  setViewMode: (mode: string) => void;
   filteredTasks: Task[];
   projects: Project[];
   getSubtasksForTask: (taskId: string) => Task[];
@@ -36,48 +34,19 @@ const TasksViewSection = ({
   onAssignTask,
   onCompleteTask,
   onArchiveTask,
-  onCreateSubtask
+  onCreateSubtask,
 }: TasksViewSectionProps) => {
-  const renderTaskView = () => {
-    switch (viewMode) {
-      case 'kanban':
-        return (
-          <div className="w-full overflow-x-auto">
-            <KanbanBoard
-              tasks={filteredTasks}
-              getSubtasksForTask={getSubtasksForTask}
-              onEditTask={onEditTask}
-            />
-          </div>
-        );
-      case 'timeline':
-        return (
-          <TimelineView
-            tasks={filteredTasks}
-            onEditTask={onEditTask}
-            onCompleteTask={onCompleteTask}
-          />
-        );
-      case 'calendar':
-        return (
-          <CalendarView
-            tasks={filteredTasks}
-            onEditTask={onEditTask}
-            onCompleteTask={onCompleteTask}
-          />
-        );
-      case 'eisenhower':
-        return (
-          <EisenhowerMatrix
-            tasks={filteredTasks}
-            onEditTask={onEditTask}
-            onCompleteTask={onCompleteTask}
-          />
-        );
-      case 'list':
-      default:
-        return (
-          <TaskList
+  return (
+    <div className="space-y-6">
+      <TaskViewControls
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        taskCount={filteredTasks.length}
+      />
+
+      <div className="min-h-[400px]">
+        {viewMode === 'list' && (
+          <CompactTaskList
             tasks={filteredTasks}
             projects={projects}
             getSubtasksForTask={getSubtasksForTask}
@@ -88,20 +57,42 @@ const TasksViewSection = ({
             onArchiveTask={onArchiveTask}
             onCreateSubtask={onCreateSubtask}
           />
-        );
-    }
-  };
+        )}
 
-  return (
-    <div className="space-y-6">
-      <TaskViewControls
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        taskCount={filteredTasks.length}
-      />
+        {viewMode === 'kanban' && (
+          <KanbanBoard
+            tasks={filteredTasks}
+            projects={projects}
+            getSubtasksForTask={getSubtasksForTask}
+            onEditTask={onEditTask}
+            onDeleteTask={onArchiveTask}
+            onCreateSubtask={onCreateSubtask}
+          />
+        )}
 
-      <div className="min-h-96 animate-fade-in">
-        {renderTaskView()}
+        {viewMode === 'calendar' && (
+          <CalendarView
+            tasks={filteredTasks}
+            onEditTask={onEditTask}
+            onCompleteTask={onCompleteTask}
+          />
+        )}
+
+        {viewMode === 'timeline' && (
+          <TimelineView
+            tasks={filteredTasks}
+            projects={projects}
+            onEditTask={onEditTask}
+          />
+        )}
+
+        {viewMode === 'eisenhower' && (
+          <EisenhowerMatrix
+            tasks={filteredTasks}
+            onEditTask={onEditTask}
+            onCompleteTask={onCompleteTask}
+          />
+        )}
       </div>
     </div>
   );
