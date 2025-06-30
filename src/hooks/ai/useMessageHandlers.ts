@@ -110,9 +110,9 @@ export const useMessageHandlers = ({
         
         const startTime = Date.now();
 
-        // Enviar mensaje al LLM con contexto
+        // Enviar mensaje al LLM con contexto usando el parámetro correcto
         const llmResponse = await makeLLMRequest({
-          prompt: content,
+          message: content,
           context: currentContext || undefined,
         });
         

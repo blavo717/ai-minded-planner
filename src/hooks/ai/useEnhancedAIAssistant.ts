@@ -8,6 +8,7 @@ import { useConversationState } from './useConversationState';
 import { useConnectionManager } from './useConnectionManager';
 import { useMessageHandlers } from './useMessageHandlers';
 import { useConversationHistory } from './useConversationHistory';
+import { EnhancedMessage } from './types/enhancedAITypes';
 
 export const useEnhancedAIAssistant = () => {
   const [isLoading, setIsLoading] = useState(false);

@@ -22,7 +22,7 @@ export const useConversationHistory = ({
       console.log('🔄 Cargando historial de conversación...');
       
       try {
-        const history = await messageHistoryService.loadMessageHistory(user.id);
+        const history = await messageHistoryService.loadConversationHistory(user.id);
         
         if (history.length > 0) {
           console.log(`📚 Historial cargado: ${history.length} mensajes`);
