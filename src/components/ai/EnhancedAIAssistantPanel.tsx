@@ -1,13 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useEnhancedAIAssistant } from '@/hooks/ai/useEnhancedAIAssistant';
 import ConfigurationAlert from './assistant/ConfigurationAlert';
 import ChatHeader from './assistant/ChatHeader';
 import MessageList from './assistant/MessageList';
 import ChatInput from './assistant/ChatInput';
+import DataIndicator from './assistant/DataIndicator';
 
-const EnhancedAIAssistantPanel = () => {
+// Memoizar el panel completo para evitar renders innecesarios
+const EnhancedAIAssistantPanel = memo(() => {
   const [inputMessage, setInputMessage] = useState('');
   
   const {
@@ -23,16 +25,38 @@ const EnhancedAIAssistantPanel = () => {
     activeModel,
   } = useEnhancedAIAssistant();
 
-  const handleSendMessage = async () => {
+  // Memoizar el handler para evitar recreación en cada render
+  const handleSendMessage = useCallback(async () => {
     if (inputMessage.trim() && !isLoading) {
+      console.log('📤 Enviando mensaje desde panel:', inputMessage.substring(0, 30) + '...');
       await sendMessage(inputMessage);
       setInputMessage('');
     }
-  };
+  }, [inputMessage, isLoading, sendMessage]);
 
+  // Memoizar el handler de limpieza
+  const handleClearChat = useCallback(() => {
+    console.log('🧹 Limpiando chat desde panel');
+    clearChat();
+  }, [clearChat]);
+
+  // Memoizar el handler de exportación
+  const handleExportConversation = useCallback(() => {
+    console.log('💾 Exportando conversación desde panel');
+    exportConversation();
+  }, [exportConversation]);
+
+  // Memoizar el handler de cambio de input
+  const handleInputChange = useCallback((value: string) => {
+    setInputMessage(value);
+  }, []);
+
+  // Early return para configuración faltante
   if (!hasConfiguration) {
     return <ConfigurationAlert />;
   }
+
+  const hasMessages = messages.length > 0;
 
   return (
     <Card className="w-full h-[600px] flex flex-col">
@@ -41,10 +65,10 @@ const EnhancedAIAssistantPanel = () => {
           connectionStatus={connectionStatus}
           contextAvailable={contextAvailable}
           messageCount={messageCount}
-          onClearChat={clearChat}
-          onExportConversation={exportConversation}
+          onClearChat={handleClearChat}
+          onExportConversation={handleExportConversation}
           isLoading={isLoading}
-          hasMessages={messages.length > 0}
+          hasMessages={hasMessages}
           activeModel={activeModel}
         />
       </CardHeader>
@@ -53,21 +77,18 @@ const EnhancedAIAssistantPanel = () => {
         <MessageList messages={messages} isLoading={isLoading} />
         <ChatInput
           inputMessage={inputMessage}
-          setInputMessage={setInputMessage}
+          setInputMessage={handleInputChange}
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
           contextAvailable={contextAvailable}
         />
-        
-        {/* NUEVO: Indicador de datos reales */}
-        {contextAvailable && (
-          <div className="px-4 py-1 text-xs text-green-600 bg-green-50 border-t">
-            ✅ Utilizando datos reales de Supabase
-          </div>
-        )}
+        <DataIndicator contextAvailable={contextAvailable} />
       </CardContent>
     </Card>
   );
-};
+});
+
+// Agregar displayName para mejor debugging
+EnhancedAIAssistantPanel.displayName = 'EnhancedAIAssistantPanel';
 
 export default EnhancedAIAssistantPanel;
