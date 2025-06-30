@@ -111,7 +111,14 @@ export const useTasks = () => {
   const microtasks = tasks.filter(task => task.task_level === 3);
 
   const getSubtasksForTask = (taskId: string) => {
-    return subtasks.filter(subtask => subtask.parent_task_id === taskId);
+    const result = tasks.filter(task => task.parent_task_id === taskId);
+    console.log('getSubtasksForTask called:', {
+      taskId,
+      allTasks: tasks.length,
+      filteredTasks: result.length,
+      result: result.map(t => ({ id: t.id, title: t.title, task_level: t.task_level, parent_task_id: t.parent_task_id }))
+    });
+    return result;
   };
 
   const getMicrotasksForSubtask = (subtaskId: string) => {

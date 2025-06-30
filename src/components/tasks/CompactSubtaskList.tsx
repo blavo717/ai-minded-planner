@@ -1,3 +1,4 @@
+
 import React, { memo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -108,7 +109,8 @@ const CompactSubtaskList = memo(({
     <>
       <div className="ml-6 border-l-2 border-gray-200 pl-4 space-y-1">
         {subtasks.map((subtask) => {
-          const microtasks = getSubtasksForTask(subtask.id);
+          // Obtener microtareas específicamente para esta subtarea
+          const microtasks = getSubtasksForTask(subtask.id).filter(task => task.task_level === 3);
           const hasMicrotasks = microtasks.length > 0;
           const isExpanded = expandedSubtasks.has(subtask.id);
           const completedMicrotasks = microtasks.filter(m => m.status === 'completed').length;
@@ -121,7 +123,7 @@ const CompactSubtaskList = memo(({
             hasMicrotasks,
             microtasksCount: microtasks.length,
             isExpanded,
-            microtasks: microtasks.map(m => ({ id: m.id, title: m.title }))
+            microtasks: microtasks.map(m => ({ id: m.id, title: m.title, task_level: m.task_level }))
           });
 
           return (
