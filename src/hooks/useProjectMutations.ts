@@ -101,15 +101,15 @@ export const useProjectMutations = () => {
 
   const deleteProjectMutation = useMutation({
     mutationFn: async (projectId: string) => {
-      // Primero, desasociar todas las tareas del proyecto (ponerlas como project_id = null)
+      // Primero eliminar todas las tareas asociadas al proyecto
       const { error: tasksError } = await supabase
         .from('tasks')
-        .update({ project_id: null })
+        .delete()
         .eq('project_id', projectId);
 
       if (tasksError) throw tasksError;
 
-      // Ahora eliminar el proyecto
+      // Luego eliminar el proyecto
       const { error } = await supabase
         .from('projects')
         .delete()
@@ -122,7 +122,7 @@ export const useProjectMutations = () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] });
       toast({
         title: "Proyecto eliminado",
-        description: "El proyecto se ha eliminado exitosamente. Las tareas asociadas se mantuvieron sin proyecto asignado.",
+        description: "El proyecto y todas sus tareas asociadas se han eliminado exitosamente.",
       });
     },
     onError: (error) => {

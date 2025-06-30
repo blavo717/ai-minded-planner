@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -123,8 +122,8 @@ const ProjectCard = ({ project, stats, onEdit, onChangeStatus, onDelete }: Proje
                     <AlertDialogDescription>
                       Esta acción eliminará permanentemente el proyecto "{project.name}".
                       {stats.totalTasks > 0 && (
-                        <span className="block mt-2 text-orange-600">
-                          ⚠️ Este proyecto tiene {stats.totalTasks} tareas asociadas. Las tareas se mantendrán pero quedarán sin proyecto asignado.
+                        <span className="block mt-2 text-red-600 font-semibold">
+                          ⚠️ Este proyecto tiene {stats.totalTasks} tareas asociadas que también serán eliminadas permanentemente.
                         </span>
                       )}
                     </AlertDialogDescription>
