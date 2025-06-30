@@ -1,4 +1,3 @@
-
 import React, { memo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,28 +37,39 @@ const CompactMicrotaskList = memo(({
   const [editTitle, setEditTitle] = useState('');
   const { updateTask, deleteTask, createMicrotask } = useTaskMutations();
 
+  console.log('CompactMicrotaskList rendered:', {
+    parentSubtaskId: parentSubtask.id,
+    parentSubtaskTitle: parentSubtask.title,
+    microtasksCount: microtasks.length,
+    microtasks: microtasks.map(m => ({ id: m.id, title: m.title, parent_task_id: m.parent_task_id }))
+  });
+
   const handleCreateMicrotask = () => {
     if (newMicrotaskTitle.trim()) {
+      console.log('Creating microtask:', {
+        parentId: parentSubtask.id,
+        title: newMicrotaskTitle.trim()
+      });
       createMicrotask(parentSubtask.id, newMicrotaskTitle.trim());
       setNewMicrotaskTitle('');
       setIsCreating(false);
     }
   };
 
-  const handleToggleMicrotaskComplete = (microtask: Task, checked: boolean) => {
+  function handleToggleMicrotaskComplete(microtask: Task, checked: boolean) {
     updateTask({
       id: microtask.id,
       status: checked ? 'completed' : 'pending',
       completed_at: checked ? new Date().toISOString() : null
     });
-  };
+  }
 
-  const handleDoubleClickMicrotask = (microtask: Task) => {
+  function handleDoubleClickMicrotask(microtask: Task) {
     setEditingMicrotaskId(microtask.id);
     setEditTitle(microtask.title);
-  };
+  }
 
-  const handleSaveMicrotaskTitle = (microtaskId: string) => {
+  function handleSaveMicrotaskTitle(microtaskId: string) {
     if (editTitle.trim() && editTitle.trim() !== microtasks.find(m => m.id === microtaskId)?.title) {
       updateTask({
         id: microtaskId,
@@ -68,110 +78,116 @@ const CompactMicrotaskList = memo(({
     }
     setEditingMicrotaskId(null);
     setEditTitle('');
-  };
+  }
 
-  const handleCancelMicrotaskEdit = () => {
+  function handleCancelMicrotaskEdit() {
     setEditingMicrotaskId(null);
     setEditTitle('');
-  };
+  }
 
   return (
     <>
       <div className="ml-12 border-l border-gray-300 pl-4 space-y-1">
-        {microtasks.map((microtask) => {
-          const isCompleted = microtask.status === 'completed';
-          const isEditing = editingMicrotaskId === microtask.id;
-          
-          return (
-            <div 
-              key={microtask.id} 
-              className={`py-1 px-3 rounded-sm transition-colors group relative ${
-                isCompleted ? 'bg-gray-25' : 'hover:bg-gray-25'
-              }`}
-            >
-              {/* Conector visual sutil */}
-              <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-200" />
-              
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  checked={isCompleted}
-                  onCheckedChange={(checked) => handleToggleMicrotaskComplete(microtask, checked as boolean)}
-                  className="h-3 w-3"
-                />
+        {microtasks.length > 0 ? (
+          microtasks.map((microtask) => {
+            const isCompleted = microtask.status === 'completed';
+            const isEditing = editingMicrotaskId === microtask.id;
+            
+            return (
+              <div 
+                key={microtask.id} 
+                className={`py-1 px-3 rounded-sm transition-colors group relative ${
+                  isCompleted ? 'bg-gray-25' : 'hover:bg-gray-25'
+                }`}
+              >
+                {/* Conector visual sutil */}
+                <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-200" />
+                
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={isCompleted}
+                    onCheckedChange={(checked) => handleToggleMicrotaskComplete(microtask, checked as boolean)}
+                    className="h-3 w-3"
+                  />
 
-                {isEditing ? (
-                  <div className="flex items-center gap-1 flex-1">
-                    <Input
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      className="h-4 text-xs"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveMicrotaskTitle(microtask.id);
-                        if (e.key === 'Escape') handleCancelMicrotaskEdit();
-                      }}
-                      onBlur={() => handleSaveMicrotaskTitle(microtask.id)}
-                    />
-                    <Button
-                      size="sm"
-                      onClick={() => handleSaveMicrotaskTitle(microtask.id)}
-                      className="h-4 w-4 p-0"
-                    >
-                      <Check className="h-2 w-2" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCancelMicrotaskEdit}
-                      className="h-4 w-4 p-0"
-                    >
-                      <X className="h-2 w-2" />
-                    </Button>
-                  </div>
-                ) : (
-                  <span 
-                    className={`font-normal text-xs flex-1 truncate cursor-pointer hover:text-blue-600 ${
-                      isCompleted ? 'text-gray-400 line-through' : 'text-gray-600'
-                    }`}
-                    onDoubleClick={() => handleDoubleClickMicrotask(microtask)}
-                    title="Doble clic para editar"
-                  >
-                    {microtask.title}
-                  </span>
-                )}
-
-                <TaskLogIcon 
-                  taskId={microtask.id} 
-                  className="h-2 w-2"
-                  onClick={() => setSelectedLogTask(microtask)}
-                />
-
-                <div className="w-1 h-1 rounded-full bg-indigo-400" />
-
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-3 w-3 p-0">
-                        <MoreHorizontal className="h-2 w-2" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-32 bg-white shadow-lg border z-50">
-                      <DropdownMenuItem onClick={() => onEditTask(microtask)}>
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => deleteTask(microtask.id)}
-                        className="text-red-600"
+                  {isEditing ? (
+                    <div className="flex items-center gap-1 flex-1">
+                      <Input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="h-4 text-xs"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveMicrotaskTitle(microtask.id);
+                          if (e.key === 'Escape') handleCancelMicrotaskEdit();
+                        }}
+                        onBlur={() => handleSaveMicrotaskTitle(microtask.id)}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => handleSaveMicrotaskTitle(microtask.id)}
+                        className="h-4 w-4 p-0"
                       >
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <Check className="h-2 w-2" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCancelMicrotaskEdit}
+                        className="h-4 w-4 p-0"
+                      >
+                        <X className="h-2 w-2" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <span 
+                      className={`font-normal text-xs flex-1 truncate cursor-pointer hover:text-blue-600 ${
+                        isCompleted ? 'text-gray-400 line-through' : 'text-gray-600'
+                      }`}
+                      onDoubleClick={() => handleDoubleClickMicrotask(microtask)}
+                      title="Doble clic para editar"
+                    >
+                      {microtask.title}
+                    </span>
+                  )}
+
+                  <TaskLogIcon 
+                    taskId={microtask.id} 
+                    className="h-2 w-2"
+                    onClick={() => setSelectedLogTask(microtask)}
+                  />
+
+                  <div className="w-1 h-1 rounded-full bg-indigo-400" />
+
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-3 w-3 p-0">
+                          <MoreHorizontal className="h-2 w-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-32 bg-white shadow-lg border z-50">
+                        <DropdownMenuItem onClick={() => onEditTask(microtask)}>
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => deleteTask(microtask.id)}
+                          className="text-red-600"
+                        >
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        ) : (
+          <div className="py-1 px-3 text-xs text-gray-400 italic">
+            No hay microtareas
+          </div>
+        )}
 
         {/* Creador de microtareas ultra-compacto */}
         <div className="py-0.5">

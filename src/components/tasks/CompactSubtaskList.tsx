@@ -1,4 +1,3 @@
-
 import React, { memo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +45,17 @@ const CompactSubtaskList = memo(({
   const [editTitle, setEditTitle] = useState('');
   const { updateTask, deleteTask } = useTaskMutations();
 
+  console.log('CompactSubtaskList rendered:', {
+    parentTaskId: parentTask.id,
+    parentTaskTitle: parentTask.title,
+    subtasksCount: subtasks.length,
+    subtasks: subtasks.map(s => ({ 
+      id: s.id, 
+      title: s.title, 
+      microtasksCount: getSubtasksForTask(s.id).length 
+    }))
+  });
+
   const toggleSubtaskExpansion = (subtaskId: string) => {
     const newExpanded = new Set(expandedSubtasks);
     if (newExpanded.has(subtaskId)) {
@@ -54,30 +64,31 @@ const CompactSubtaskList = memo(({
       newExpanded.add(subtaskId);
     }
     setExpandedSubtasks(newExpanded);
+    console.log('Toggling subtask expansion:', subtaskId, 'expanded:', newExpanded.has(subtaskId));
   };
 
-  const handleCreateSubtask = () => {
+  function handleCreateSubtask() {
     if (newSubtaskTitle.trim()) {
       onCreateSubtask(parentTask.id, newSubtaskTitle.trim());
       setNewSubtaskTitle('');
       setIsCreating(false);
     }
-  };
+  }
 
-  const handleToggleSubtaskComplete = (subtask: Task, checked: boolean) => {
+  function handleToggleSubtaskComplete(subtask: Task, checked: boolean) {
     updateTask({
       id: subtask.id,
       status: checked ? 'completed' : 'pending',
       completed_at: checked ? new Date().toISOString() : null
     });
-  };
+  }
 
-  const handleDoubleClickSubtask = (subtask: Task) => {
+  function handleDoubleClickSubtask(subtask: Task) {
     setEditingSubtaskId(subtask.id);
     setEditTitle(subtask.title);
-  };
+  }
 
-  const handleSaveSubtaskTitle = (subtaskId: string) => {
+  function handleSaveSubtaskTitle(subtaskId: string) {
     if (editTitle.trim() && editTitle.trim() !== subtasks.find(s => s.id === subtaskId)?.title) {
       updateTask({
         id: subtaskId,
@@ -86,12 +97,12 @@ const CompactSubtaskList = memo(({
     }
     setEditingSubtaskId(null);
     setEditTitle('');
-  };
+  }
 
-  const handleCancelSubtaskEdit = () => {
+  function handleCancelSubtaskEdit() {
     setEditingSubtaskId(null);
     setEditTitle('');
-  };
+  }
 
   return (
     <>
@@ -103,6 +114,15 @@ const CompactSubtaskList = memo(({
           const completedMicrotasks = microtasks.filter(m => m.status === 'completed').length;
           const isCompleted = subtask.status === 'completed';
           const isEditing = editingSubtaskId === subtask.id;
+
+          console.log('Rendering subtask:', {
+            id: subtask.id,
+            title: subtask.title,
+            hasMicrotasks,
+            microtasksCount: microtasks.length,
+            isExpanded,
+            microtasks: microtasks.map(m => ({ id: m.id, title: m.title }))
+          });
 
           return (
             <div key={subtask.id} className="space-y-1">
@@ -116,20 +136,19 @@ const CompactSubtaskList = memo(({
                     className="h-3 w-3"
                   />
 
-                  {hasMicrotasks && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleSubtaskExpansion(subtask.id)}
-                      className="h-3 w-3 p-0 text-gray-400"
-                    >
-                      {isExpanded ? (
-                        <ChevronDown className="h-2 w-2" />
-                      ) : (
-                        <ChevronRight className="h-2 w-2" />
-                      )}
-                    </Button>
-                  )}
+                  {/* Siempre mostrar botón de expansión */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleSubtaskExpansion(subtask.id)}
+                    className="h-3 w-3 p-0 text-gray-400"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-2 w-2" />
+                    ) : (
+                      <ChevronRight className="h-2 w-2" />
+                    )}
+                  </Button>
 
                   {isEditing ? (
                     <div className="flex items-center gap-1 flex-1">
@@ -209,28 +228,13 @@ const CompactSubtaskList = memo(({
                 </div>
               </div>
 
-              {/* Mostrar microtareas cuando está expandida O añadir botón si no hay microtareas */}
-              {(isExpanded || (!hasMicrotasks && expandedSubtasks.has(subtask.id))) && (
+              {/* Mostrar microtareas cuando está expandida */}
+              {isExpanded && (
                 <CompactMicrotaskList
                   parentSubtask={subtask}
                   microtasks={microtasks}
                   onEditTask={onEditTask}
                 />
-              )}
-              
-              {/* Botón para expandir y mostrar opción de crear microtareas */}
-              {!hasMicrotasks && !expandedSubtasks.has(subtask.id) && (
-                <div className="ml-8">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleSubtaskExpansion(subtask.id)}
-                    className="h-5 text-xs text-gray-400 hover:text-gray-600 justify-start"
-                  >
-                    <Plus className="h-2 w-2 mr-1" />
-                    Añadir microtarea
-                  </Button>
-                </div>
               )}
             </div>
           );
