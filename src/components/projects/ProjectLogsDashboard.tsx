@@ -86,7 +86,7 @@ const ProjectLogsDashboard = ({ project, isOpen, onClose }: ProjectLogsDashboard
   };
 
   return (
-    <Dialog open={isOpen} onClose={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
