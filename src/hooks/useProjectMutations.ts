@@ -49,12 +49,16 @@ export const useProjectMutations = () => {
 
   const updateProjectMutation = useMutation({
     mutationFn: async (projectData: UpdateProjectData) => {
+      console.log('🔄 Iniciando actualización del proyecto:', projectData);
+      
       const { id, ...updateData } = projectData;
       
       // Si hay un cambio de estado, registrar el timestamp
       if (updateData.status) {
         updateData.last_status_change = new Date().toISOString();
       }
+
+      console.log('📝 Datos de actualización:', updateData);
 
       const { data, error } = await supabase
         .from('projects')
@@ -66,11 +70,16 @@ export const useProjectMutations = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error en la actualización:', error);
+        throw error;
+      }
+
+      console.log('✅ Proyecto actualizado en la base de datos:', data);
 
       // Registrar en el historial si es necesario
       if (user) {
-        await supabase
+        const { error: historyError } = await supabase
           .from('project_history')
           .insert({
             project_id: id,
@@ -79,11 +88,17 @@ export const useProjectMutations = () => {
             new_values: updateData,
             notes: updateData.change_reason || 'Proyecto actualizado',
           });
+
+        if (historyError) {
+          console.warn('⚠️ Error al registrar historial:', historyError);
+          // No lanzamos error para no bloquear la actualización principal
+        }
       }
 
       return data;
     },
     onSuccess: () => {
+      console.log('🎉 Actualización exitosa, invalidando queries...');
       queryClient.invalidateQueries({ queryKey: ['projects', user?.id] });
       toast({
         title: "Proyecto actualizado",
@@ -91,6 +106,7 @@ export const useProjectMutations = () => {
       });
     },
     onError: (error) => {
+      console.error('💥 Error en la mutación de actualización:', error);
       toast({
         title: "Error al actualizar proyecto",
         description: error.message,
@@ -281,7 +297,7 @@ export const useProjectMutations = () => {
 
   return {
     createProject: createProjectMutation.mutate,
-    updateProject: updateProjectMutation.mutate,
+    updateProject: updateProjectMutation.mutateAsync, // Cambio a mutateAsync para manejar promesas
     deleteProject: deleteProjectMutation.mutate,
     isCreatingProject: createProjectMutation.isPending,
     isUpdatingProject: updateProjectMutation.isPending,

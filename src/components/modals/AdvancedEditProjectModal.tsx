@@ -92,6 +92,7 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
 
   useEffect(() => {
     if (project) {
+      console.log('🔄 Configurando formulario con proyecto:', project);
       form.reset({
         name: project.name,
         description: project.description || '',
@@ -109,19 +110,33 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
     }
   }, [project, form]);
 
-  const onSubmit = (data: ProjectFormData) => {
-    if (!project) return;
+  const onSubmit = async (data: ProjectFormData) => {
+    if (!project) {
+      console.error('❌ No hay proyecto para actualizar');
+      return;
+    }
 
-    const projectData: UpdateProjectData = {
-      id: project.id,
-      ...data,
-      start_date: data.start_date || null,
-      end_date: data.end_date || null,
-      deadline: data.deadline || null,
-    };
+    console.log('📝 Datos del formulario:', data);
+    console.log('🎯 ID del proyecto:', project.id);
 
-    updateProject(projectData);
-    onClose();
+    try {
+      const projectData: UpdateProjectData = {
+        id: project.id,
+        ...data,
+        start_date: data.start_date || null,
+        end_date: data.end_date || null,
+        deadline: data.deadline || null,
+      };
+
+      console.log('🚀 Enviando actualización del proyecto:', projectData);
+      
+      await updateProject(projectData);
+      
+      console.log('✅ Proyecto actualizado exitosamente');
+      onClose();
+    } catch (error) {
+      console.error('💥 Error al actualizar proyecto:', error);
+    }
   };
 
   const handleClose = () => {
@@ -218,7 +233,7 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Prioridad</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecciona prioridad" />
@@ -264,14 +279,20 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
                                     : 'border-gray-300 hover:border-gray-500'
                                 }`}
                                 style={{ backgroundColor: color }}
-                                onClick={() => field.onChange(color)}
+                                onClick={() => {
+                                  console.log('🎨 Cambiando color a:', color);
+                                  field.onChange(color);
+                                }}
                               />
                             ))}
                           </div>
                           <Input
                             type="color"
                             value={field.value}
-                            onChange={field.onChange}
+                            onChange={(e) => {
+                              console.log('🎨 Cambiando color personalizado a:', e.target.value);
+                              field.onChange(e.target.value);
+                            }}
                             className="w-full h-10"
                           />
                         </div>
@@ -549,7 +570,11 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isUpdatingProject}>
+              <Button 
+                type="submit" 
+                disabled={isUpdatingProject}
+                className="min-w-[140px]"
+              >
                 {isUpdatingProject ? 'Actualizando...' : 'Actualizar Proyecto'}
               </Button>
             </div>
