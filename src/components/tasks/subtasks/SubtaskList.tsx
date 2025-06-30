@@ -1,14 +1,15 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Task } from '@/hooks/useTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useTasks } from '@/hooks/useTasks';
 import { useSubtaskExpansion } from '@/hooks/useSubtaskExpansion';
-import SubtaskHeader from './subtasks/SubtaskHeader';
-import SubtaskItem from './subtasks/SubtaskItem';
-import MicrotaskList from './subtasks/MicrotaskList';
-import TaskCreator from './subtasks/TaskCreator';
-import TaskCreatorModal from './subtasks/TaskCreatorModal';
+import SubtaskHeader from './SubtaskHeader';
+import SubtaskItem from './SubtaskItem';
+import MicrotaskList from './MicrotaskList';
+import TaskCreator from './TaskCreator';
+import TaskCreatorModal from './TaskCreatorModal';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
@@ -191,6 +192,7 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
                   onUpdateTask={updateTask}
                   onDeleteTask={handleDeleteMicrotask}
                   onCreateMicrotask={(data) => handleCreateMicrotask(subtask.id, data)}
+                  parentTask={subtask}
                 />
               </SubtaskItem>
             );
