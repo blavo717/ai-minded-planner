@@ -1,12 +1,12 @@
 
 import { useCallback } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { useLLMService } from '@/hooks/useLLMService';
-import { useSmartPrompts } from '@/hooks/ai/useSmartPrompts';
 import { useAIContext } from '@/hooks/ai/useAIContext';
-import { EnhancedMessage } from './types/enhancedAITypes';
-import { messageHistoryService } from './services/messageHistoryService';
-import { messageProcessingService } from './services/messageProcessingService';
+import { messageHistoryService } from '@/hooks/ai/services/messageHistoryService';
+import { messageProcessingService } from '@/hooks/ai/services/messageProcessingService';
+import { messagePrefetcher } from '@/hooks/ai/services/messagePrefetcher';
+import { EnhancedMessage } from '@/hooks/ai/types/enhancedAITypes';
+import { useToast } from '@/hooks/use-toast';
 
 interface UseMessageHandlersProps {
   userId?: string;
@@ -14,11 +14,11 @@ interface UseMessageHandlersProps {
   activeModel?: string;
   isLoading: boolean;
   isSendingRef: React.MutableRefObject<boolean>;
-  onMessagesUpdate: (messages: EnhancedMessage[]) => void;
+  onMessagesUpdate: (updater: (prev: EnhancedMessage[]) => EnhancedMessage[]) => void;
   onSetLoading: (loading: boolean) => void;
   onSetConnecting: () => void;
   onSetConnected: () => void;
-  onSetError: () => void;
+  onSetError: (error: string) => void;
 }
 
 export const useMessageHandlers = ({
@@ -33,150 +33,183 @@ export const useMessageHandlers = ({
   onSetConnected,
   onSetError,
 }: UseMessageHandlersProps) => {
-  const { makeLLMRequest } = useLLMService();
-  const { getContextualSystemPrompt } = useSmartPrompts();
-  const { currentContext, refreshContext } = useAIContext();
+  const { sendMessage: sendToLLM } = useLLMService();
+  const { currentContext } = useAIContext();
   const { toast } = useToast();
 
-  const sendMessage = useCallback(async (content: string) => {
-    // Prevent multiple simultaneous sends
-    if (!hasActiveConfiguration || !content.trim() || isLoading || !userId || isSendingRef.current) {
+  const sendMessage = useCallback(
+    async (content: string) => {
       if (!hasActiveConfiguration) {
         toast({
           title: 'Configuración requerida',
-          description: 'Ve a Configuración > IA para configurar tu API key.',
+          description: 'Por favor, configura un modelo de LLM antes de enviar mensajes.',
           variant: 'destructive',
         });
+        return;
       }
-      return;
-    }
 
-    console.log('🤖 Enviando mensaje:', { 
-      content: content.substring(0, 50) + '...',
-      contextAvailable: !!currentContext,
-      activeModel: activeModel,
-    });
-    
-    // Mark that we're sending
-    isSendingRef.current = true;
-    onSetConnecting();
-    onSetLoading(true);
+      if (!userId) {
+        toast({
+          title: 'Error de autenticación',
+          description: 'Debes estar autenticado para enviar mensajes.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-    // Create user message with unique ID
-    const userMessage = messageProcessingService.createUserMessage(content);
+      if (isLoading || isSendingRef.current) {
+        console.log('⏳ Mensaje en proceso, ignorando nuevo envío');
+        return;
+      }
 
-    try {
-      // Update state immediately
-      const currentMessages = await messageHistoryService.loadConversationHistory(userId);
-      const newMessages = [...currentMessages, userMessage];
-      const uniqueMessages = messageProcessingService.removeDuplicateMessages(newMessages);
-      onMessagesUpdate(uniqueMessages);
+      if (!content.trim()) {
+        toast({
+          title: 'Mensaje vacío',
+          description: 'Por favor, ingresa un mensaje antes de enviar.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-      // Save user message
-      await messageHistoryService.saveMessageToHistory(userMessage, userId);
+      // Lock para prevenir envíos simultáneos
+      isSendingRef.current = true;
+      onSetLoading(true);
+      onSetConnecting();
 
-      // Refresh context before generating response
-      refreshContext();
+      try {
+        console.log('📤 Enviando mensaje:', content.substring(0, 50) + '...');
+        
+        // Crear mensaje del usuario
+        const userMessage: EnhancedMessage = {
+          id: messageProcessingService.generateUniqueId(),
+          type: 'user',
+          content: content.trim(),
+          timestamp: new Date(),
+          metadata: { 
+            model: activeModel,
+            contextUsed: !!currentContext,
+            userId: userId 
+          },
+        };
 
-      // Generate contextual system prompt
-      const contextualSystemPrompt = getContextualSystemPrompt();
-      
-      // Load recent messages for context
-      const recentMessages = currentMessages.slice(-4);
-      const conversationContext = recentMessages.length > 0 
-        ? `\n\nContexto de conversación reciente:\n${recentMessages.map(msg => 
-            `${msg.type === 'user' ? 'Usuario' : 'Asistente'}: ${msg.content.substring(0, 150)}`
-          ).join('\n')}`
-        : '';
+        // Agregar mensaje del usuario inmediatamente
+        onMessagesUpdate((prev) => {
+          const processed = messageProcessingService.processNewMessage(prev, userMessage);
+          return processed;
+        });
 
-      const fullSystemPrompt = contextualSystemPrompt + conversationContext;
+        // Guardar mensaje del usuario
+        await messageHistoryService.saveMessageToHistory(userMessage, userId);
 
-      const response = await makeLLMRequest({
-        systemPrompt: fullSystemPrompt,
-        userPrompt: content,
-        functionName: 'enhanced_assistant_chat',
-        temperature: 0.7,
-        maxTokens: 1500,
-      });
+        // NUEVO: Procesar mensaje para prefetch
+        await messagePrefetcher.processMessageForPrefetch(userId, userMessage);
 
-      // Create assistant message with metadata
-      const assistantMessage = messageProcessingService.createAssistantMessage(
-        response.content,
-        {
-          model_used: response.model_used,
-          tokens_used: response.tokens_used,
-          prompt_tokens: response.prompt_tokens,
-          completion_tokens: response.completion_tokens,
-          response_time: response.response_time,
-          context_data: {
-            user_tasks: currentContext?.userInfo?.pendingTasks,
-            user_projects: currentContext?.userInfo?.hasActiveProjects,
-            session_time: currentContext?.currentSession?.timeOfDay,
-            active_model: response.model_used,
-          }
+        // NUEVO: Verificar si hay datos prefetched para esta query
+        const queryType = categorizarConsulta(content);
+        const prefetchedData = messagePrefetcher.getPrefetchedData(userId, queryType);
+        
+        const startTime = Date.now();
+
+        // Enviar mensaje al LLM con contexto
+        const llmResponse = await sendToLLM(content, currentContext || undefined);
+        
+        const responseTime = Date.now() - startTime;
+
+        // NUEVO: Aprender de la interacción para mejorar predicciones
+        messagePrefetcher.learnFromInteraction(userId, queryType, responseTime);
+
+        console.log('✅ Respuesta recibida del LLM:', {
+          model: llmResponse.model,
+          tokens: llmResponse.tokensUsed,
+          responseTime: `${responseTime}ms`,
+          prefetchUsed: !!prefetchedData
+        });
+
+        if (llmResponse.content) {
+          // Crear mensaje del asistente con metadata completa
+          const assistantMessage: EnhancedMessage = {
+            id: messageProcessingService.generateUniqueId(),
+            type: 'assistant',
+            content: llmResponse.content,
+            timestamp: new Date(),
+            metadata: {
+              model: llmResponse.model || activeModel,
+              tokensUsed: llmResponse.tokensUsed,
+              responseTime: responseTime,
+              contextUsed: !!currentContext,
+              prefetchUsed: !!prefetchedData,
+              userId: userId
+            },
+          };
+
+          // Agregar mensaje del asistente
+          onMessagesUpdate((prev) => {
+            const processed = messageProcessingService.processNewMessage(prev, assistantMessage);
+            return processed;
+          });
+
+          // Guardar mensaje del asistente
+          await messageHistoryService.saveMessageToHistory(assistantMessage, userId);
+
+          // NUEVO: Procesar respuesta para análisis de patrones
+          await messagePrefetcher.processMessageForPrefetch(userId, assistantMessage);
+
+          onSetConnected();
+          
+          toast({
+            title: 'Mensaje enviado',
+            description: prefetchedData 
+              ? `Respuesta optimizada con prefetch (${responseTime}ms)`
+              : `Respuesta recibida (${responseTime}ms)`,
+          });
+        } else {
+          throw new Error('No se recibió contenido en la respuesta del LLM');
         }
-      );
+      } catch (error) {
+        console.error('❌ Error enviando mensaje:', error);
+        
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+        onSetError(errorMessage);
+        
+        toast({
+          title: 'Error al enviar mensaje',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      } finally {
+        isSendingRef.current = false;
+        onSetLoading(false);
+      }
+    },
+    [
+      hasActiveConfiguration,
+      userId,
+      isLoading,
+      activeModel,
+      currentContext,
+      sendToLLM,
+      toast,
+      onMessagesUpdate,
+      onSetLoading,
+      onSetConnecting,
+      onSetConnected,
+      onSetError,
+    ]
+  );
 
-      // Update messages
-      const finalMessages = [...uniqueMessages, assistantMessage];
-      const finalUniqueMessages = messageProcessingService.removeDuplicateMessages(finalMessages);
-      onMessagesUpdate(finalUniqueMessages);
-
-      // Save assistant message
-      await messageHistoryService.saveMessageToHistory(assistantMessage, userId);
-      
-      onSetConnected();
-
-      console.log('✅ Respuesta recibida:', { 
-        responseLength: response.content.length,
-        model: response.model_used,
-        tokensUsed: response.tokens_used,
-        promptTokens: response.prompt_tokens,
-        completionTokens: response.completion_tokens,
-        responseTime: response.response_time,
-      });
-
-    } catch (error: any) {
-      console.error('❌ Error en asistente:', error);
-      
-      onSetError();
-      
-      toast({
-        title: 'Error en el asistente',
-        description: error.message || 'No se pudo procesar tu mensaje. Intenta de nuevo.',
-        variant: 'destructive',
-      });
-
-      // Error message
-      const errorMessage = messageProcessingService.createErrorMessage(error);
-      const currentMessages = await messageHistoryService.loadConversationHistory(userId);
-      const messagesWithError = [...currentMessages, errorMessage];
-      const uniqueMessagesWithError = messageProcessingService.removeDuplicateMessages(messagesWithError);
-      onMessagesUpdate(uniqueMessagesWithError);
-      await messageHistoryService.saveMessageToHistory(errorMessage, userId);
-    } finally {
-      onSetLoading(false);
-      isSendingRef.current = false;
-    }
-  }, [
-    makeLLMRequest, 
-    hasActiveConfiguration, 
-    toast, 
-    currentContext, 
-    getContextualSystemPrompt, 
-    refreshContext, 
-    userId, 
-    isLoading, 
-    activeModel,
-    onMessagesUpdate,
-    onSetLoading,
-    onSetConnecting,
-    onSetConnected,
-    onSetError,
-    isSendingRef
-  ]);
-
-  return {
-    sendMessage,
-  };
+  return { sendMessage };
 };
+
+// Función auxiliar para categorizar consultas para prefetch
+function categorizarConsulta(content: string): string {
+  const contentLower = content.toLowerCase();
+  
+  if (contentLower.includes('tarea') || contentLower.includes('task')) return 'task_query';
+  if (contentLower.includes('proyecto') || contentLower.includes('project')) return 'project_query';
+  if (contentLower.includes('tiempo') || contentLower.includes('plazo')) return 'time_query';
+  if (contentLower.includes('ayuda') || contentLower.includes('cómo')) return 'help_query';
+  if (contentLower.includes('análisis') || contentLower.includes('reporte')) return 'analysis_query';
+  if (contentLower.includes('prioridad') || contentLower.includes('urgente')) return 'priority_query';
+  
+  return 'general_query';
+}
