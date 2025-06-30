@@ -21,6 +21,8 @@ import { Project } from '@/hooks/useProjects';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import CompactSubtaskList from './CompactSubtaskList';
+import LogIcon from './logs/LogIcon';
+import TaskActivityLog from './logs/TaskActivityLog';
 
 interface CompactTaskCardProps {
   task: Task;
@@ -49,6 +51,7 @@ const CompactTaskCard = memo(({
 }: CompactTaskCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [selectedLogTask, setSelectedLogTask] = useState<Task | null>(null);
 
   const completedSubtasks = subtasks.filter(st => st.status === 'completed').length;
   const totalSubtasks = subtasks.length;
@@ -89,126 +92,145 @@ const CompactTaskCard = memo(({
   };
 
   return (
-    <div className="space-y-0">
-      <Card 
-        className={`border-l-4 transition-all duration-200 ${
-          isCompleted ? 'bg-gray-50 opacity-75' : 'bg-white hover:bg-gray-50'
-        }`}
-        style={{ borderLeftColor: project?.color || getPriorityColor().replace('bg-', '#') }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <div className="py-3 px-4">
-          <div className="flex items-center gap-3">
-            {/* Checkbox prominente */}
-            <Checkbox
-              checked={isCompleted}
-              onCheckedChange={handleToggleComplete}
-              className="h-4 w-4"
-            />
+    <>
+      <div className="space-y-0">
+        <Card 
+          className={`border-l-4 transition-all duration-200 ${
+            isCompleted ? 'bg-gray-50 opacity-75' : 'bg-white hover:bg-gray-50'
+          }`}
+          style={{ borderLeftColor: project?.color || getPriorityColor().replace('bg-', '#') }}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <div className="py-3 px-4">
+            <div className="flex items-center gap-3">
+              {/* Checkbox prominente */}
+              <Checkbox
+                checked={isCompleted}
+                onCheckedChange={handleToggleComplete}
+                className="h-4 w-4"
+              />
 
-            {/* Botón de expansión para subtareas */}
-            {hasSubtasks && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleToggleExpand}
-                className="h-4 w-4 p-0 text-gray-400 hover:text-gray-600"
-              >
-                {isExpanded ? (
-                  <ChevronDown className="h-3 w-3" />
-                ) : (
-                  <ChevronRight className="h-3 w-3" />
-                )}
-              </Button>
-            )}
+              {/* Botón de expansión para subtareas */}
+              {hasSubtasks && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleToggleExpand}
+                  className="h-4 w-4 p-0 text-gray-400 hover:text-gray-600"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="h-3 w-3" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3" />
+                  )}
+                </Button>
+              )}
 
-            {/* Contenido principal */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className={`font-medium text-base truncate ${
-                  isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'
-                }`}>
-                  {task.title}
-                </h3>
-                
-                {/* Metadata compacta */}
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  {task.due_date && (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>{format(new Date(task.due_date), 'dd/MM', { locale: es })}</span>
-                    </div>
-                  )}
-                  {task.estimated_duration && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>{task.estimated_duration}h</span>
-                    </div>
-                  )}
+              {/* Contenido principal */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className={`font-medium text-base truncate ${
+                    isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'
+                  }`}>
+                    {task.title}
+                  </h3>
+                  
+                  {/* Metadata compacta */}
+                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                    {task.due_date && (
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{format(new Date(task.due_date), 'dd/MM', { locale: es })}</span>
+                      </div>
+                    )}
+                    {task.estimated_duration && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{task.estimated_duration}h</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Indicadores de estado y progreso */}
-            <div className="flex items-center gap-2">
-              {/* Progreso de subtareas */}
-              {showProgress && (
-                <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                  {completedSubtasks}/{totalSubtasks}
-                </div>
-              )}
+              {/* Indicadores de estado y progreso */}
+              <div className="flex items-center gap-2">
+                {/* Log Icon */}
+                <LogIcon 
+                  taskId={task.id} 
+                  className="h-4 w-4"
+                  onClick={() => setSelectedLogTask(task)}
+                />
 
-              {/* Punto de estado */}
-              <div className={getStatusDot()} />
+                {/* Progreso de subtareas */}
+                {showProgress && (
+                  <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                    {completedSubtasks}/{totalSubtasks}
+                  </div>
+                )}
 
-              {/* Acciones (visibles al hover) */}
-              {(isHovered || isExpanded) && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border">
-                    <DropdownMenuItem onClick={() => onEditTask(task)}>
-                      Editar tarea
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onManageDependencies(task)}>
-                      Dependencias
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onAssignTask(task)}>
-                      Asignar
-                    </DropdownMenuItem>
-                    {isCompleted && (
-                      <DropdownMenuItem onClick={() => onArchiveTask(task.id)}>
-                        Archivar
+                {/* Punto de estado */}
+                <div className={getStatusDot()} />
+
+                {/* Acciones (visibles al hover) */}
+                {(isHovered || isExpanded) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border">
+                      <DropdownMenuItem onClick={() => onEditTask(task)}>
+                        Editar tarea
                       </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem 
-                      onClick={() => onArchiveTask(task.id)}
-                      className="text-red-600"
-                    >
-                      Eliminar
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+                      <DropdownMenuItem onClick={() => onManageDependencies(task)}>
+                        Dependencias
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onAssignTask(task)}>
+                        Asignar
+                      </DropdownMenuItem>
+                      {isCompleted && (
+                        <DropdownMenuItem onClick={() => onArchiveTask(task.id)}>
+                          Archivar
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem 
+                        onClick={() => onArchiveTask(task.id)}
+                        className="text-red-600"
+                      >
+                        Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
 
-      {/* Lista expandible de subtareas */}
-      {isExpanded && hasSubtasks && (
-        <CompactSubtaskList
-          parentTask={task}
-          subtasks={subtasks}
-          onCreateSubtask={onCreateSubtask}
-          getSubtasksForTask={getSubtasksForTask}
+        {/* Lista expandible de subtareas */}
+        {isExpanded && hasSubtasks && (
+          <CompactSubtaskList
+            parentTask={task}
+            subtasks={subtasks}
+            onCreateSubtask={onCreateSubtask}
+            getSubtasksForTask={getSubtasksForTask}
+          />
+        )}
+      </div>
+
+      {/* Modal de Log de Actividad */}
+      {selectedLogTask && (
+        <TaskActivityLog
+          taskId={selectedLogTask.id}
+          taskTitle={selectedLogTask.title}
+          isOpen={true}
+          onClose={() => setSelectedLogTask(null)}
         />
       )}
-    </div>
+    </>
   );
 });
 

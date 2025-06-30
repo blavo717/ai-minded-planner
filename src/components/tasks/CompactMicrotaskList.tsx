@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Task } from '@/hooks/useTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
+import LogIcon from './logs/LogIcon';
+import TaskActivityLog from './logs/TaskActivityLog';
 
 interface CompactMicrotaskListProps {
   parentSubtask: Task;
@@ -29,6 +31,7 @@ const CompactMicrotaskList = memo(({
 }: CompactMicrotaskListProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newMicrotaskTitle, setNewMicrotaskTitle] = useState('');
+  const [selectedLogTask, setSelectedLogTask] = useState<Task | null>(null);
   const { updateTask, deleteTask, createMicrotask } = useTaskMutations();
 
   const handleCreateMicrotask = () => {
@@ -48,100 +51,121 @@ const CompactMicrotaskList = memo(({
   };
 
   return (
-    <div className="ml-12 space-y-1">
-      {microtasks.map((microtask) => {
-        const isCompleted = microtask.status === 'completed';
-        
-        return (
-          <div 
-            key={microtask.id} 
-            className={`py-1 px-4 rounded-sm transition-colors group ${
-              isCompleted ? 'bg-gray-25' : 'hover:bg-gray-25'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={isCompleted}
-                onCheckedChange={(checked) => handleToggleMicrotaskComplete(microtask, checked as boolean)}
-                className="h-2.5 w-2.5"
-              />
-
-              <span className={`font-normal text-xs flex-1 truncate ${
-                isCompleted ? 'text-gray-400 line-through' : 'text-gray-600'
-              }`}>
-                {microtask.title}
-              </span>
-
-              <div className="w-1 h-1 rounded-full bg-indigo-400" />
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-3 w-3 p-0 opacity-0 group-hover:opacity-100">
-                    <MoreHorizontal className="h-2 w-2" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-32 bg-white shadow-lg border">
-                  <DropdownMenuItem onClick={() => updateTask({ id: microtask.id, title: 'Nuevo título' })}>
-                    Editar
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => deleteTask(microtask.id)}
-                    className="text-red-600"
-                  >
-                    Eliminar
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Creador de microtareas ultra-compacto */}
-      <div className="py-0.5">
-        {isCreating ? (
-          <div className="flex items-center gap-1 py-1 px-2 bg-gray-25 rounded-sm">
-            <Input
-              value={newMicrotaskTitle}
-              onChange={(e) => setNewMicrotaskTitle(e.target.value)}
-              placeholder="Nueva microtarea..."
-              className="h-5 text-xs flex-1 border-0 bg-transparent focus:ring-0"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreateMicrotask();
-                if (e.key === 'Escape') setIsCreating(false);
-              }}
-            />
-            <Button
-              size="sm"
-              onClick={handleCreateMicrotask}
-              className="h-4 w-4 p-0"
-              disabled={!newMicrotaskTitle.trim()}
+    <>
+      <div className="ml-12 border-l border-gray-300 pl-4 space-y-1">
+        {microtasks.map((microtask) => {
+          const isCompleted = microtask.status === 'completed';
+          
+          return (
+            <div 
+              key={microtask.id} 
+              className={`py-1 px-3 rounded-sm transition-colors group relative ${
+                isCompleted ? 'bg-gray-25' : 'hover:bg-gray-25'
+              }`}
             >
-              <Check className="h-2 w-2" />
-            </Button>
+              {/* Conector visual sutil */}
+              <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-200" />
+              
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={isCompleted}
+                  onCheckedChange={(checked) => handleToggleMicrotaskComplete(microtask, checked as boolean)}
+                  className="h-3 w-3"
+                />
+
+                <span className={`font-normal text-xs flex-1 truncate ${
+                  isCompleted ? 'text-gray-400 line-through' : 'text-gray-600'
+                }`}>
+                  {microtask.title}
+                </span>
+
+                <LogIcon 
+                  taskId={microtask.id} 
+                  className="h-2 w-2"
+                  onClick={() => setSelectedLogTask(microtask)}
+                />
+
+                <div className="w-1 h-1 rounded-full bg-indigo-400" />
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-3 w-3 p-0 opacity-0 group-hover:opacity-100">
+                      <MoreHorizontal className="h-2 w-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-32 bg-white shadow-lg border">
+                    <DropdownMenuItem onClick={() => updateTask({ id: microtask.id, title: 'Nuevo título' })}>
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => deleteTask(microtask.id)}
+                      className="text-red-600"
+                    >
+                      Eliminar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Creador de microtareas ultra-compacto */}
+        <div className="py-0.5">
+          {isCreating ? (
+            <div className="flex items-center gap-1 py-1 px-2 bg-gray-25 rounded-sm">
+              <Input
+                value={newMicrotaskTitle}
+                onChange={(e) => setNewMicrotaskTitle(e.target.value)}
+                placeholder="Nueva microtarea..."
+                className="h-5 text-xs flex-1 border-0 bg-transparent focus:ring-0"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateMicrotask();
+                  if (e.key === 'Escape') setIsCreating(false);
+                }}
+              />
+              <Button
+                size="sm"
+                onClick={handleCreateMicrotask}
+                className="h-4 w-4 p-0"
+                disabled={!newMicrotaskTitle.trim()}
+              >
+                <Check className="h-2 w-2" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsCreating(false)}
+                className="h-4 w-4 p-0"
+              >
+                <X className="h-2 w-2" />
+              </Button>
+            </div>
+          ) : (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsCreating(false)}
-              className="h-4 w-4 p-0"
+              onClick={() => setIsCreating(true)}
+              className="h-5 text-xs text-gray-400 hover:text-gray-600 justify-start w-full px-2"
             >
-              <X className="h-2 w-2" />
+              <Plus className="h-2 w-2 mr-1" />
+              Añadir microtarea
             </Button>
-          </div>
-        ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsCreating(true)}
-            className="h-5 text-xs text-gray-400 hover:text-gray-600 justify-start w-full px-2"
-          >
-            <Plus className="h-2 w-2 mr-1" />
-            Añadir microtarea
-          </Button>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Modal de Log de Actividad */}
+      {selectedLogTask && (
+        <TaskActivityLog
+          taskId={selectedLogTask.id}
+          taskTitle={selectedLogTask.title}
+          isOpen={true}
+          onClose={() => setSelectedLogTask(null)}
+        />
+      )}
+    </>
   );
 });
 
