@@ -85,9 +85,7 @@ const CompactTaskCard = memo(({
   };
 
   const handleToggleExpand = () => {
-    if (hasSubtasks) {
-      setIsExpanded(!isExpanded);
-    }
+    setIsExpanded(!isExpanded);
   };
 
   return (
@@ -108,21 +106,19 @@ const CompactTaskCard = memo(({
                 className="h-4 w-4"
               />
 
-              {/* Botón de expansión para subtareas */}
-              {hasSubtasks && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleToggleExpand}
-                  className="h-4 w-4 p-0 text-gray-400 hover:text-gray-600"
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-3 w-3" />
-                  ) : (
-                    <ChevronRight className="h-3 w-3" />
-                  )}
-                </Button>
-              )}
+              {/* Botón de expansión - SIEMPRE VISIBLE */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggleExpand}
+                className="h-4 w-4 p-0 text-gray-400 hover:text-gray-600"
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-3 w-3" />
+                ) : (
+                  <ChevronRight className="h-3 w-3" />
+                )}
+              </Button>
 
               {/* Contenido principal */}
               <div className="flex-1 min-w-0">
@@ -160,7 +156,7 @@ const CompactTaskCard = memo(({
                   onClick={() => setSelectedLogTask(task)}
                 />
 
-                {/* Progreso de subtareas */}
+                {/* Progreso de subtareas - solo si hay subtareas */}
                 {showProgress && (
                   <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                     {completedSubtasks}/{totalSubtasks}
@@ -214,15 +210,29 @@ const CompactTaskCard = memo(({
           </div>
         </Card>
 
-        {/* Lista expandible de subtareas */}
-        {isExpanded && hasSubtasks && (
-          <CompactSubtaskList
-            parentTask={task}
-            subtasks={subtasks}
-            onCreateSubtask={onCreateSubtask}
-            onEditTask={onEditTask}
-            getSubtasksForTask={getSubtasksForTask}
-          />
+        {/* Lista expandible de subtareas O botón de crear si no hay subtareas */}
+        {isExpanded && (
+          hasSubtasks ? (
+            <CompactSubtaskList
+              parentTask={task}
+              subtasks={subtasks}
+              onCreateSubtask={onCreateSubtask}
+              onEditTask={onEditTask}
+              getSubtasksForTask={getSubtasksForTask}
+            />
+          ) : (
+            <div className="ml-6 border-l-2 border-gray-200 pl-4 py-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onCreateSubtask(task.id, 'Nueva subtarea')}
+                className="h-6 text-xs text-gray-500 hover:text-gray-700 justify-start w-full"
+              >
+                <ChevronRight className="h-3 w-3 mr-1" />
+                Añadir subtarea
+              </Button>
+            </div>
+          )
         )}
       </div>
 
