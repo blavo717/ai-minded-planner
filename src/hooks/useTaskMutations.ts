@@ -326,8 +326,15 @@ export const useTaskMutations = () => {
     },
     onSuccess: () => {
       console.log('🎉 Eliminación exitosa, invalidando queries...');
-      queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['archived-tasks', user?.id] });
+      // Usar invalidación más específica y optimizada
+      queryClient.invalidateQueries({ 
+        queryKey: ['tasks', user?.id],
+        refetchType: 'active' // Solo refetch de queries activas
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['archived-tasks', user?.id],
+        refetchType: 'active'
+      });
       toast({
         title: "Tarea eliminada",
         description: "La tarea se ha eliminado exitosamente junto con todos sus registros relacionados.",

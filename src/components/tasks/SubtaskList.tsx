@@ -23,7 +23,13 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { updateTask, deleteTask, createMicrotask, isCreatingTask } = useTaskMutations();
   const { getMicrotasksForSubtask } = useTasks();
-  const { toggleSubtaskExpansion, isSubtaskExpanded } = useSubtaskExpansion();
+  const { 
+    toggleSubtaskExpansion, 
+    isSubtaskExpanded,
+    preserveExpansionState,
+    restoreExpansionState,
+    removeFromExpansion
+  } = useSubtaskExpansion();
 
   const handleCreateSubtask = (data: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; estimated_duration?: number }) => {
     if (data.title && data.title.trim()) {
@@ -46,20 +52,56 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
     }
   };
 
-  const handleDeleteSubtask = (taskId: string) => {
-    deleteTask(taskId);
-    toast({
-      title: "Subtarea eliminada",
-      description: "La subtarea se ha eliminado exitosamente.",
-    });
+  const handleDeleteSubtask = async (taskId: string) => {
+    // Preservar el estado de expansión antes de eliminar
+    const currentExpansionState = preserveExpansionState();
+    
+    try {
+      // Eliminar la subtarea del estado de expansión ya que se va a eliminar
+      removeFromExpansion(taskId);
+      
+      // Eliminar la tarea
+      await deleteTask(taskId);
+      
+      toast({
+        title: "Subtarea eliminada",
+        description: "La subtarea se ha eliminado exitosamente.",
+      });
+      
+      // Restaurar el estado de expansión después de la eliminación
+      // (sin incluir la subtarea eliminada)
+      setTimeout(() => {
+        restoreExpansionState(currentExpansionState);
+      }, 100);
+      
+    } catch (error) {
+      // Si hay error, restaurar el estado completo
+      restoreExpansionState(currentExpansionState);
+      console.error('Error al eliminar subtarea:', error);
+    }
   };
 
-  const handleDeleteMicrotask = (taskId: string) => {
-    deleteTask(taskId);
-    toast({
-      title: "Microtarea eliminada",
-      description: "La microtarea se ha eliminado exitosamente.",
-    });
+  const handleDeleteMicrotask = async (taskId: string) => {
+    // Para microtareas, solo preservamos el estado sin modificarlo
+    const currentExpansionState = preserveExpansionState();
+    
+    try {
+      await deleteTask(taskId);
+      
+      toast({
+        title: "Microtarea eliminada",
+        description: "La microtarea se ha eliminado exitosamente.",
+      });
+      
+      // Restaurar el estado de expansión después de la eliminación
+      setTimeout(() => {
+        restoreExpansionState(currentExpansionState);
+      }, 100);
+      
+    } catch (error) {
+      restoreExpansionState(currentExpansionState);
+      console.error('Error al eliminar microtarea:', error);
+    }
   };
 
   const completedCount = subtasks.filter(task => task.status === 'completed').length;

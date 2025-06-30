@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Task } from '@/hooks/useTasks';
 import { useAIAssistantSimple } from '@/hooks/useAIAssistantSimple';
@@ -41,6 +42,12 @@ const MicrotaskList = ({
   const handleCreateMicrotask = (data: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; estimated_duration?: number }) => {
     onCreateMicrotask(data);
     setIsCreateModalOpen(false);
+  };
+
+  const handleDeleteMicrotask = async (taskId: string) => {
+    // Llamar directamente a la función de eliminación del padre
+    // El estado de expansión se maneja en SubtaskList
+    await onDeleteTask(taskId);
   };
 
   const handleAISuggestions = () => {
@@ -157,7 +164,7 @@ const MicrotaskList = ({
                 key={microtask.id}
                 microtask={microtask}
                 onUpdate={onUpdateTask}
-                onDelete={onDeleteTask}
+                onDelete={handleDeleteMicrotask}
               />
             ))}
           </div>
