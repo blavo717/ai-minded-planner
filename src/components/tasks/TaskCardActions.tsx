@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
+import { toast } from '@/hooks/use-toast';
 
 interface TaskCardActionsProps {
   task: Task;
@@ -33,12 +34,30 @@ const TaskCardActions = ({
   onArchiveTask 
 }: TaskCardActionsProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const { deleteTask } = useTaskMutations();
+  const { deleteTask, isDeletingTask } = useTaskMutations();
 
-  const handleDeleteTask = useCallback(() => {
-    deleteTask(task.id);
-    setShowDeleteDialog(false);
-  }, [deleteTask, task.id]);
+  const handleDeleteTask = useCallback(async () => {
+    try {
+      console.log('Iniciando eliminación de tarea:', task.id, task.title);
+      
+      await deleteTask(task.id);
+      
+      console.log('Tarea eliminada exitosamente:', task.id);
+      setShowDeleteDialog(false);
+      
+      toast({
+        title: "Tarea eliminada",
+        description: `La tarea "${task.title}" se ha eliminado correctamente junto con todas sus subtareas.`,
+      });
+    } catch (error) {
+      console.error('Error al eliminar tarea:', error);
+      toast({
+        title: "Error al eliminar tarea",
+        description: "No se pudo eliminar la tarea. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    }
+  }, [deleteTask, task.id, task.title]);
 
   const handleEditClick = useCallback(() => {
     onEditTask(task);
@@ -105,9 +124,10 @@ const TaskCardActions = ({
           <DropdownMenuItem 
             onClick={() => setShowDeleteDialog(true)}
             className="text-red-600 focus:text-red-600"
+            disabled={isDeletingTask}
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Eliminar tarea
+            {isDeletingTask ? 'Eliminando...' : 'Eliminar tarea'}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -118,16 +138,24 @@ const TaskCardActions = ({
             <AlertDialogTitle>¿Eliminar tarea?</AlertDialogTitle>
             <AlertDialogDescription>
               ¿Estás seguro de que deseas eliminar la tarea "{task.title}"? 
-              Esta acción también eliminará todas sus subtareas y microtareas y no se puede deshacer.
+              {task.task_level === 1 && (
+                <span className="block mt-2 font-medium text-red-600">
+                  Esta acción también eliminará todas sus subtareas y microtareas de forma permanente.
+                </span>
+              )}
+              Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeletingTask}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteTask}
+              disabled={isDeletingTask}
               className="bg-red-600 hover:bg-red-700"
             >
-              Eliminar
+              {isDeletingTask ? 'Eliminando...' : 'Eliminar'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

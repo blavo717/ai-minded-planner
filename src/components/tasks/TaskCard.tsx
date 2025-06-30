@@ -40,6 +40,15 @@ const TaskCard = memo(({
   const totalSubtasks = subtasks.length;
   const isCompleted = task.status === 'completed';
 
+  // Log para debugging
+  console.log('TaskCard rendered for task:', {
+    id: task.id,
+    title: task.title,
+    status: task.status,
+    task_level: task.task_level,
+    subtasks: totalSubtasks
+  });
+
   return (
     <Card className={`w-full shadow-sm hover:shadow-md transition-all duration-200 border animate-scale-in hover:scale-[1.02] ${
       isCompleted ? 'border-green-200 bg-green-50' : project ? 'border' : 'border-gray-200'
