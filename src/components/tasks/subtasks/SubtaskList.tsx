@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Task } from '@/hooks/useTasks';
@@ -13,9 +12,9 @@ import TaskCreatorModal from './TaskCreatorModal';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
-// import TaskLogButton from '@/components/tasks/logs/TaskLogButton';
-// import TaskLogHistory from '@/components/tasks/logs/TaskLogHistory';
-// import TaskCompleteLogHistory from '@/components/tasks/logs/TaskCompleteLogHistory';
+import TaskLogButton from '@/components/tasks/logs/TaskLogButton';
+import TaskLogHistory from '@/components/tasks/logs/TaskLogHistory';
+import TaskCompleteLogHistory from '@/components/tasks/logs/TaskCompleteLogHistory';
 
 interface SubtaskListProps {
   parentTask: Task;
@@ -125,14 +124,12 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
           />
           
           <div className="flex items-center gap-2">
-            {/* Temporalmente comentado hasta crear los componentes
             <TaskLogButton
               taskId={parentTask.id}
               taskTitle={parentTask.title}
               variant="ghost"
               size="sm"
             />
-            */}
             
             <Button
               variant="ghost"
@@ -159,16 +156,18 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
         <CardContent className="space-y-4">
           {/* Mostrar historial de logs si está activado */}
           {showLogs && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Logs de "{parentTask.title}" (próximamente)</p>
-            </div>
+            <TaskLogHistory
+              taskId={parentTask.id}
+              title={`Logs de "${parentTask.title}"`}
+            />
           )}
           
           {/* Mostrar historial completo si está activado */}
           {showCompleteLogs && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Log completo (próximamente)</p>
-            </div>
+            <TaskCompleteLogHistory
+              taskId={parentTask.id}
+              taskTitle={parentTask.title}
+            />
           )}
 
           {subtasks.map((subtask) => {
