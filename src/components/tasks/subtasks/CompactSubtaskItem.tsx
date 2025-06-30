@@ -13,7 +13,8 @@ import {
   Flag,
   Edit,
   X,
-  Check
+  Check,
+  Timer
 } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 
@@ -42,13 +43,13 @@ const CompactSubtaskItem = ({
   const getStatusIcon = (status: Task['status']) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-3 w-3 text-green-500" />;
       case 'in_progress':
-        return <Clock className="h-4 w-4 text-blue-500" />;
+        return <Clock className="h-3 w-3 text-blue-500" />;
       case 'pending':
-        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+        return <AlertTriangle className="h-3 w-3 text-yellow-500" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
+        return <Clock className="h-3 w-3 text-gray-500" />;
     }
   };
 
@@ -86,8 +87,19 @@ const CompactSubtaskItem = ({
 
   const completedMicrotasks = microtasks.filter(m => m.status === 'completed').length;
 
+  // Calcular tiempo de actividad de manera simple
+  const getActivityTime = () => {
+    if (subtask.completed_at && subtask.created_at) {
+      const completed = new Date(subtask.completed_at).getTime();
+      const created = new Date(subtask.created_at).getTime();
+      const hours = Math.round((completed - created) / (1000 * 60 * 60));
+      return hours > 0 ? `${hours}h` : '<1h';
+    }
+    return null;
+  };
+
   return (
-    <div className="border rounded-md p-3 space-y-2 bg-white hover:bg-gray-50 transition-colors">
+    <div className="border rounded-md px-3 py-2 bg-white hover:bg-gray-50 transition-colors">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {getStatusIcon(subtask.status)}
@@ -97,7 +109,7 @@ const CompactSubtaskItem = ({
               <Input
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
-                className="h-7 text-sm"
+                className="h-6 text-xs"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleSaveEdit();
@@ -107,77 +119,85 @@ const CompactSubtaskItem = ({
               <Button
                 size="sm"
                 onClick={handleSaveEdit}
-                className="h-7 w-7 p-0"
+                className="h-6 w-6 p-0"
               >
-                <Check className="h-3 w-3" />
+                <Check className="h-2 w-2" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleCancelEdit}
-                className="h-7 w-7 p-0"
+                className="h-6 w-6 p-0"
               >
-                <X className="h-3 w-3" />
+                <X className="h-2 w-2" />
               </Button>
             </div>
           ) : (
-            <div className="flex-1 min-w-0">
-              <h4 
-                className="font-medium text-sm truncate cursor-pointer hover:text-blue-600"
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <span 
+                className="text-xs font-medium truncate cursor-pointer hover:text-blue-600"
                 onDoubleClick={() => setIsEditing(true)}
                 title="Doble clic para editar"
               >
                 {subtask.title}
                 {subtask.needs_followup && (
-                  <Flag className="h-3 w-3 ml-1 inline text-orange-500" />
+                  <Flag className="h-2 w-2 ml-1 inline text-orange-500" />
                 )}
-              </h4>
-              {subtask.description && (
-                <p className="text-xs text-gray-500 truncate">
-                  {subtask.description}
-                </p>
-              )}
+              </span>
+              
+              {/* Información de actividad inline */}
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                {getActivityTime() && (
+                  <div className="flex items-center gap-1">
+                    <Timer className="h-2 w-2" />
+                    <span>{getActivityTime()}</span>
+                  </div>
+                )}
+                {subtask.description && (
+                  <span className="text-gray-400" title={subtask.description}>
+                    📝
+                  </span>
+                )}
+              </div>
             </div>
           )}
-          
-          <div className="flex items-center gap-1">
-            <Badge variant="outline" className={`text-xs h-5 ${getStatusBadgeStyle(subtask.status)}`}>
-              {getStatusText(subtask.status)}
-            </Badge>
-            
-            {microtasks.length > 0 && (
-              <Badge variant="outline" className="text-xs h-5 bg-purple-100 text-purple-800 border-purple-300">
-                {completedMicrotasks}/{microtasks.length}
-              </Badge>
-            )}
-          </div>
         </div>
         
         <div className="flex items-center gap-1">
+          <Badge variant="outline" className={`text-xs h-4 px-1 ${getStatusBadgeStyle(subtask.status)}`}>
+            {getStatusText(subtask.status)}
+          </Badge>
+          
           {microtasks.length > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onToggleExpanded}
-              className="h-6 w-6 p-0"
-              title={isExpanded ? "Ocultar microtareas" : "Ver microtareas"}
-            >
-              {isExpanded ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronRight className="h-3 w-3" />
-              )}
-            </Button>
+            <>
+              <Badge variant="outline" className="text-xs h-4 px-1 bg-purple-100 text-purple-800 border-purple-300">
+                {completedMicrotasks}/{microtasks.length}
+              </Badge>
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onToggleExpanded}
+                className="h-5 w-5 p-0"
+                title={isExpanded ? "Ocultar microtareas" : "Ver microtareas"}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-2 w-2" />
+                ) : (
+                  <ChevronRight className="h-2 w-2" />
+                )}
+              </Button>
+            </>
           )}
           
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsEditing(true)}
-            className="h-6 w-6 p-0"
+            className="h-5 w-5 p-0 opacity-60 hover:opacity-100"
             title="Editar"
           >
-            <Edit className="h-3 w-3" />
+            <Edit className="h-2 w-2" />
           </Button>
           
           {subtask.status !== 'completed' && (
@@ -189,10 +209,10 @@ const CompactSubtaskItem = ({
                 status: 'completed',
                 completed_at: new Date().toISOString()
               })}
-              className="h-6 w-6 p-0 text-green-600"
+              className="h-5 w-5 p-0 text-green-600 opacity-60 hover:opacity-100"
               title="Marcar como completada"
             >
-              <CheckCircle className="h-3 w-3" />
+              <CheckCircle className="h-2 w-2" />
             </Button>
           )}
           
@@ -200,10 +220,10 @@ const CompactSubtaskItem = ({
             variant="ghost"
             size="sm"
             onClick={() => onDeleteTask(subtask.id)}
-            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+            className="h-5 w-5 p-0 text-red-600 hover:text-red-700 opacity-60 hover:opacity-100"
             title="Eliminar"
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-2 w-2" />
           </Button>
         </div>
       </div>

@@ -86,17 +86,17 @@ const MicrotaskList = ({
   const totalCount = microtasks.length;
 
   return (
-    <div className="mt-2 ml-4 pl-3 border-l-2 border-purple-200 space-y-2">
-      {/* Header compacto de Microtareas */}
-      <div className="bg-purple-50 rounded-md px-2 py-1 border border-purple-200">
+    <div className="mt-1 ml-3 pl-2 border-l border-purple-200 space-y-1">
+      {/* Header ultra-compacto de Microtareas */}
+      <div className="bg-purple-50 rounded-sm px-2 py-1 border border-purple-200">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+          <div className="flex items-center gap-1">
+            <div className="w-1 h-1 bg-purple-500 rounded-full"></div>
             <h6 className="text-xs font-medium text-purple-800">
               Microtareas
             </h6>
             {totalCount > 0 && (
-              <Badge variant="outline" className="text-xs h-4 px-1">
+              <Badge variant="outline" className="text-xs h-3 px-1">
                 {completedCount}/{totalCount}
               </Badge>
             )}
@@ -107,7 +107,7 @@ const MicrotaskList = ({
               variant="ghost"
               size="sm"
               onClick={handleAISuggestions}
-              className="h-5 px-1 text-xs text-purple-700 hover:bg-purple-100"
+              className="h-4 px-1 text-xs text-purple-700 hover:bg-purple-100"
             >
               <Sparkles className="h-2 w-2 mr-1" />
               IA
@@ -118,15 +118,15 @@ const MicrotaskList = ({
 
       {/* Controles compactos (solo si hay microtareas) */}
       {totalCount > 0 && (
-        <div className="bg-white rounded-md p-2 border border-gray-200 space-y-1">
+        <div className="bg-white rounded-sm p-1 border border-gray-200 space-y-1">
           <div className="flex items-center gap-1">
             <div className="flex-1 relative">
-              <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 h-2.5 w-2.5 text-gray-400" />
+              <Search className="absolute left-1 top-1/2 transform -translate-y-1/2 h-2 w-2 text-gray-400" />
               <Input
                 placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-5 h-6 text-xs"
+                className="pl-4 h-5 text-xs"
               />
             </div>
             
@@ -134,9 +134,9 @@ const MicrotaskList = ({
               variant="outline"
               size="sm"
               onClick={() => setSortBy(sortBy === 'priority' ? 'created' : sortBy === 'created' ? 'duration' : 'priority')}
-              className="h-6 px-1 text-xs"
+              className="h-5 px-1 text-xs"
             >
-              <ArrowUpDown className="h-2.5 w-2.5 mr-1" />
+              <ArrowUpDown className="h-2 w-2 mr-1" />
               {sortBy === 'priority' ? 'P' : sortBy === 'created' ? 'F' : 'D'}
             </Button>
             
@@ -144,9 +144,9 @@ const MicrotaskList = ({
               variant={showCompleted ? "default" : "outline"}
               size="sm"
               onClick={() => setShowCompleted(!showCompleted)}
-              className="h-6 px-1 text-xs"
+              className="h-5 px-1 text-xs"
             >
-              <Filter className="h-2.5 w-2.5 mr-1" />
+              <Filter className="h-2 w-2 mr-1" />
               {showCompleted ? 'Todas' : 'Activas'}
             </Button>
           </div>
@@ -169,15 +169,15 @@ const MicrotaskList = ({
 
       {/* Mensaje cuando no hay resultados */}
       {totalCount > 0 && filteredMicrotasks.length === 0 && (
-        <div className="bg-gray-50 rounded-md p-2 text-center">
+        <div className="bg-gray-50 rounded-sm p-1 text-center">
           <p className="text-xs text-gray-500">
             No se encontraron microtareas
           </p>
         </div>
       )}
 
-      {/* Creador inline compacto */}
-      <div className="bg-gray-50 rounded-md border border-dashed border-gray-300">
+      {/* Creador inline ultra-compacto */}
+      <div className="bg-gray-50 rounded-sm border border-dashed border-gray-300">
         <InlineTaskCreator
           placeholder="Añadir microtarea..."
           onCreateTask={handleCreateMicrotaskSimple}

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
-import SubtaskList from './SubtaskList';
+import SubtaskList from './subtasks/SubtaskList';
 import InlineTaskCreator from './subtasks/InlineTaskCreator';
 
 interface TaskCardContentProps {
