@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Task } from '@/hooks/useTasks';
 import { useAIAssistantSimple } from '@/hooks/useAIAssistantSimple';
@@ -15,6 +14,7 @@ import {
   Sparkles,
   Plus
 } from 'lucide-react';
+import TaskLogButton from '../logs/TaskLogButton';
 
 interface MicrotaskListProps {
   microtasks: Task[];
@@ -45,8 +45,6 @@ const MicrotaskList = ({
   };
 
   const handleDeleteMicrotask = async (taskId: string) => {
-    // Llamar directamente a la función de eliminación del padre
-    // El estado de expansión se maneja en SubtaskList
     await onDeleteTask(taskId);
   };
 
@@ -105,17 +103,19 @@ const MicrotaskList = ({
               )}
             </div>
             
-            {totalCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleAISuggestions}
-                className="h-6 px-2 text-xs text-purple-700 hover:bg-purple-200"
-              >
-                <Sparkles className="h-3 w-3 mr-1" />
-                Sugerencias IA
-              </Button>
-            )}
+            <div className="flex items-center gap-1">
+              {totalCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAISuggestions}
+                  className="h-6 px-2 text-xs text-purple-700 hover:bg-purple-200"
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Sugerencias IA
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 

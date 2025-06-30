@@ -733,6 +733,42 @@ export type Database = {
         }
         Relationships: []
       }
+      task_logs: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          log_type: string
+          metadata: Json | null
+          task_id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          log_type?: string
+          metadata?: Json | null
+          task_id: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          log_type?: string
+          metadata?: Json | null
+          task_id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       task_sessions: {
         Row: {
           created_at: string

@@ -1,23 +1,22 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { CreateTaskData, UpdateTaskData } from './useTasks';
+import { useTaskLogMutations } from './useTaskLogMutations';
 
 export const useTaskMutations = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { createAutoLog } = useTaskLogMutations();
 
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: CreateTaskData) => {
       if (!user) throw new Error('User not authenticated');
       
-      // Determinar task_level basado en parent_task_id
-      let taskLevel = 1; // Por defecto, tarea principal
+      let taskLevel = 1;
       
       if (taskData.parent_task_id) {
-        // Obtener la tarea padre para determinar el nivel
         const { data: parentTask, error: parentError } = await supabase
           .from('tasks')
           .select('task_level')
@@ -26,7 +25,6 @@ export const useTaskMutations = () => {
         
         if (parentError) throw parentError;
         
-        // El nivel es el del padre + 1 (máximo 3)
         taskLevel = Math.min(parentTask.task_level + 1, 3) as 1 | 2 | 3;
       }
       
@@ -43,6 +41,20 @@ export const useTaskMutations = () => {
         .single();
 
       if (error) throw error;
+      
+      // Crear log automático de creación
+      createAutoLog(
+        data.id,
+        'creation',
+        `${taskLevel === 1 ? 'Tarea' : taskLevel === 2 ? 'Subtarea' : 'Microtarea'} creada: ${data.title}`,
+        `Se ha creado una nueva ${taskLevel === 1 ? 'tarea' : taskLevel === 2 ? 'subtarea' : 'microtarea'} con prioridad ${data.priority}`,
+        {
+          task_level: taskLevel,
+          initial_status: data.status,
+          initial_priority: data.priority
+        }
+      );
+      
       return data;
     },
     onSuccess: () => {
@@ -64,6 +76,14 @@ export const useTaskMutations = () => {
   const updateTaskMutation = useMutation({
     mutationFn: async (taskData: UpdateTaskData) => {
       const { id, ...updateData } = taskData;
+      
+      // Obtener el estado anterior para el log
+      const { data: previousTask } = await supabase
+        .from('tasks')
+        .select('status, priority, title')
+        .eq('id', id)
+        .single();
+      
       const { data, error } = await supabase
         .from('tasks')
         .update({
@@ -75,6 +95,37 @@ export const useTaskMutations = () => {
         .single();
 
       if (error) throw error;
+      
+      // Crear log automático si cambió el status
+      if (previousTask && updateData.status && previousTask.status !== updateData.status) {
+        createAutoLog(
+          id,
+          'status_change',
+          `Estado cambiado: ${previousTask.status} → ${updateData.status}`,
+          `El estado de la tarea "${previousTask.title}" ha cambiado de "${previousTask.status}" a "${updateData.status}"`,
+          {
+            previous_status: previousTask.status,
+            new_status: updateData.status,
+            changed_at: new Date().toISOString()
+          }
+        );
+      }
+      
+      // Crear log automático si cambió la prioridad
+      if (previousTask && updateData.priority && previousTask.priority !== updateData.priority) {
+        createAutoLog(
+          id,
+          'update',
+          `Prioridad cambiada: ${previousTask.priority} → ${updateData.priority}`,
+          `La prioridad de la tarea "${previousTask.title}" ha cambiado de "${previousTask.priority}" a "${updateData.priority}"`,
+          {
+            previous_priority: previousTask.priority,
+            new_priority: updateData.priority,
+            changed_at: new Date().toISOString()
+          }
+        );
+      }
+      
       return data;
     },
     onSuccess: () => {
@@ -108,6 +159,19 @@ export const useTaskMutations = () => {
         .single();
 
       if (error) throw error;
+      
+      // Crear log automático de completado
+      createAutoLog(
+        taskId,
+        'completion',
+        `Tarea completada: ${data.title}`,
+        completionNotes || 'Tarea marcada como completada',
+        {
+          completed_at: data.completed_at,
+          completion_notes: completionNotes
+        }
+      );
+      
       return data;
     },
     onSuccess: () => {
@@ -193,6 +257,13 @@ export const useTaskMutations = () => {
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
       console.log('🗑️ Iniciando eliminación completa de tarea:', taskId);
+      
+      // Obtener información de la tarea antes de eliminarla
+      const { data: taskToDelete } = await supabase
+        .from('tasks')
+        .select('title, task_level')
+        .eq('id', taskId)
+        .single();
       
       try {
         // 1. Eliminar task_sessions relacionadas
@@ -350,7 +421,6 @@ export const useTaskMutations = () => {
     },
   });
 
-  // Nueva función para crear microtareas
   const createMicrotask = (subtaskId: string, title: string, description?: string) => {
     createTaskMutation.mutate({
       title,
