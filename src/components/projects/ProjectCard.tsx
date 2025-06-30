@@ -9,6 +9,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { 
   MoreHorizontal,
   Edit,
@@ -99,13 +110,36 @@ const ProjectCard = ({ project, stats, onEdit, onChangeStatus, onDelete }: Proje
                 Estado
               </DropdownMenuItem>
               
-              <DropdownMenuItem 
-                onClick={() => onDelete(project.id)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Eliminar
-              </DropdownMenuItem>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta acción eliminará permanentemente el proyecto "{project.name}".
+                      {stats.totalTasks > 0 && (
+                        <span className="block mt-2 text-orange-600">
+                          ⚠️ Este proyecto tiene {stats.totalTasks} tareas asociadas. Las tareas se mantendrán pero quedarán sin proyecto asignado.
+                        </span>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => onDelete(project.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Eliminar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
