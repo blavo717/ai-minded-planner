@@ -32,6 +32,7 @@ import { Calendar as CalendarIcon, Plus, X, Target, DollarSign, Clock, Tag } fro
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
@@ -113,19 +114,32 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
   const onSubmit = async (data: ProjectFormData) => {
     if (!project) {
       console.error('❌ No hay proyecto para actualizar');
+      toast({
+        title: "Error",
+        description: "No se encontró el proyecto a actualizar",
+        variant: "destructive",
+      });
       return;
     }
 
-    console.log('📝 Datos del formulario:', data);
+    console.log('📝 Datos del formulario antes de enviar:', data);
     console.log('🎯 ID del proyecto:', project.id);
 
     try {
       const projectData: UpdateProjectData = {
         id: project.id,
-        ...data,
+        name: data.name,
+        description: data.description || null,
+        color: data.color,
         start_date: data.start_date || null,
         end_date: data.end_date || null,
         deadline: data.deadline || null,
+        priority: data.priority,
+        progress: data.progress,
+        budget: data.budget || null,
+        category: data.category || null,
+        estimated_hours: data.estimated_hours || null,
+        tags: data.tags,
       };
 
       console.log('🚀 Enviando actualización del proyecto:', projectData);
@@ -136,6 +150,11 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
       onClose();
     } catch (error) {
       console.error('💥 Error al actualizar proyecto:', error);
+      toast({
+        title: "Error al actualizar proyecto",
+        description: error instanceof Error ? error.message : "Error desconocido",
+        variant: "destructive",
+      });
     }
   };
 
@@ -159,6 +178,17 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
     form.setValue('tags', currentTags.filter(tag => tag !== tagToRemove));
   };
 
+  // Verificar si el formulario es válido
+  const isFormValid = form.formState.isValid;
+  const formErrors = form.formState.errors;
+
+  console.log('🔍 Estado del formulario:', {
+    isValid: isFormValid,
+    errors: formErrors,
+    isDirty: form.formState.isDirty,
+    isSubmitting: form.formState.isSubmitting
+  });
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -170,7 +200,14 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+            console.error('❌ Errores de validación del formulario:', errors);
+            toast({
+              title: "Error de validación",
+              description: "Por favor, corrige los errores en el formulario",
+              variant: "destructive",
+            });
+          })} className="space-y-6">
             <Tabs defaultValue="basic" className="w-full">
               <TabsList className="grid grid-cols-4 w-full">
                 <TabsTrigger value="basic">Básico</TabsTrigger>
@@ -481,7 +518,6 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
                 </div>
               </TabsContent>
 
-              {/* Pestaña Progreso */}
               <TabsContent value="progress" className="space-y-4">
                 <FormField
                   control={form.control}
@@ -516,7 +552,6 @@ const AdvancedEditProjectModal = ({ isOpen, onClose, project }: AdvancedEditProj
                 />
               </TabsContent>
 
-              {/* Pestaña Recursos */}
               <TabsContent value="resources" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField

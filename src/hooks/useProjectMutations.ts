@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,6 +50,10 @@ export const useProjectMutations = () => {
     mutationFn: async (projectData: UpdateProjectData) => {
       console.log('🔄 Iniciando actualización del proyecto:', projectData);
       
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
+      
       const { id, ...updateData } = projectData;
       
       // Si hay un cambio de estado, registrar el timestamp
@@ -58,15 +61,21 @@ export const useProjectMutations = () => {
         updateData.last_status_change = new Date().toISOString();
       }
 
-      console.log('📝 Datos de actualización:', updateData);
+      // Limpiar valores undefined
+      const cleanedData = Object.fromEntries(
+        Object.entries(updateData).filter(([_, value]) => value !== undefined)
+      );
+
+      console.log('📝 Datos de actualización limpiados:', cleanedData);
 
       const { data, error } = await supabase
         .from('projects')
         .update({
-          ...updateData,
+          ...cleanedData,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
+        .eq('user_id', user.id) // Asegurar que solo se actualicen proyectos del usuario
         .select()
         .single();
 
@@ -78,14 +87,14 @@ export const useProjectMutations = () => {
       console.log('✅ Proyecto actualizado en la base de datos:', data);
 
       // Registrar en el historial si es necesario
-      if (user) {
+      try {
         const { error: historyError } = await supabase
           .from('project_history')
           .insert({
             project_id: id,
             user_id: user.id,
             change_type: 'update',
-            new_values: updateData,
+            new_values: cleanedData,
             notes: updateData.change_reason || 'Proyecto actualizado',
           });
 
@@ -93,11 +102,13 @@ export const useProjectMutations = () => {
           console.warn('⚠️ Error al registrar historial:', historyError);
           // No lanzamos error para no bloquear la actualización principal
         }
+      } catch (historyError) {
+        console.warn('⚠️ Error al registrar historial:', historyError);
       }
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       console.log('🎉 Actualización exitosa, invalidando queries...');
       queryClient.invalidateQueries({ queryKey: ['projects', user?.id] });
       toast({
@@ -297,7 +308,7 @@ export const useProjectMutations = () => {
 
   return {
     createProject: createProjectMutation.mutate,
-    updateProject: updateProjectMutation.mutateAsync, // Cambio a mutateAsync para manejar promesas
+    updateProject: updateProjectMutation.mutateAsync,
     deleteProject: deleteProjectMutation.mutate,
     isCreatingProject: createProjectMutation.isPending,
     isUpdatingProject: updateProjectMutation.isPending,
