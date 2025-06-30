@@ -10,6 +10,12 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
 
+  // En desarrollo, siempre permitir acceso
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔧 PROTECTED ROUTE DISABLED FOR DEVELOPMENT');
+    return <>{children}</>;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

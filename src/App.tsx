@@ -28,6 +28,12 @@ const AppContent = () => {
   const { user, loading } = useAuth();
 
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    // En desarrollo, siempre permitir acceso
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 APP PROTECTED ROUTE DISABLED FOR DEVELOPMENT');
+      return <>{children}</>;
+    }
+
     if (loading) {
       return (
         <div className="min-h-screen flex items-center justify-center">
