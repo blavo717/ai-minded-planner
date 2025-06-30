@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Task } from '@/hooks/useTasks';
@@ -13,9 +12,9 @@ import TaskCreatorModal from './TaskCreatorModal';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
-import TaskLogButton from '../logs/TaskLogButton';
-import TaskLogHistory from '../logs/TaskLogHistory';
-import TaskCompleteLogHistory from '../logs/TaskCompleteLogHistory';
+import TaskLogButton from '@/components/tasks/logs/TaskLogButton';
+import TaskLogHistory from '@/components/tasks/logs/TaskLogHistory';
+import TaskCompleteLogHistory from '@/components/tasks/logs/TaskCompleteLogHistory';
 
 interface SubtaskListProps {
   parentTask: Task;

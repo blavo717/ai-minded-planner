@@ -14,7 +14,7 @@ import {
   Sparkles,
   Plus
 } from 'lucide-react';
-import TaskLogButton from '../logs/TaskLogButton';
+import TaskLogButton from '@/components/tasks/logs/TaskLogButton';
 
 interface MicrotaskListProps {
   microtasks: Task[];
