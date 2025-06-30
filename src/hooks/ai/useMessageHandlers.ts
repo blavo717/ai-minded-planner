@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { useLLMService } from '@/hooks/useLLMService';
 import { useAIContext } from '@/hooks/ai/useAIContext';
@@ -110,9 +109,14 @@ export const useMessageHandlers = ({
         
         const startTime = Date.now();
 
+        // Convertir currentContext a string para systemPrompt
+        const systemPrompt = typeof currentContext === 'string' 
+          ? currentContext 
+          : currentContext?.content || 'Eres un asistente de IA útil.';
+
         // Enviar mensaje al LLM con contexto usando los parámetros correctos
         const llmResponse = await makeLLMRequest({
-          systemPrompt: currentContext || 'Eres un asistente de IA útil.',
+          systemPrompt,
           userPrompt: content,
           functionName: 'enhanced-ai-assistant',
         });

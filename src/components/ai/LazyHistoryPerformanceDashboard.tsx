@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Database, 
   Clock, 
-  Memory, 
+  HardDrive, 
   Zap, 
   TrendingUp, 
   Settings,
@@ -101,7 +100,7 @@ export const LazyHistoryPerformanceDashboard: React.FC<LazyHistoryPerformanceDas
                 <p className="text-2xl font-bold text-blue-600">{metrics.cacheSize}</p>
                 <p className="text-xs text-gray-500">lotes en memoria</p>
               </div>
-              <Memory className="h-8 w-8 text-blue-500" />
+              <HardDrive className="h-8 w-8 text-blue-500" />
             </div>
             <div className="mt-2">
               <Progress value={memoryUsage} className="h-2" />
