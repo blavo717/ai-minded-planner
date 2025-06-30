@@ -60,7 +60,7 @@ const EnhancedAIAssistantPanel = memo(() => {
   const hasMessages = messages.length > 0;
 
   return (
-    <Card className="w-full h-[calc(100vh-200px)] min-h-[600px] flex flex-col shadow-lg">
+    <Card className="w-full h-full flex flex-col shadow-lg">
       <CardHeader className="pb-3 flex-shrink-0">
         <ChatHeader
           connectionStatus={connectionStatus}

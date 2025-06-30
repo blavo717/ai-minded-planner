@@ -64,24 +64,50 @@ export const useEnhancedAIAssistant = () => {
   const clearChat = useCallback(async () => {
     console.log('🧹 Limpiando chat completamente');
     
-    // Limpiar mensajes del estado
-    clearMessages();
-    
-    // Resetear el historial cargado para que pueda volver a cargar
-    isHistoryLoadedRef.current = false;
-    
-    // Actualizar estado de conexión
-    if (hasActiveConfiguration) {
-      setConnected();
-    } else {
-      setDisconnected();
+    try {
+      // Limpiar mensajes del estado
+      clearMessages();
+      
+      // Resetear el historial cargado para que pueda volver a cargar
+      isHistoryLoadedRef.current = false;
+      
+      // Resetear estado de envío
+      isSendingRef.current = false;
+      
+      // Resetear estado de carga
+      setIsLoading(false);
+      
+      // Actualizar estado de conexión
+      if (hasActiveConfiguration) {
+        setConnected();
+      } else {
+        setDisconnected();
+      }
+      
+      console.log('✅ Chat limpiado correctamente');
+      
+      toast({
+        title: 'Chat limpiado',
+        description: 'La conversación se ha limpiado correctamente.',
+      });
+    } catch (error) {
+      console.error('❌ Error al limpiar chat:', error);
+      toast({
+        title: 'Error',
+        description: 'Hubo un problema al limpiar el chat.',
+        variant: 'destructive',
+      });
     }
-    
-    toast({
-      title: 'Chat limpiado',
-      description: 'La conversación se ha limpiado correctamente.',
-    });
-  }, [toast, hasActiveConfiguration, clearMessages, setConnected, setDisconnected, isHistoryLoadedRef]);
+  }, [
+    clearMessages, 
+    isHistoryLoadedRef, 
+    isSendingRef, 
+    setIsLoading, 
+    hasActiveConfiguration, 
+    setConnected, 
+    setDisconnected, 
+    toast
+  ]);
 
   const exportConversation = useCallback(() => {
     const exportData = {

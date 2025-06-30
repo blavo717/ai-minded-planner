@@ -20,27 +20,29 @@ const MessageList = ({ messages, isLoading }: MessageListProps) => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isLoading]);
 
   return (
-    <ScrollArea className="flex-1 px-4">
-      <div className="space-y-4 py-4">
-        {messages.length === 0 ? (
-          <EmptyState />
-        ) : (
-          messages.map((message) => (
-            <MessageDisplay
-              key={`${message.id}-${message.timestamp.getTime()}`}
-              message={message}
-            />
-          ))
-        )}
-        
-        {isLoading && <LoadingIndicator />}
-        
-        <div ref={messagesEndRef} />
-      </div>
-    </ScrollArea>
+    <div className="h-full flex flex-col">
+      <ScrollArea className="flex-1">
+        <div className="space-y-4 p-4">
+          {messages.length === 0 ? (
+            <EmptyState />
+          ) : (
+            messages.map((message) => (
+              <MessageDisplay
+                key={`${message.id}-${message.timestamp.getTime()}`}
+                message={message}
+              />
+            ))
+          )}
+          
+          {isLoading && <LoadingIndicator />}
+          
+          <div ref={messagesEndRef} />
+        </div>
+      </ScrollArea>
+    </div>
   );
 };
 
