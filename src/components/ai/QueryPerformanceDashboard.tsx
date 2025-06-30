@@ -246,7 +246,7 @@ const QueryPerformanceDashboard = () => {
               <p className="text-xl font-bold text-purple-800">{metrics.optimizedQueries}</p>
             </div>
             <div className="text-center p-3 bg-orange-50 rounded-lg">
-              <p className="text-sm text-orange-600 font-medium">Queries > 1s</p>
+              <p className="text-sm text-orange-600 font-medium">Queries &gt; 1s</p>
               <p className="text-xl font-bold text-orange-800">{metrics.slowQueries}</p>
             </div>
           </div>
