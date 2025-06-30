@@ -10,8 +10,8 @@ import TimelineView from './views/TimelineView';
 import EisenhowerMatrix from './views/EisenhowerMatrix';
 
 interface TasksViewSectionProps {
-  viewMode: string;
-  setViewMode: (mode: string) => void;
+  viewMode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower';
+  setViewMode: (mode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower') => void;
   filteredTasks: Task[];
   projects: Project[];
   getSubtasksForTask: (taskId: string) => Task[];
@@ -62,11 +62,8 @@ const TasksViewSection = ({
         {viewMode === 'kanban' && (
           <KanbanBoard
             tasks={filteredTasks}
-            projects={projects}
             getSubtasksForTask={getSubtasksForTask}
             onEditTask={onEditTask}
-            onDeleteTask={onArchiveTask}
-            onCreateSubtask={onCreateSubtask}
           />
         )}
 
@@ -81,7 +78,6 @@ const TasksViewSection = ({
         {viewMode === 'timeline' && (
           <TimelineView
             tasks={filteredTasks}
-            projects={projects}
             onEditTask={onEditTask}
           />
         )}
