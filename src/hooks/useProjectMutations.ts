@@ -101,7 +101,7 @@ export const useProjectMutations = () => {
 
   const deleteProjectMutation = useMutation({
     mutationFn: async (projectId: string) => {
-      console.log('=== INICIANDO ELIMINACIÓN DEL PROYECTO ===', projectId);
+      console.log('=== INICIANDO ELIMINACIÓN SIMPLIFICADA DEL PROYECTO ===', projectId);
       
       if (!user) {
         throw new Error('Usuario no autenticado');
@@ -123,11 +123,11 @@ export const useProjectMutations = () => {
       
       console.log(`Proyecto verificado: "${project.name}"`);
 
-      // 2. Obtener todas las tareas del proyecto organizadas por jerarquía
+      // 2. Obtener todas las tareas del proyecto (sin importar jerarquía)
       console.log('Paso 2: Obteniendo todas las tareas del proyecto...');
       const { data: allTasks, error: fetchError } = await supabase
         .from('tasks')
-        .select('id, parent_task_id, title, task_level')
+        .select('id, title')
         .eq('project_id', projectId)
         .eq('user_id', user.id);
 
@@ -136,141 +136,98 @@ export const useProjectMutations = () => {
         throw fetchError;
       }
 
-      if (!allTasks || allTasks.length === 0) {
-        console.log('No hay tareas asociadas al proyecto');
-        // Si no hay tareas, solo eliminar el proyecto
-        const { error: projectDeleteError } = await supabase
-          .from('projects')
-          .delete()
-          .eq('id', projectId)
-          .eq('user_id', user.id);
+      const taskIds = allTasks?.map(task => task.id) || [];
+      console.log(`Total de tareas encontradas: ${taskIds.length}`);
 
-        if (projectDeleteError) throw projectDeleteError;
-        console.log('Proyecto eliminado exitosamente (sin tareas)');
-        return;
-      }
-
-      const taskIds = allTasks.map(task => task.id);
-      console.log(`Total de tareas encontradas: ${allTasks.length}`);
-
-      // Separar tareas por jerarquía para eliminación ordenada
-      const subtasks = allTasks.filter(task => task.parent_task_id !== null);
-      const parentTasks = allTasks.filter(task => task.parent_task_id === null);
-      
-      console.log(`- Subtareas: ${subtasks.length}`);
-      console.log(`- Tareas principales: ${parentTasks.length}`);
-
-      // 3. Eliminar dependencias de tareas
-      console.log('Paso 3: Eliminando dependencias de tareas...');
-      
-      // Eliminar dependencias donde task_id está en nuestra lista
-      const { error: deps1Error } = await supabase
-        .from('task_dependencies')
-        .delete()
-        .in('task_id', taskIds);
-
-      if (deps1Error) {
-        console.error('Error al eliminar dependencias (task_id):', deps1Error);
-        throw deps1Error;
-      }
-
-      // Eliminar dependencias donde depends_on_task_id está en nuestra lista
-      const { error: deps2Error } = await supabase
-        .from('task_dependencies')
-        .delete()
-        .in('depends_on_task_id', taskIds);
-
-      if (deps2Error) {
-        console.error('Error al eliminar dependencias (depends_on):', deps2Error);
-        throw deps2Error;
-      }
-
-      console.log('Dependencias eliminadas exitosamente');
-
-      // 4. Eliminar registros relacionados (asignaciones, sesiones, etc.)
-      console.log('Paso 4: Eliminando registros relacionados...');
-
-      // Eliminar asignaciones
-      const { error: assignmentsError } = await supabase
-        .from('task_assignments')
-        .delete()
-        .in('task_id', taskIds);
-
-      if (assignmentsError) {
-        console.error('Error al eliminar asignaciones:', assignmentsError);
-        throw assignmentsError;
-      }
-
-      // Eliminar sesiones
-      const { error: sessionsError } = await supabase
-        .from('task_sessions')
-        .delete()
-        .in('task_id', taskIds);
-
-      if (sessionsError) {
-        console.error('Error al eliminar sesiones:', sessionsError);
-        throw sessionsError;
-      }
-
-      // Eliminar monitoreo AI
-      const { error: monitoringError } = await supabase
-        .from('ai_task_monitoring')
-        .delete()
-        .in('task_id', taskIds);
-
-      if (monitoringError) {
-        console.error('Error al eliminar monitoreo AI:', monitoringError);
-        throw monitoringError;
-      }
-
-      // Eliminar recordatorios
-      const { error: remindersError } = await supabase
-        .from('smart_reminders')
-        .delete()
-        .in('task_id', taskIds);
-
-      if (remindersError) {
-        console.error('Error al eliminar recordatorios:', remindersError);
-        throw remindersError;
-      }
-
-      console.log('Registros relacionados eliminados exitosamente');
-
-      // 5. CRÍTICO: Eliminar tareas respetando la jerarquía (subtareas primero)
-      console.log('Paso 5: Eliminando tareas en orden jerárquico...');
-
-      if (subtasks.length > 0) {
-        console.log(`Eliminando ${subtasks.length} subtareas...`);
-        const subtaskIds = subtasks.map(task => task.id);
+      if (taskIds.length > 0) {
+        // 3. Eliminar dependencias de tareas
+        console.log('Paso 3: Eliminando dependencias de tareas...');
         
-        const { error: subtasksError } = await supabase
+        const { error: deps1Error } = await supabase
+          .from('task_dependencies')
+          .delete()
+          .in('task_id', taskIds);
+
+        if (deps1Error) {
+          console.error('Error al eliminar dependencias (task_id):', deps1Error);
+          throw deps1Error;
+        }
+
+        const { error: deps2Error } = await supabase
+          .from('task_dependencies')
+          .delete()
+          .in('depends_on_task_id', taskIds);
+
+        if (deps2Error) {
+          console.error('Error al eliminar dependencias (depends_on):', deps2Error);
+          throw deps2Error;
+        }
+
+        console.log('Dependencias eliminadas exitosamente');
+
+        // 4. Eliminar registros relacionados
+        console.log('Paso 4: Eliminando registros relacionados...');
+
+        // Eliminar asignaciones
+        const { error: assignmentsError } = await supabase
+          .from('task_assignments')
+          .delete()
+          .in('task_id', taskIds);
+
+        if (assignmentsError) {
+          console.error('Error al eliminar asignaciones:', assignmentsError);
+          throw assignmentsError;
+        }
+
+        // Eliminar sesiones
+        const { error: sessionsError } = await supabase
+          .from('task_sessions')
+          .delete()
+          .in('task_id', taskIds);
+
+        if (sessionsError) {
+          console.error('Error al eliminar sesiones:', sessionsError);
+          throw sessionsError;
+        }
+
+        // Eliminar monitoreo AI
+        const { error: monitoringError } = await supabase
+          .from('ai_task_monitoring')
+          .delete()
+          .in('task_id', taskIds);
+
+        if (monitoringError) {
+          console.error('Error al eliminar monitoreo AI:', monitoringError);
+          throw monitoringError;
+        }
+
+        // Eliminar recordatorios
+        const { error: remindersError } = await supabase
+          .from('smart_reminders')
+          .delete()
+          .in('task_id', taskIds);
+
+        if (remindersError) {
+          console.error('Error al eliminar recordatorios:', remindersError);
+          throw remindersError;
+        }
+
+        console.log('Registros relacionados eliminados exitosamente');
+
+        // 5. Eliminar TODAS las tareas del proyecto de una vez (sin importar jerarquía)
+        console.log('Paso 5: Eliminando todas las tareas del proyecto...');
+        
+        const { error: tasksError } = await supabase
           .from('tasks')
           .delete()
-          .in('id', subtaskIds)
+          .in('id', taskIds)
           .eq('user_id', user.id);
 
-        if (subtasksError) {
-          console.error('Error al eliminar subtareas:', subtasksError);
-          throw subtasksError;
+        if (tasksError) {
+          console.error('Error al eliminar tareas:', tasksError);
+          throw tasksError;
         }
-        console.log('Subtareas eliminadas exitosamente');
-      }
-
-      if (parentTasks.length > 0) {
-        console.log(`Eliminando ${parentTasks.length} tareas principales...`);
-        const parentTaskIds = parentTasks.map(task => task.id);
-        
-        const { error: parentTasksError } = await supabase
-          .from('tasks')
-          .delete()
-          .in('id', parentTaskIds)
-          .eq('user_id', user.id);
-
-        if (parentTasksError) {
-          console.error('Error al eliminar tareas principales:', parentTasksError);
-          throw parentTasksError;
-        }
-        console.log('Tareas principales eliminadas exitosamente');
+        console.log('Todas las tareas eliminadas exitosamente');
       }
 
       // 6. Eliminar historial del proyecto
@@ -301,7 +258,7 @@ export const useProjectMutations = () => {
       }
 
       console.log('=== PROYECTO ELIMINADO EXITOSAMENTE ===');
-      console.log(`Resumen: Eliminado proyecto "${project.name}" con ${allTasks.length} tareas asociadas`);
+      console.log(`Resumen: Eliminado proyecto "${project.name}" con ${taskIds.length} tareas asociadas`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects', user?.id] });
