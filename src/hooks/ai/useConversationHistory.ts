@@ -1,9 +1,8 @@
 
 import { useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
 import { messageHistoryService } from './services/messageHistoryService';
-import { messageProcessingService } from './services/messageProcessingService';
 import { EnhancedMessage } from './types/enhancedAITypes';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UseConversationHistoryProps {
   isHistoryLoadedRef: React.MutableRefObject<boolean>;
@@ -16,30 +15,29 @@ export const useConversationHistory = ({
 }: UseConversationHistoryProps) => {
   const { user } = useAuth();
 
-  // Load conversation history only once
   useEffect(() => {
-    if (user?.id && !isHistoryLoadedRef.current) {
-      console.log('📚 Cargando historial de conversación...');
-      loadConversationHistory();
-    }
-  }, [user?.id]);
+    const loadHistory = async () => {
+      if (!user?.id || isHistoryLoadedRef.current) return;
+      
+      console.log('🔄 Cargando historial de conversación...');
+      
+      try {
+        const history = await messageHistoryService.loadMessageHistory(user.id);
+        
+        if (history.length > 0) {
+          console.log(`📚 Historial cargado: ${history.length} mensajes`);
+          onMessagesUpdate(history);
+        } else {
+          console.log('📭 No hay historial previo');
+        }
+        
+        isHistoryLoadedRef.current = true;
+      } catch (error) {
+        console.error('❌ Error cargando historial:', error);
+        isHistoryLoadedRef.current = true;
+      }
+    };
 
-  const loadConversationHistory = async () => {
-    if (!user?.id || isHistoryLoadedRef.current) return;
-    
-    try {
-      const loadedMessages = await messageHistoryService.loadConversationHistory(user.id);
-      const uniqueMessages = messageProcessingService.removeDuplicateMessages(loadedMessages);
-      onMessagesUpdate(uniqueMessages);
-      isHistoryLoadedRef.current = true;
-      console.log('✅ Historial cargado:', uniqueMessages.length, 'mensajes únicos');
-    } catch (error) {
-      console.error('❌ Error cargando historial:', error);
-      isHistoryLoadedRef.current = true;
-    }
-  };
-
-  return {
-    loadConversationHistory,
-  };
+    loadHistory();
+  }, [user?.id, isHistoryLoadedRef, onMessagesUpdate]);
 };

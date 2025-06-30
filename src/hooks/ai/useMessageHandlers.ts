@@ -112,7 +112,7 @@ export const useMessageHandlers = ({
 
         // Enviar mensaje al LLM con contexto
         const llmResponse = await makeLLMRequest({
-          message: content,
+          prompt: content,
           context: currentContext || undefined,
         });
         
@@ -122,8 +122,8 @@ export const useMessageHandlers = ({
         messagePrefetcher.learnFromInteraction(userId, queryType, responseTime);
 
         console.log('✅ Respuesta recibida del LLM:', {
-          model: llmResponse.model,
-          tokens: llmResponse.tokensUsed,
+          model: llmResponse.model_used,
+          tokens: llmResponse.tokens_used,
           responseTime: `${responseTime}ms`,
           prefetchUsed: !!prefetchedData
         });
@@ -136,8 +136,8 @@ export const useMessageHandlers = ({
             content: llmResponse.content,
             timestamp: new Date(),
             metadata: {
-              model_used: llmResponse.model || activeModel,
-              tokens_used: llmResponse.tokensUsed,
+              model_used: llmResponse.model_used || activeModel,
+              tokens_used: llmResponse.tokens_used,
               response_time: responseTime,
               contextUsed: !!currentContext,
               prefetchUsed: !!prefetchedData,

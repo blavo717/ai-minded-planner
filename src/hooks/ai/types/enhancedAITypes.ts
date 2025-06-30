@@ -9,6 +9,9 @@ export interface EnhancedMessage {
     tokens_used?: number;
     response_time?: number;
     context_data?: any;
+    contextUsed?: boolean;
+    prefetchUsed?: boolean;
+    userId?: string;
   };
 }
 

@@ -35,10 +35,15 @@ export const useEnhancedAIAssistant = () => {
     setDisconnected,
   } = useConnectionManager({ hasActiveConfiguration, isLoading });
 
+  // Create a wrapper function that matches the expected signature
+  const handleMessagesUpdate = useCallback((messages: EnhancedMessage[]) => {
+    updateMessages(() => messages);
+  }, [updateMessages]);
+
   // Load conversation history
   useConversationHistory({
     isHistoryLoadedRef,
-    onMessagesUpdate: updateMessages,
+    onMessagesUpdate: handleMessagesUpdate,
   });
 
   // Message handlers
