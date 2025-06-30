@@ -27,6 +27,7 @@ interface CompactSubtaskListProps {
   parentTask: Task;
   subtasks: Task[];
   onCreateSubtask: (parentTaskId: string, title: string) => void;
+  onEditTask: (task: Task) => void;
   getSubtasksForTask: (taskId: string) => Task[];
 }
 
@@ -34,6 +35,7 @@ const CompactSubtaskList = memo(({
   parentTask, 
   subtasks, 
   onCreateSubtask,
+  onEditTask,
   getSubtasksForTask 
 }: CompactSubtaskListProps) => {
   const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
@@ -125,24 +127,26 @@ const CompactSubtaskList = memo(({
 
                   <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100">
-                        <MoreHorizontal className="h-3 w-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40 bg-white shadow-lg border">
-                      <DropdownMenuItem onClick={() => updateTask({ id: subtask.id, title: 'Nuevo título' })}>
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => deleteTask(subtask.id)}
-                        className="text-red-600"
-                      >
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
+                          <MoreHorizontal className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40 bg-white shadow-lg border z-50">
+                        <DropdownMenuItem onClick={() => onEditTask(subtask)}>
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => deleteTask(subtask.id)}
+                          className="text-red-600"
+                        >
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </div>
 
@@ -150,6 +154,7 @@ const CompactSubtaskList = memo(({
                 <CompactMicrotaskList
                   parentSubtask={subtask}
                   microtasks={microtasks}
+                  onEditTask={onEditTask}
                 />
               )}
             </div>

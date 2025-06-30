@@ -50,7 +50,6 @@ const CompactTaskCard = memo(({
   getSubtasksForTask
 }: CompactTaskCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const [selectedLogTask, setSelectedLogTask] = useState<Task | null>(null);
 
   const completedSubtasks = subtasks.filter(st => st.status === 'completed').length;
@@ -95,12 +94,10 @@ const CompactTaskCard = memo(({
     <>
       <div className="space-y-0">
         <Card 
-          className={`border-l-4 transition-all duration-200 ${
+          className={`border-l-4 transition-all duration-200 group ${
             isCompleted ? 'bg-gray-50 opacity-75' : 'bg-white hover:bg-gray-50'
           }`}
           style={{ borderLeftColor: project?.color || getPriorityColor().replace('bg-', '#') }}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
         >
           <div className="py-3 px-4">
             <div className="flex items-center gap-3">
@@ -173,15 +170,15 @@ const CompactTaskCard = memo(({
                 {/* Punto de estado */}
                 <div className={getStatusDot()} />
 
-                {/* Acciones (visibles al hover) */}
-                {(isHovered || isExpanded) && (
+                {/* Acciones - Always visible with better styling */}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border">
+                    <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border z-50">
                       <DropdownMenuItem onClick={() => onEditTask(task)}>
                         Editar tarea
                       </DropdownMenuItem>
@@ -204,7 +201,7 @@ const CompactTaskCard = memo(({
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                )}
+                </div>
               </div>
             </div>
           </div>
@@ -216,6 +213,7 @@ const CompactTaskCard = memo(({
             parentTask={task}
             subtasks={subtasks}
             onCreateSubtask={onCreateSubtask}
+            onEditTask={onEditTask}
             getSubtasksForTask={getSubtasksForTask}
           />
         )}

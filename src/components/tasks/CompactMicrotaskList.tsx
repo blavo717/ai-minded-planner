@@ -23,11 +23,13 @@ import TaskActivityLogModal from './TaskActivityLogModal';
 interface CompactMicrotaskListProps {
   parentSubtask: Task;
   microtasks: Task[];
+  onEditTask: (task: Task) => void;
 }
 
 const CompactMicrotaskList = memo(({ 
   parentSubtask, 
-  microtasks 
+  microtasks,
+  onEditTask
 }: CompactMicrotaskListProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newMicrotaskTitle, setNewMicrotaskTitle] = useState('');
@@ -87,24 +89,26 @@ const CompactMicrotaskList = memo(({
 
                 <div className="w-1 h-1 rounded-full bg-indigo-400" />
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-3 w-3 p-0 opacity-0 group-hover:opacity-100">
-                      <MoreHorizontal className="h-2 w-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-32 bg-white shadow-lg border">
-                    <DropdownMenuItem onClick={() => updateTask({ id: microtask.id, title: 'Nuevo título' })}>
-                      Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => deleteTask(microtask.id)}
-                      className="text-red-600"
-                    >
-                      Eliminar
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-3 w-3 p-0">
+                        <MoreHorizontal className="h-2 w-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-32 bg-white shadow-lg border z-50">
+                      <DropdownMenuItem onClick={() => onEditTask(microtask)}>
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => deleteTask(microtask.id)}
+                        className="text-red-600"
+                      >
+                        Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
           );
