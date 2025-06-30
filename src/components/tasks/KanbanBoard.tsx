@@ -60,11 +60,24 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Filter tasks by selected project with memoization
+  // Filter tasks by selected project and only show main tasks (level 1)
   const filteredTasks = useMemo(() => {
-    if (!preferences.selectedProjectId) return tasks;
-    return tasks.filter(task => task.project_id === preferences.selectedProjectId);
+    let mainTasks = tasks.filter(task => task.task_level === 1);
+    if (preferences.selectedProjectId) {
+      mainTasks = mainTasks.filter(task => task.project_id === preferences.selectedProjectId);
+    }
+    return mainTasks;
   }, [tasks, preferences.selectedProjectId]);
+
+  // Get all subtasks and microtasks for a main task
+  const getAllSubtasksForTask = useCallback((taskId: string) => {
+    return tasks.filter(task => 
+      task.parent_task_id === taskId || 
+      tasks.some(parentTask => 
+        parentTask.parent_task_id === taskId && parentTask.id === task.parent_task_id
+      )
+    );
+  }, [tasks]);
 
   const handleStatusChange = useCallback(async (taskId: string, newStatus: Task['status']) => {
     if (isUpdating) return;
@@ -212,7 +225,7 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
             <VirtualKanbanColumn
               column={column}
               tasks={filteredTasks}
-              getSubtasksForTask={getSubtasksForTask}
+              getSubtasksForTask={getAllSubtasksForTask}
               onEditTask={onEditTask}
               onDeleteTask={handleDeleteTask}
               onDragStart={handleDragStart}

@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,10 @@ import {
   MoreHorizontal, 
   Calendar, 
   Timer, 
-  Tag
+  Tag,
+  ChevronDown,
+  ChevronRight,
+  Plus
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -18,6 +21,7 @@ import {
 import { Task } from '@/hooks/useTasks';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import KanbanSubtaskExpander from './KanbanSubtaskExpander';
 
 interface KanbanTaskCardProps {
   task: Task;
@@ -40,7 +44,21 @@ const KanbanTaskCard = memo(({
   getProjectColor,
   getPriorityColor
 }: KanbanTaskCardProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showCreateSubtask, setShowCreateSubtask] = useState(false);
+  
   const completedSubtasks = subtasks.filter(s => s.status === 'completed').length;
+  const hasSubtasks = subtasks.length > 0;
+
+  const handleToggleExpansion = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
+  };
+
+  const handleCreateSubtask = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowCreateSubtask(true);
+  };
 
   return (
     <Card 
@@ -100,11 +118,46 @@ const KanbanTaskCard = memo(({
               </Badge>
             )}
 
-            {/* Subtasks */}
-            {subtasks.length > 0 && (
-              <Badge variant="outline" className="text-xs w-fit">
-                {completedSubtasks}/{subtasks.length} subtareas
-              </Badge>
+            {/* Subtasks summary */}
+            {hasSubtasks && (
+              <div className="flex items-center justify-between">
+                <Badge variant="outline" className="text-xs w-fit">
+                  {completedSubtasks}/{subtasks.length} subtareas
+                </Badge>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0"
+                    onClick={handleCreateSubtask}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0"
+                    onClick={handleToggleExpansion}
+                  >
+                    {isExpanded ? 
+                      <ChevronDown className="h-3 w-3" /> : 
+                      <ChevronRight className="h-3 w-3" />
+                    }
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {!hasSubtasks && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-fit p-1 text-xs"
+                onClick={handleCreateSubtask}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Agregar subtarea
+              </Button>
             )}
 
             {/* Due date and duration */}
@@ -140,6 +193,19 @@ const KanbanTaskCard = memo(({
               </div>
             )}
           </div>
+
+          {/* Expandable subtasks section */}
+          {(isExpanded || showCreateSubtask) && (
+            <KanbanSubtaskExpander
+              parentTask={task}
+              subtasks={subtasks}
+              isExpanded={isExpanded}
+              showCreateForm={showCreateSubtask}
+              onCloseCreateForm={() => setShowCreateSubtask(false)}
+              onEditTask={onEditTask}
+              onDeleteTask={onDeleteTask}
+            />
+          )}
         </div>
       </CardContent>
     </Card>
