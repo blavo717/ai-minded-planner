@@ -3,8 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { EnhancedMessage } from '../types/enhancedAITypes';
 import { messageProcessingService } from './messageProcessingService';
 import { conversationCache } from './conversationCache';
+import { queryOptimizer } from './queryOptimizer';
 
-// NUEVO: Cache local con TTL mejorado
+// Cache local con TTL mejorado (mantener compatibilidad)
 interface CacheEntry {
   data: EnhancedMessage[];
   timestamp: number;
@@ -76,7 +77,7 @@ setInterval(() => historyCache.cleanup(), 10 * 60 * 1000);
 export const messageHistoryService = {
   async loadConversationHistory(userId: string): Promise<EnhancedMessage[]> {
     try {
-      console.log('📚 Intentando cargar historial de conversación...');
+      console.log('📚 Intentando cargar historial de conversación con QueryOptimizer...');
       
       // NUEVO: Verificar conversation cache primero
       const cachedConversation = conversationCache.get(userId);
@@ -93,7 +94,7 @@ export const messageHistoryService = {
         return cachedData;
       }
 
-      console.log('🔄 Cache miss - cargando desde base de datos...');
+      console.log('🔄 Cache miss - cargando con QueryOptimizer optimizado...');
       
       // Limpiar duplicados antes de cargar
       const { error: cleanError } = await supabase.rpc('clean_duplicate_ai_messages');
@@ -101,18 +102,8 @@ export const messageHistoryService = {
         console.warn('⚠️ Advertencia al limpiar duplicados:', cleanError);
       }
 
-      // Query optimizada con paginación
-      const { data: chatMessages, error } = await supabase
-        .from('ai_chat_messages')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true })
-        .limit(100); // Aumentado para mejor contexto
-
-      if (error) {
-        console.error('❌ Error loading chat history:', error);
-        return [];
-      }
+      // NUEVO: Usar QueryOptimizer para query optimizada
+      const chatMessages = await queryOptimizer.optimizedChatMessagesQuery(userId, 100);
 
       if (!chatMessages || chatMessages.length === 0) {
         console.log('📝 No hay historial previo');
@@ -137,7 +128,7 @@ export const messageHistoryService = {
       historyCache.set(userId, uniqueMessages);
       conversationCache.set(userId, uniqueMessages);
 
-      console.log(`✅ Historial cargado: ${uniqueMessages.length} mensajes únicos desde BD`);
+      console.log(`✅ Historial cargado con QueryOptimizer: ${uniqueMessages.length} mensajes únicos`);
       return uniqueMessages;
       
     } catch (error) {
@@ -169,7 +160,7 @@ export const messageHistoryService = {
       } else {
         console.log(`💾 Mensaje guardado: ${message.type} - ${message.content.substring(0, 50)}...`);
         
-        // NUEVO: Invalidar cache tradicional y actualizar conversation cache
+        // Invalidar cache tradicional y actualizar conversation cache
         historyCache.clear(userId);
         conversationCache.addMessage(userId, message);
       }
@@ -188,16 +179,26 @@ export const messageHistoryService = {
     }
   },
 
-  // Función para obtener estadísticas de ambos caches
-  getCacheStats(): { history: any, conversations: any } {
+  // Función para obtener estadísticas de todos los caches
+  getCacheStats(): { history: any, conversations: any, queries: any } {
     const historyStats = {
       size: historyCache['cache'].size,
       users: Array.from(historyCache['cache'].keys())
     };
     
     const conversationStats = conversationCache.getStats();
+    const queryStats = queryOptimizer.getStats();
     
-    console.log('📊 Cache stats:', { history: historyStats, conversations: conversationStats });
-    return { history: historyStats, conversations: conversationStats };
+    console.log('📊 All cache stats:', { 
+      history: historyStats, 
+      conversations: conversationStats,
+      queries: queryStats 
+    });
+    
+    return { 
+      history: historyStats, 
+      conversations: conversationStats,
+      queries: queryStats
+    };
   }
 };
