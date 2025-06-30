@@ -38,6 +38,7 @@ const EnhancedAIAssistantPanel = memo(() => {
   const handleClearChat = useCallback(() => {
     console.log('🧹 Limpiando chat desde panel');
     clearChat();
+    setInputMessage(''); // Limpiar también el input
   }, [clearChat]);
 
   // Memoizar el handler de exportación
@@ -59,8 +60,8 @@ const EnhancedAIAssistantPanel = memo(() => {
   const hasMessages = messages.length > 0;
 
   return (
-    <Card className="w-full h-[600px] flex flex-col">
-      <CardHeader className="pb-3">
+    <Card className="w-full h-[calc(100vh-200px)] min-h-[600px] flex flex-col shadow-lg">
+      <CardHeader className="pb-3 flex-shrink-0">
         <ChatHeader
           connectionStatus={connectionStatus}
           contextAvailable={contextAvailable}
@@ -73,16 +74,20 @@ const EnhancedAIAssistantPanel = memo(() => {
         />
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col p-0">
-        <MessageList messages={messages} isLoading={isLoading} />
-        <ChatInput
-          inputMessage={inputMessage}
-          setInputMessage={handleInputChange}
-          onSendMessage={handleSendMessage}
-          isLoading={isLoading}
-          contextAvailable={contextAvailable}
-        />
-        <DataIndicator contextAvailable={contextAvailable} />
+      <CardContent className="flex-1 flex flex-col p-0 min-h-0">
+        <div className="flex-1 min-h-0">
+          <MessageList messages={messages} isLoading={isLoading} />
+        </div>
+        <div className="flex-shrink-0">
+          <ChatInput
+            inputMessage={inputMessage}
+            setInputMessage={handleInputChange}
+            onSendMessage={handleSendMessage}
+            isLoading={isLoading}
+            contextAvailable={contextAvailable}
+          />
+          <DataIndicator contextAvailable={contextAvailable} />
+        </div>
       </CardContent>
     </Card>
   );

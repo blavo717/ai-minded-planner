@@ -62,8 +62,15 @@ export const useEnhancedAIAssistant = () => {
   });
 
   const clearChat = useCallback(async () => {
-    console.log('🧹 Limpiando chat (manteniendo historial en BD)');
+    console.log('🧹 Limpiando chat completamente');
+    
+    // Limpiar mensajes del estado
     clearMessages();
+    
+    // Resetear el historial cargado para que pueda volver a cargar
+    isHistoryLoadedRef.current = false;
+    
+    // Actualizar estado de conexión
     if (hasActiveConfiguration) {
       setConnected();
     } else {
@@ -72,9 +79,9 @@ export const useEnhancedAIAssistant = () => {
     
     toast({
       title: 'Chat limpiado',
-      description: 'La conversación se ha limpiado pero el historial se mantiene.',
+      description: 'La conversación se ha limpiado correctamente.',
     });
-  }, [toast, hasActiveConfiguration, clearMessages, setConnected, setDisconnected]);
+  }, [toast, hasActiveConfiguration, clearMessages, setConnected, setDisconnected, isHistoryLoadedRef]);
 
   const exportConversation = useCallback(() => {
     const exportData = {
