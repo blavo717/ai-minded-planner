@@ -12,9 +12,6 @@ import TaskCreatorModal from './TaskCreatorModal';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
-import TaskLogButton from '@/components/tasks/logs/TaskLogButton';
-import TaskLogHistory from '@/components/tasks/logs/TaskLogHistory';
-import TaskCompleteLogHistory from '@/components/tasks/logs/TaskCompleteLogHistory';
 
 interface SubtaskListProps {
   parentTask: Task;
@@ -124,13 +121,6 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
           />
           
           <div className="flex items-center gap-2">
-            <TaskLogButton
-              taskId={parentTask.id}
-              taskTitle={parentTask.title}
-              variant="ghost"
-              size="sm"
-            />
-            
             <Button
               variant="ghost"
               size="sm"
@@ -156,18 +146,24 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
         <CardContent className="space-y-4">
           {/* Mostrar historial de logs si está activado */}
           {showLogs && (
-            <TaskLogHistory
-              taskId={parentTask.id}
-              title={`Logs de "${parentTask.title}"`}
-            />
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h4 className="font-medium text-blue-800 mb-2">Logs de "{parentTask.title}"</h4>
+              <p className="text-sm text-blue-600">
+                💡 Los logs ahora están disponibles a nivel de proyecto. 
+                Ve al proyecto correspondiente y haz clic en "Ver Logs" para ver toda la actividad.
+              </p>
+            </div>
           )}
           
           {/* Mostrar historial completo si está activado */}
           {showCompleteLogs && (
-            <TaskCompleteLogHistory
-              taskId={parentTask.id}
-              taskTitle={parentTask.title}
-            />
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <h4 className="font-medium text-green-800 mb-2">Log Completo del Proyecto</h4>
+              <p className="text-sm text-green-600">
+                📊 Ahora puedes ver todos los logs del proyecto desde la tarjeta del proyecto. 
+                Incluye cambios de proyecto, logs de tareas, subtareas y microtareas en una vista unificada.
+              </p>
+            </div>
           )}
 
           {subtasks.map((subtask) => {
