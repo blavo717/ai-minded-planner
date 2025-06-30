@@ -79,6 +79,7 @@ const TasksViewSection = ({
           <TimelineView
             tasks={filteredTasks}
             onEditTask={onEditTask}
+            onCompleteTask={onCompleteTask}
           />
         )}
 
