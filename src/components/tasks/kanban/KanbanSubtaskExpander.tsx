@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -52,7 +51,7 @@ const KanbanSubtaskExpander = ({
         project_id: parentTask.project_id,
         status: 'pending',
         priority: 'medium',
-        task_level: (parentTask.task_level || 1) + 1
+        task_level: Math.min((parentTask.task_level || 1) + 1, 3) as 1 | 2 | 3
       });
       
       setNewSubtaskTitle('');
