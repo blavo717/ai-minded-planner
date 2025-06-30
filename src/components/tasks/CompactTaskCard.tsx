@@ -1,4 +1,3 @@
-
 import React, { memo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,8 +20,8 @@ import { Project } from '@/hooks/useProjects';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import CompactSubtaskList from './CompactSubtaskList';
-import LogIcon from './logs/LogIcon';
-import TaskActivityLog from './logs/TaskActivityLog';
+import LogIcon from '@/components/tasks/logs/LogIcon';
+import TaskActivityLog from '@/components/tasks/logs/TaskActivityLog';
 
 interface CompactTaskCardProps {
   task: Task;

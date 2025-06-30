@@ -1,4 +1,3 @@
-
 import React, { memo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,8 +16,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Task } from '@/hooks/useTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
-import LogIcon from './logs/LogIcon';
-import TaskActivityLog from './logs/TaskActivityLog';
+import LogIcon from '@/components/tasks/logs/LogIcon';
+import TaskActivityLog from '@/components/tasks/logs/TaskActivityLog';
 
 interface CompactMicrotaskListProps {
   parentSubtask: Task;
