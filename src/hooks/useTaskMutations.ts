@@ -155,6 +155,116 @@ export const useTaskMutations = () => {
     },
   });
 
+  const completeTaskMutation = useMutation({
+    mutationFn: async ({ taskId, completionNotes }: { taskId: string; completionNotes?: string }) => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          completion_notes: completionNotes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      
+      // ✅ Log automático de completado
+      createAutoLog(
+        data.id,
+        'completion',
+        'Tarea completada',
+        `${data.task_level === 1 ? 'Tarea' : data.task_level === 2 ? 'Subtarea' : 'Microtarea'} completada exitosamente`,
+        { 
+          completion_date: data.completed_at,
+          completion_notes: data.completion_notes 
+        }
+      );
+      
+      toast({
+        title: "Tarea completada",
+        description: "La tarea se ha completado exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al completar tarea",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const archiveTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update({
+          is_archived: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['archived-tasks'] });
+      toast({
+        title: "Tarea archivada",
+        description: "La tarea se ha archivado exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al archivar tarea",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const unarchiveTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update({
+          is_archived: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['archived-tasks'] });
+      toast({
+        title: "Tarea restaurada",
+        description: "La tarea se ha restaurado exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al restaurar tarea",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const createSubtaskMutation = useMutation({
     mutationFn: async ({ parentTaskId, title }: { parentTaskId: string; title: string }) => {
       if (!user) throw new Error('User not authenticated');
@@ -197,7 +307,7 @@ export const useTaskMutations = () => {
   });
 
   const createMicrotaskMutation = useMutation({
-    mutationFn: async (parentSubtaskId: string, title: string) => {
+    mutationFn: async ({ parentSubtaskId, title }: { parentSubtaskId: string; title: string }) => {
       if (!user) throw new Error('User not authenticated');
       
       const { data, error } = await supabase
@@ -241,10 +351,19 @@ export const useTaskMutations = () => {
     createTask: createTaskMutation.mutate,
     updateTask: updateTaskMutation.mutate,
     deleteTask: deleteTaskMutation.mutate,
+    completeTask: completeTaskMutation.mutate,
+    archiveTask: archiveTaskMutation.mutate,
+    unarchiveTask: unarchiveTaskMutation.mutate,
     createSubtask: createSubtaskMutation.mutate,
-    createMicrotask: createMicrotaskMutation.mutate,
+    createMicrotask: createMicrotaskMutation. mutate,
     isCreating: createTaskMutation.isPending,
+    isCreatingTask: createTaskMutation.isPending,
     isUpdating: updateTaskMutation.isPending,
+    isUpdatingTask: updateTaskMutation.isPending,
     isDeleting: deleteTaskMutation.isPending,
+    isDeletingTask: deleteTaskMutation.isPending,
+    isCompletingTask: completeTaskMutation.isPending,
+    isArchivingTask: archiveTaskMutation.isPending,
+    isUnarchivingTask: unarchiveTaskMutation.isPending,
   };
 };
