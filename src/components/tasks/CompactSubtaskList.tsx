@@ -1,3 +1,4 @@
+
 import React, { memo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,8 +20,8 @@ import {
 import { Task } from '@/hooks/useTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import CompactMicrotaskList from './CompactMicrotaskList';
-import LogIcon from '@/components/tasks/logs/LogIcon';
-import TaskActivityLog from '@/components/tasks/logs/TaskActivityLog';
+import TaskLogIcon from './TaskLogIcon';
+import TaskActivityLogModal from './TaskActivityLogModal';
 
 interface CompactSubtaskListProps {
   parentTask: Task;
@@ -110,7 +111,7 @@ const CompactSubtaskList = memo(({
                     {subtask.title}
                   </span>
 
-                  <LogIcon 
+                  <TaskLogIcon 
                     taskId={subtask.id} 
                     className="h-3 w-3"
                     onClick={() => setSelectedLogTask(subtask)}
@@ -203,7 +204,7 @@ const CompactSubtaskList = memo(({
 
       {/* Modal de Log de Actividad */}
       {selectedLogTask && (
-        <TaskActivityLog
+        <TaskActivityLogModal
           taskId={selectedLogTask.id}
           taskTitle={selectedLogTask.title}
           isOpen={true}

@@ -1,3 +1,4 @@
+
 import React, { memo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,8 +21,8 @@ import { Project } from '@/hooks/useProjects';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import CompactSubtaskList from './CompactSubtaskList';
-import LogIcon from '@/components/tasks/logs/LogIcon';
-import TaskActivityLog from '@/components/tasks/logs/TaskActivityLog';
+import TaskLogIcon from './TaskLogIcon';
+import TaskActivityLogModal from './TaskActivityLogModal';
 
 interface CompactTaskCardProps {
   task: Task;
@@ -156,7 +157,7 @@ const CompactTaskCard = memo(({
               {/* Indicadores de estado y progreso */}
               <div className="flex items-center gap-2">
                 {/* Log Icon */}
-                <LogIcon 
+                <TaskLogIcon 
                   taskId={task.id} 
                   className="h-4 w-4"
                   onClick={() => setSelectedLogTask(task)}
@@ -222,7 +223,7 @@ const CompactTaskCard = memo(({
 
       {/* Modal de Log de Actividad */}
       {selectedLogTask && (
-        <TaskActivityLog
+        <TaskActivityLogModal
           taskId={selectedLogTask.id}
           taskTitle={selectedLogTask.title}
           isOpen={true}
