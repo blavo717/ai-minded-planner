@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { CardTitle } from '@/components/ui/card';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface SubtaskHeaderProps {
   isExpanded: boolean;
@@ -12,32 +12,24 @@ interface SubtaskHeaderProps {
 }
 
 const SubtaskHeader = ({ isExpanded, onToggle, completedCount, totalCount }: SubtaskHeaderProps) => {
-  const progressPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
   return (
     <div className="flex items-center justify-between">
-      <CardTitle className="flex items-center gap-2 text-lg">
-        <Button variant="ghost" size="sm" onClick={onToggle}>
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </Button>
-        Subtareas ({completedCount}/{totalCount})
-      </CardTitle>
-      
-      {totalCount > 0 && (
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">{progressPercentage}%</span>
-          <div className="w-20 h-2 bg-gray-200 rounded-full">
-            <div 
-              className="h-full bg-green-500 rounded-full transition-all duration-300"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
-        </div>
-      )}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onToggle}
+        className="flex items-center gap-2 text-sm font-medium"
+      >
+        {isExpanded ? (
+          <ChevronDown className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
+        Subtareas
+        <Badge variant="outline" className="ml-2">
+          {completedCount}/{totalCount}
+        </Badge>
+      </Button>
     </div>
   );
 };
