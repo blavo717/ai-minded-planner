@@ -170,17 +170,24 @@ const CompactTaskCard = memo(({
                 {/* Punto de estado */}
                 <div className={getStatusDot()} />
 
-                {/* Acciones - Always visible with better styling */}
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Acciones - SIEMPRE VISIBLE */}
+                <div className="ml-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-gray-100 focus:bg-gray-100"
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border z-50">
                       <DropdownMenuItem onClick={() => onEditTask(task)}>
                         Editar tarea
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onCreateSubtask(task.id, 'Nueva subtarea')}>
+                        Añadir subtarea
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onManageDependencies(task)}>
                         Dependencias
