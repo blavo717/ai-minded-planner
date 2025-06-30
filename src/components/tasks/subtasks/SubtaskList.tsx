@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Task } from '@/hooks/useTasks';
@@ -67,10 +66,10 @@ const SubtaskList = ({ parentTask, subtasks, onCreateSubtask }: SubtaskListProps
     console.log('🔧 Creating microtask:', { subtaskId, data });
     
     if (data.title && data.title.trim()) {
-      createMicrotask(subtaskId, data.title.trim(), data.description);
+      createMicrotask({ parentSubtaskId: subtaskId, title: data.title.trim() });
       toast({
         title: "Microtarea creada",
-        description: `Se ha creado la microtarea "${data.title}" exitosamente.`,
+        description: `Se ha creada la microtarea "${data.title}" exitosamente.`,
       });
     }
   };

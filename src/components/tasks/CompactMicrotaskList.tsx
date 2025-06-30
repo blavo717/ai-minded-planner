@@ -50,7 +50,7 @@ const CompactMicrotaskList = memo(({
         parentId: parentSubtask.id,
         title: newMicrotaskTitle.trim()
       });
-      createMicrotask(parentSubtask.id, newMicrotaskTitle.trim());
+      createMicrotask({ parentSubtaskId: parentSubtask.id, title: newMicrotaskTitle.trim() });
       setNewMicrotaskTitle('');
       setIsCreating(false);
     }

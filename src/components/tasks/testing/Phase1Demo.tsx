@@ -83,7 +83,7 @@ const Phase1Demo = () => {
 
   const handleDemoMicrotaskCreate = (data: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; estimated_duration?: number }) => {
     if (data.title && selectedDemoTask) {
-      createMicrotask(selectedDemoTask, data.title, data.description);
+      createMicrotask({ parentSubtaskId: selectedDemoTask, title: data.title });
       
       toast({
         title: "Microtarea creada",
