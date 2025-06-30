@@ -3,12 +3,15 @@ import React, { memo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { 
   MoreHorizontal,
   ChevronRight,
   ChevronDown,
   Calendar,
-  Clock
+  Clock,
+  Check,
+  X
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -23,6 +26,7 @@ import { es } from 'date-fns/locale';
 import CompactSubtaskList from './CompactSubtaskList';
 import TaskLogIcon from './TaskLogIcon';
 import TaskActivityLogModal from './TaskActivityLogModal';
+import { useTaskMutations } from '@/hooks/useTaskMutations';
 
 interface CompactTaskCardProps {
   task: Task;
@@ -51,6 +55,9 @@ const CompactTaskCard = memo(({
 }: CompactTaskCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedLogTask, setSelectedLogTask] = useState<Task | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState(task.title);
+  const { updateTask } = useTaskMutations();
 
   const completedSubtasks = subtasks.filter(st => st.status === 'completed').length;
   const totalSubtasks = subtasks.length;
@@ -88,6 +95,26 @@ const CompactTaskCard = memo(({
     setIsExpanded(!isExpanded);
   };
 
+  const handleDoubleClickTitle = () => {
+    setIsEditingTitle(true);
+    setEditTitle(task.title);
+  };
+
+  const handleSaveTitle = () => {
+    if (editTitle.trim() && editTitle.trim() !== task.title) {
+      updateTask({
+        id: task.id,
+        title: editTitle.trim()
+      });
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditTitle(task.title);
+    setIsEditingTitle(false);
+  };
+
   return (
     <>
       <div className="space-y-0">
@@ -123,11 +150,46 @@ const CompactTaskCard = memo(({
               {/* Contenido principal */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className={`font-medium text-base truncate ${
-                    isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'
-                  }`}>
-                    {task.title}
-                  </h3>
+                  {isEditingTitle ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="h-6 text-base font-medium"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveTitle();
+                          if (e.key === 'Escape') handleCancelEdit();
+                        }}
+                        onBlur={handleSaveTitle}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleSaveTitle}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Check className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                        className="h-6 w-6 p-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <h3 
+                      className={`font-medium text-base truncate cursor-pointer hover:text-blue-600 ${
+                        isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'
+                      }`}
+                      onDoubleClick={handleDoubleClickTitle}
+                      title="Doble clic para editar"
+                    >
+                      {task.title}
+                    </h3>
+                  )}
                   
                   {/* Metadata compacta */}
                   <div className="flex items-center gap-1 text-xs text-gray-500">

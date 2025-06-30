@@ -34,6 +34,8 @@ const CompactMicrotaskList = memo(({
   const [isCreating, setIsCreating] = useState(false);
   const [newMicrotaskTitle, setNewMicrotaskTitle] = useState('');
   const [selectedLogTask, setSelectedLogTask] = useState<Task | null>(null);
+  const [editingMicrotaskId, setEditingMicrotaskId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
   const { updateTask, deleteTask, createMicrotask } = useTaskMutations();
 
   const handleCreateMicrotask = () => {
@@ -52,11 +54,33 @@ const CompactMicrotaskList = memo(({
     });
   };
 
+  const handleDoubleClickMicrotask = (microtask: Task) => {
+    setEditingMicrotaskId(microtask.id);
+    setEditTitle(microtask.title);
+  };
+
+  const handleSaveMicrotaskTitle = (microtaskId: string) => {
+    if (editTitle.trim() && editTitle.trim() !== microtasks.find(m => m.id === microtaskId)?.title) {
+      updateTask({
+        id: microtaskId,
+        title: editTitle.trim()
+      });
+    }
+    setEditingMicrotaskId(null);
+    setEditTitle('');
+  };
+
+  const handleCancelMicrotaskEdit = () => {
+    setEditingMicrotaskId(null);
+    setEditTitle('');
+  };
+
   return (
     <>
       <div className="ml-12 border-l border-gray-300 pl-4 space-y-1">
         {microtasks.map((microtask) => {
           const isCompleted = microtask.status === 'completed';
+          const isEditing = editingMicrotaskId === microtask.id;
           
           return (
             <div 
@@ -75,11 +99,46 @@ const CompactMicrotaskList = memo(({
                   className="h-3 w-3"
                 />
 
-                <span className={`font-normal text-xs flex-1 truncate ${
-                  isCompleted ? 'text-gray-400 line-through' : 'text-gray-600'
-                }`}>
-                  {microtask.title}
-                </span>
+                {isEditing ? (
+                  <div className="flex items-center gap-1 flex-1">
+                    <Input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="h-4 text-xs"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveMicrotaskTitle(microtask.id);
+                        if (e.key === 'Escape') handleCancelMicrotaskEdit();
+                      }}
+                      onBlur={() => handleSaveMicrotaskTitle(microtask.id)}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => handleSaveMicrotaskTitle(microtask.id)}
+                      className="h-4 w-4 p-0"
+                    >
+                      <Check className="h-2 w-2" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelMicrotaskEdit}
+                      className="h-4 w-4 p-0"
+                    >
+                      <X className="h-2 w-2" />
+                    </Button>
+                  </div>
+                ) : (
+                  <span 
+                    className={`font-normal text-xs flex-1 truncate cursor-pointer hover:text-blue-600 ${
+                      isCompleted ? 'text-gray-400 line-through' : 'text-gray-600'
+                    }`}
+                    onDoubleClick={() => handleDoubleClickMicrotask(microtask)}
+                    title="Doble clic para editar"
+                  >
+                    {microtask.title}
+                  </span>
+                )}
 
                 <TaskLogIcon 
                   taskId={microtask.id} 
