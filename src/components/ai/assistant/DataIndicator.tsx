@@ -5,16 +5,9 @@ interface DataIndicatorProps {
   contextAvailable: boolean;
 }
 
+// Componente vacío - ya no mostramos información de Supabase
 const DataIndicator = memo(({ contextAvailable }: DataIndicatorProps) => {
-  if (!contextAvailable) {
-    return null;
-  }
-
-  return (
-    <div className="px-4 py-1 text-xs text-green-600 bg-green-50 border-t">
-      ✅ Utilizando datos reales de Supabase
-    </div>
-  );
+  return null;
 });
 
 DataIndicator.displayName = 'DataIndicator';
