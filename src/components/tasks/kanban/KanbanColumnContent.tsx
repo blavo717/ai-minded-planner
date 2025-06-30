@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Task } from '@/hooks/useTasks';
-import AnimatedKanbanTaskCard from './AnimatedKanbanTaskCard';
+import KanbanTaskCard from './KanbanTaskCard';
 
 interface KanbanColumnContentProps {
   isExpanded: boolean;
@@ -79,7 +79,7 @@ const KanbanColumnContent = ({
                 exit="exit"
                 layout
               >
-                <AnimatedKanbanTaskCard
+                <KanbanTaskCard
                   task={task}
                   subtasks={getSubtasksForTask(task.id)}
                   onEditTask={onEditTask}

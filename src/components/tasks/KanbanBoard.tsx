@@ -69,14 +69,31 @@ const KanbanBoard = ({ tasks, getSubtasksForTask, onEditTask }: KanbanBoardProps
     return mainTasks;
   }, [tasks, preferences.selectedProjectId]);
 
-  // Get all subtasks and microtasks for a main task
+  // Get all subtasks and microtasks for a main task (including nested hierarchy)
   const getAllSubtasksForTask = useCallback((taskId: string) => {
-    return tasks.filter(task => 
-      task.parent_task_id === taskId || 
-      tasks.some(parentTask => 
-        parentTask.parent_task_id === taskId && parentTask.id === task.parent_task_id
+    // Get direct subtasks (level 2)
+    const directSubtasks = tasks.filter(task => 
+      task.parent_task_id === taskId && task.task_level === 2
+    );
+    
+    // Get microtasks (level 3) for each subtask
+    const microtasks = directSubtasks.flatMap(subtask => 
+      tasks.filter(task => 
+        task.parent_task_id === subtask.id && task.task_level === 3
       )
     );
+    
+    // Combine all subtasks and microtasks
+    const allSubtasks = [...directSubtasks, ...microtasks];
+    
+    console.log(`Subtasks for task ${taskId}:`, {
+      directSubtasks: directSubtasks.length,
+      microtasks: microtasks.length,
+      total: allSubtasks.length,
+      subtasks: allSubtasks
+    });
+    
+    return allSubtasks;
   }, [tasks]);
 
   const handleStatusChange = useCallback(async (taskId: string, newStatus: Task['status']) => {
