@@ -3,9 +3,10 @@ import React, { useState } from 'react';
 import { CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import SubtaskList from './SubtaskList';
+import InlineTaskCreator from './subtasks/InlineTaskCreator';
 
 interface TaskCardContentProps {
   task: Task;
@@ -55,15 +56,12 @@ const TaskCardContent = ({
         </Collapsible>
       ) : (
         !isCompleted && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => handleCreateSubtaskClick('Nueva subtarea')}
-            className="w-full flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Añadir subtarea
-          </Button>
+          <div className="border border-dashed border-gray-300 rounded-md">
+            <InlineTaskCreator
+              placeholder="Añadir primera subtarea..."
+              onCreateTask={handleCreateSubtaskClick}
+            />
+          </div>
         )
       )}
     </CardContent>

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Task } from '@/hooks/useTasks';
 import { useAIAssistantSimple } from '@/hooks/useAIAssistantSimple';
 import MicrotaskItem from './MicrotaskItem';
-import TaskCreator from './TaskCreator';
+import InlineTaskCreator from './InlineTaskCreator';
 import TaskCreatorModal from './TaskCreatorModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,8 +12,7 @@ import {
   Search, 
   Filter, 
   ArrowUpDown, 
-  Sparkles,
-  Plus
+  Sparkles
 } from 'lucide-react';
 
 interface MicrotaskListProps {
@@ -44,6 +43,10 @@ const MicrotaskList = ({
     setIsCreateModalOpen(false);
   };
 
+  const handleCreateMicrotaskSimple = (title: string) => {
+    onCreateMicrotask({ title });
+  };
+
   const handleDeleteMicrotask = async (taskId: string) => {
     await onDeleteTask(taskId);
   };
@@ -56,10 +59,8 @@ const MicrotaskList = ({
     }
   };
 
-  // Si la subtarea no está expandida, no mostrar nada
   if (!isExpanded) return null;
 
-  // Filtrar y ordenar microtareas
   const filteredMicrotasks = microtasks
     .filter(task => {
       if (!showCompleted && task.status === 'completed') return false;
@@ -85,109 +86,104 @@ const MicrotaskList = ({
   const totalCount = microtasks.length;
 
   return (
-    <div className="space-y-3">
-      {/* Sección de microtareas con fondo blanco profesional */}
-      <div className="ml-6 pl-4 border-l-2 border-gray-200 space-y-3">
-        {/* Header de Microtareas mejorado */}
-        <div className="bg-purple-100 rounded-lg px-3 py-2 border border-purple-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <h5 className="text-sm font-semibold text-purple-800">
-                Microtareas
-              </h5>
-              {totalCount > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  {completedCount}/{totalCount}
-                </Badge>
-              )}
+    <div className="mt-2 ml-4 pl-3 border-l-2 border-purple-200 space-y-2">
+      {/* Header compacto de Microtareas */}
+      <div className="bg-purple-50 rounded-md px-2 py-1 border border-purple-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+            <h6 className="text-xs font-medium text-purple-800">
+              Microtareas
+            </h6>
+            {totalCount > 0 && (
+              <Badge variant="outline" className="text-xs h-4 px-1">
+                {completedCount}/{totalCount}
+              </Badge>
+            )}
+          </div>
+          
+          {totalCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleAISuggestions}
+              className="h-5 px-1 text-xs text-purple-700 hover:bg-purple-100"
+            >
+              <Sparkles className="h-2 w-2 mr-1" />
+              IA
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Controles compactos (solo si hay microtareas) */}
+      {totalCount > 0 && (
+        <div className="bg-white rounded-md p-2 border border-gray-200 space-y-1">
+          <div className="flex items-center gap-1">
+            <div className="flex-1 relative">
+              <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 h-2.5 w-2.5 text-gray-400" />
+              <Input
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-5 h-6 text-xs"
+              />
             </div>
             
-            <div className="flex items-center gap-1">
-              {totalCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleAISuggestions}
-                  className="h-6 px-2 text-xs text-purple-700 hover:bg-purple-200"
-                >
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  Sugerencias IA
-                </Button>
-              )}
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSortBy(sortBy === 'priority' ? 'created' : sortBy === 'created' ? 'duration' : 'priority')}
+              className="h-6 px-1 text-xs"
+            >
+              <ArrowUpDown className="h-2.5 w-2.5 mr-1" />
+              {sortBy === 'priority' ? 'P' : sortBy === 'created' ? 'F' : 'D'}
+            </Button>
+            
+            <Button
+              variant={showCompleted ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowCompleted(!showCompleted)}
+              className="h-6 px-1 text-xs"
+            >
+              <Filter className="h-2.5 w-2.5 mr-1" />
+              {showCompleted ? 'Todas' : 'Activas'}
+            </Button>
           </div>
         </div>
+      )}
 
-        {/* Controles de filtro y búsqueda (solo si hay microtareas) */}
-        {totalCount > 0 && (
-          <div className="bg-white rounded-lg p-3 border border-gray-200 space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
-                <Input
-                  placeholder="Buscar microtareas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-7 h-7 text-xs"
-                />
-              </div>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSortBy(sortBy === 'priority' ? 'created' : sortBy === 'created' ? 'duration' : 'priority')}
-                className="h-7 px-2 text-xs"
-              >
-                <ArrowUpDown className="h-3 w-3 mr-1" />
-                {sortBy === 'priority' ? 'Prioridad' : sortBy === 'created' ? 'Fecha' : 'Duración'}
-              </Button>
-              
-              <Button
-                variant={showCompleted ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowCompleted(!showCompleted)}
-                className="h-7 px-2 text-xs"
-              >
-                <Filter className="h-3 w-3 mr-1" />
-                {showCompleted ? 'Todas' : 'Activas'}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Lista de microtareas existentes con fondo blanco */}
-        {filteredMicrotasks.length > 0 && (
-          <div className="space-y-2">
-            {filteredMicrotasks.map((microtask) => (
-              <MicrotaskItem
-                key={microtask.id}
-                microtask={microtask}
-                onUpdate={onUpdateTask}
-                onDelete={handleDeleteMicrotask}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Mensaje cuando no hay resultados de búsqueda */}
-        {totalCount > 0 && filteredMicrotasks.length === 0 && (
-          <div className="bg-gray-50 rounded-lg p-4 text-center">
-            <p className="text-sm text-gray-500">
-              No se encontraron microtareas que coincidan con "{searchTerm}"
-            </p>
-          </div>
-        )}
-
-        {/* Botón para añadir microtarea con fondo blanco */}
-        <div className="bg-gray-50 rounded-lg p-2 border border-dashed border-gray-300">
-          <TaskCreator
-            placeholder="Añadir microtarea..."
-            buttonText="+ Añadir Microtarea"
-            onCreateTask={() => setIsCreateModalOpen(true)}
-            size="sm"
-          />
+      {/* Lista de microtareas */}
+      {filteredMicrotasks.length > 0 && (
+        <div className="space-y-1">
+          {filteredMicrotasks.map((microtask) => (
+            <MicrotaskItem
+              key={microtask.id}
+              microtask={microtask}
+              onUpdate={onUpdateTask}
+              onDelete={handleDeleteMicrotask}
+            />
+          ))}
         </div>
+      )}
+
+      {/* Mensaje cuando no hay resultados */}
+      {totalCount > 0 && filteredMicrotasks.length === 0 && (
+        <div className="bg-gray-50 rounded-md p-2 text-center">
+          <p className="text-xs text-gray-500">
+            No se encontraron microtareas
+          </p>
+        </div>
+      )}
+
+      {/* Creador inline compacto */}
+      <div className="bg-gray-50 rounded-md border border-dashed border-gray-300">
+        <InlineTaskCreator
+          placeholder="Añadir microtarea..."
+          onCreateTask={handleCreateMicrotaskSimple}
+          onOpenAdvanced={() => setIsCreateModalOpen(true)}
+          size="sm"
+        />
       </div>
 
       {/* Modal para crear microtarea */}
