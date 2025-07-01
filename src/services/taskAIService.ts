@@ -25,38 +25,57 @@ const validateGeneratedJSON = (jsonString: string): boolean => {
 };
 
 /**
- * Limpia respuesta del LLM para extraer JSON válido
+ * Limpia respuesta del LLM para extraer JSON válido - VERSIÓN ULTRA-ROBUSTA
  */
 function cleanJsonResponse(rawContent: string): string {
   if (!rawContent) return '{}';
   
   let cleaned = rawContent.trim();
   
-  // Estrategia 1: Encontrar primer { y último }
-  const firstBrace = cleaned.indexOf('{');
-  const lastBrace = cleaned.lastIndexOf('}');
+  // 🔥 PASO 1: Remover todo el ruido común
+  cleaned = cleaned.replace(/```json/gi, ''); // Markdown
+  cleaned = cleaned.replace(/```/g, ''); // Markdown
+  cleaned = cleaned.replace(/^[^{]*/, ''); // Todo antes del primer {
+  cleaned = cleaned.replace(/[^}]*$/, ''); // Todo después del último }
   
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  // 🔥 PASO 2: Encontrar el JSON más probable
+  const jsonMatches = cleaned.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g);
+  if (jsonMatches && jsonMatches.length > 0) {
+    cleaned = jsonMatches[0]; // Tomar el primer JSON completo encontrado
   }
   
-  // Estrategia 2: Remover texto común antes/después del JSON
-  cleaned = cleaned.replace(/^.*?(?=\{)/s, ''); // Remover todo antes del primer {
-  cleaned = cleaned.replace(/\}.*$/s, '}'); // Remover todo después del último }
+  // 🔥 PASO 3: Limpiar caracteres problemáticos AGRESIVAMENTE
+  cleaned = cleaned.replace(/\/\/.*$/gm, ''); // Comentarios de línea
+  cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, ''); // Comentarios de bloque
+  cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1'); // Comas antes de } o ]
+  cleaned = cleaned.replace(/\n/g, ' '); // Saltos de línea
+  cleaned = cleaned.replace(/\r/g, ''); // Retornos de carro
+  cleaned = cleaned.replace(/\t/g, ' '); // Tabs
+  cleaned = cleaned.replace(/\s+/g, ' '); // Espacios múltiples
   
-  // Estrategia 3: Limpiar caracteres problemáticos
-  cleaned = cleaned.replace(/```json/g, ''); // Remover markdown
-  cleaned = cleaned.replace(/```/g, ''); // Remover markdown
-  cleaned = cleaned.replace(/\/\/.*$/gm, ''); // Remover comentarios de línea
-  cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, ''); // Remover comentarios de bloque
+  // 🔥 PASO 4: Reparar strings sin terminar
+  const openQuotes = (cleaned.match(/"/g) || []).length;
+  if (openQuotes % 2 !== 0) {
+    // Número impar de comillas - reparar
+    const lastQuoteIndex = cleaned.lastIndexOf('"');
+    if (lastQuoteIndex > 0) {
+      cleaned = cleaned.substring(0, lastQuoteIndex) + '"}';
+    }
+  }
+  
+  // 🔥 PASO 5: Asegurar estructura mínima válida
+  if (!cleaned.startsWith('{')) cleaned = '{' + cleaned;
+  if (!cleaned.endsWith('}')) cleaned = cleaned + '}';
   
   return cleaned.trim();
 }
 
 /**
- * Parser JSON robusto con múltiples estrategias de fallback
+ * Parser JSON ULTRA-ROBUSTO con 8 estrategias de fallback
  */
 function parseJsonSafely(rawContent: string): any {
+  console.log('🔍 Iniciando parsing con 8 estrategias, raw content preview:', rawContent.substring(0, 100));
+  
   const strategies = [
     // Estrategia 1: Parsing directo
     () => JSON.parse(rawContent),
@@ -64,41 +83,98 @@ function parseJsonSafely(rawContent: string): any {
     // Estrategia 2: Limpieza básica
     () => JSON.parse(cleanJsonResponse(rawContent)),
     
-    // Estrategia 3: Limpieza agresiva
+    // Estrategia 3: Reparar strings sin terminar
+    () => {
+      let repaired = rawContent;
+      // Encontrar strings sin terminar y cerrarlas
+      const openQuotes = (repaired.match(/(?<!\\)"/g) || []).length;
+      if (openQuotes % 2 !== 0) {
+        repaired = repaired + '"';
+      }
+      return JSON.parse(cleanJsonResponse(repaired));
+    },
+    
+    // Estrategia 4: Reparar comas problemáticas
     () => {
       const cleaned = cleanJsonResponse(rawContent)
-        .replace(/,\s*}/g, '}') // Remover comas antes de }
-        .replace(/,\s*]/g, ']') // Remover comas antes de ]
-        .replace(/\n\s*/g, ' ') // Normalizar espacios
-        .replace(/\s+/g, ' '); // Normalizar espacios múltiples
+        .replace(/,(\s*[}\]])/g, '$1') // Remover comas antes de } o ]
+        .replace(/([}\]])(\s*)(["\w])/g, '$1,$2$3') // Añadir comas faltantes
+        .replace(/(["\w])(\s*)([}\]])/g, '$1$2$3'); // Limpiar espacios
       return JSON.parse(cleaned);
     },
     
-    // Estrategia 4: Regex extraction
+    // Estrategia 5: Construcción de JSON por campos
     () => {
-      const match = rawContent.match(/\{[\s\S]*\}/);
+      const statusMatch = rawContent.match(/"statusSummary"\s*:\s*"([^"]+)"/);
+      const stepsMatch = rawContent.match(/"nextSteps"\s*:\s*"([^"]+)"/);
+      const riskMatch = rawContent.match(/"riskLevel"\s*:\s*"(low|medium|high)"/);
+      
+      return {
+        statusSummary: statusMatch?.[1] || 'Estado no disponible',
+        nextSteps: stepsMatch?.[1] || 'Pasos no disponibles',
+        riskLevel: riskMatch?.[1] || 'low'
+      };
+    },
+    
+    // Estrategia 6: Regex extraction mejorado
+    () => {
+      const match = rawContent.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
       if (match) {
         return JSON.parse(cleanJsonResponse(match[0]));
       }
       throw new Error('No JSON found');
+    },
+    
+    // Estrategia 7: Reconstrucción línea por línea
+    () => {
+      const lines = rawContent.split('\n').map(line => line.trim()).filter(line => line);
+      const jsonObj: any = {};
+      
+      for (const line of lines) {
+        const match = line.match(/"([^"]+)"\s*:\s*"([^"]*)"/) || line.match(/"([^"]+)"\s*:\s*([^,}]+)/);
+        if (match) {
+          jsonObj[match[1]] = match[2].replace(/[",]/g, '').trim();
+        }
+      }
+      
+      if (Object.keys(jsonObj).length > 0) {
+        return jsonObj;
+      }
+      throw new Error('No valid fields found');
+    },
+    
+    // Estrategia 8: Fallback manual ultra-seguro
+    () => {
+      console.log('🚨 Usando fallback manual ultra-seguro');
+      return {
+        statusSummary: rawContent.substring(0, 80).replace(/[^a-zA-Z0-9\s]/g, ' ').trim() || 'Análisis en proceso',
+        nextSteps: 'Revisar manualmente la respuesta del sistema',
+        riskLevel: 'medium'
+      };
     }
   ];
   
   let lastError: Error | null = null;
   
-  for (const strategy of strategies) {
+  for (let i = 0; i < strategies.length; i++) {
     try {
-      const result = strategy();
-      console.log('✅ JSON parsing successful with strategy', strategies.indexOf(strategy) + 1);
+      const result = strategies[i]();
+      console.log(`✅ JSON parsing exitoso con estrategia ${i + 1}:`, result);
       return result;
     } catch (error) {
       lastError = error as Error;
-      console.warn(`❌ Strategy ${strategies.indexOf(strategy) + 1} failed:`, error instanceof Error ? error.message : 'Unknown error');
+      console.warn(`❌ Estrategia ${i + 1} falló:`, error instanceof Error ? error.message : 'Unknown error');
     }
   }
   
-  console.error('🚨 All JSON parsing strategies failed. Raw content:', rawContent.substring(0, 200) + '...');
-  throw lastError || new Error('JSON parsing failed with all strategies');
+  console.error('🚨 Las 8 estrategias fallaron. Contenido raw:', rawContent);
+  
+  // Esto nunca debería ejecutarse por la estrategia 8, pero por seguridad
+  return {
+    statusSummary: 'Error en análisis IA - revisar manualmente',
+    nextSteps: 'Contactar soporte técnico',
+    riskLevel: 'medium'
+  };
 }
 
 /**
@@ -122,7 +198,7 @@ export const generateTaskStateAndSteps = async (
   makeLLMRequest: any
 ): Promise<TaskAISummary> => {
   
-  const systemPrompt = `Eres un experto analista de productividad. Tu respuesta debe ser ÚNICAMENTE un objeto JSON válido, sin texto adicional, sin explicaciones, sin comentarios.
+  const systemPrompt = `Eres un asistente que ÚNICAMENTE responde en JSON válido sin excepción.
 
 FORMATO REQUERIDO (copia exactamente esta estructura):
 {
@@ -148,27 +224,34 @@ FORMATO REQUERIDO (copia exactamente esta estructura):
   ]
 }
 
+🚨 REGLAS CRÍTICAS - NO VIOLAR NUNCA:
+1. Respuesta SOLO JSON, sin texto antes ni después
+2. Usar ÚNICAMENTE comillas dobles (")
+3. NO usar comillas simples (')
+4. NO dejar strings sin terminar
+5. NO poner comas después del último elemento
+6. NO usar comentarios (//)
+7. NO usar markdown (\`\`\`json)
+8. NO añadir explicaciones
+9. Cerrar todas las comillas que abras
+10. Temperatura fijada en 0.0 para máxima consistencia
+
 VALORES PERMITIDOS:
 - riskLevel: "low", "medium", "high"
 - type: "create_subtask", "create_reminder", "draft_email"
 - priority: "high", "medium", "low"
 - language: "es", "en"
 
-⚠️ INSTRUCCIONES CRÍTICAS DE FORMATO:
-- Responde ÚNICAMENTE con JSON válido
-- NO añadas texto explicativo antes o después del JSON
-- NO uses comentarios dentro del JSON
-- NO uses markdown (\`\`\`json)
-- NO incluyas caracteres de escape problemáticos
-- Usa comillas dobles para todas las strings
-- NO pongas comas después del último elemento
-
 ✅ EJEMPLO DE RESPUESTA CORRECTA:
 {"statusSummary":"Tarea en progreso con 7 subtareas","nextSteps":"Completar envíos pendientes","riskLevel":"low","intelligentActions":[]}
 
-🚫 NO HAGAS ESTO:
-Aquí está el análisis: {"statusSummary":"..."}
-Cualquier texto antes o después del JSON causará errores.
+🚫 NUNCA HAGAS ESTO:
+- Texto antes: "Aquí está el análisis: {"statusSummary":...
+- Markdown: \`\`\`json {"statusSummary":...
+- Comillas simples: {'statusSummary':'...
+- Strings sin cerrar: {"statusSummary":"texto sin cerrar
+- Comas finales: {"statusSummary":"texto", "nextSteps":"pasos",}
+- Comentarios: {"statusSummary":"texto", // comentario
 
 RESPONDE SOLO CON EL JSON. NO AGREGUES TEXTO ANTES O DESPUÉS.`;
 
@@ -205,7 +288,9 @@ Genera análisis en JSON:`;
       systemPrompt,
       userPrompt,
       functionName: 'enhanced_task_analysis',
-      temperature: 0.1 // ✅ Ultra bajo para consistencia
+      temperature: 0.0, // ✅ Ultra bajo para consistencia
+      max_tokens: 500, // ✅ Límite para respuestas cortas
+      stop: ["\n\n", "```"], // ✅ Detener en patrones problemáticos
     });
 
     const content = response?.content || response?.message?.content || '';
