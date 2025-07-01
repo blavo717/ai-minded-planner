@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
@@ -41,8 +40,8 @@ const TasksContent = () => {
     setShowInsights,
     showHistory,
     setIsCreateTaskOpen,
-    setIsEditTaskOpen,
-    setSelectedTask,
+    setDetailTask,
+    setIsTaskDetailModalOpen,
   } = useTasksContext();
   
   const { 
@@ -82,8 +81,8 @@ const TasksContent = () => {
   };
 
   const handleTaskSelect = (task: Task) => {
-    setSelectedTask(task);
-    setIsEditTaskOpen(true);
+    setDetailTask(task);
+    setIsTaskDetailModalOpen(true);
   };
 
   const handleSearchResults = (results: Task[]) => {
@@ -124,8 +123,8 @@ const TasksContent = () => {
 
   const handleStartWorking = (task: Task) => {
     // Abrir la tarea para trabajar
-    setSelectedTask(task);
-    setIsEditTaskOpen(true);
+    setDetailTask(task);
+    setIsTaskDetailModalOpen(true);
     
     // Si está pendiente, cambiar a "en progreso"
     if (task.status === 'pending') {
