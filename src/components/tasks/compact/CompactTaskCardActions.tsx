@@ -58,12 +58,6 @@ const CompactTaskCardActions = ({
     onDropdownOpenChange(false);
   };
 
-  const handleCreateSubtaskKeepOpen = (e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onCreateSubtask();
-  };
-
   return (
     <div className="flex items-center gap-3 flex-shrink-0">
       {/* Progreso de subtareas */}
@@ -95,32 +89,58 @@ const CompactTaskCardActions = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border z-50">
-          <DropdownMenuItem onClick={() => handleActionAndClose(onEditTask)}>
-            Editar tarea
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onPointerDown={handleCreateSubtaskKeepOpen}
-            onSelect={(e) => e.preventDefault()}
-          >
-            Añadir subtarea
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleActionAndClose(onManageDependencies)}>
-            Dependencias
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleActionAndClose(onAssignTask)}>
-            Asignar
-          </DropdownMenuItem>
-          {isCompleted && (
-            <DropdownMenuItem onClick={() => handleActionAndClose(onArchiveTask)}>
-              Archivar
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem 
-            onClick={() => handleActionAndClose(onArchiveTask)}
-            className="text-red-600"
-          >
-            Eliminar
-          </DropdownMenuItem>
+          <div className="flex flex-col">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleActionAndClose(onEditTask)}
+              className="justify-start h-8 px-3 rounded-none hover:bg-gray-100 text-left"
+            >
+              Editar tarea
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onCreateSubtask}
+              className="justify-start h-8 px-3 rounded-none hover:bg-gray-100 text-left"
+            >
+              Añadir subtarea
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleActionAndClose(onManageDependencies)}
+              className="justify-start h-8 px-3 rounded-none hover:bg-gray-100 text-left"
+            >
+              Dependencias
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleActionAndClose(onAssignTask)}
+              className="justify-start h-8 px-3 rounded-none hover:bg-gray-100 text-left"
+            >
+              Asignar
+            </Button>
+            {isCompleted && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleActionAndClose(onArchiveTask)}
+                className="justify-start h-8 px-3 rounded-none hover:bg-gray-100 text-left"
+              >
+                Archivar
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleActionAndClose(onArchiveTask)}
+              className="justify-start h-8 px-3 rounded-none hover:bg-gray-100 text-left text-red-600 hover:text-red-700"
+            >
+              Eliminar
+            </Button>
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

@@ -14,7 +14,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Task } from '@/hooks/useTasks';
@@ -68,14 +67,6 @@ const CompactSubtaskItem = ({
   const handleActionAndClose = (action: () => void) => {
     action();
     onDropdownOpenChange(false);
-  };
-
-  const handleCreateMicrotaskKeepOpen = (e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (onCreateMicrotask) {
-      onCreateMicrotask(subtask.id);
-    }
   };
 
   return (
@@ -170,23 +161,34 @@ const CompactSubtaskItem = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40 bg-white shadow-lg border z-50">
-                <DropdownMenuItem onClick={() => handleActionAndClose(onEditTask)}>
-                  Editar
-                </DropdownMenuItem>
-                {onCreateMicrotask && (
-                  <DropdownMenuItem 
-                    onPointerDown={handleCreateMicrotaskKeepOpen}
-                    onSelect={(e) => e.preventDefault()}
+                <div className="flex flex-col">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleActionAndClose(onEditTask)}
+                    className="justify-start h-7 px-2 rounded-none hover:bg-gray-100 text-left text-xs"
                   >
-                    Añadir microtarea
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem 
-                  onClick={() => handleActionAndClose(onDeleteTask)}
-                  className="text-red-600"
-                >
-                  Eliminar
-                </DropdownMenuItem>
+                    Editar
+                  </Button>
+                  {onCreateMicrotask && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onCreateMicrotask(subtask.id)}
+                      className="justify-start h-7 px-2 rounded-none hover:bg-gray-100 text-left text-xs"
+                    >
+                      Añadir microtarea
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleActionAndClose(onDeleteTask)}
+                    className="justify-start h-7 px-2 rounded-none hover:bg-gray-100 text-left text-xs text-red-600 hover:text-red-700"
+                  >
+                    Eliminar
+                  </Button>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

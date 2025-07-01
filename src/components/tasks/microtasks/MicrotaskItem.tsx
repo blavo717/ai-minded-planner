@@ -11,7 +11,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Task } from '@/hooks/useTasks';
@@ -135,15 +134,24 @@ const MicrotaskItem = ({ microtask, onUpdate, onDelete, onEdit }: MicrotaskItemP
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32 bg-white shadow-lg border z-50">
-              <DropdownMenuItem onClick={() => handleActionAndClose(() => onEdit(microtask))}>
-                Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => handleActionAndClose(() => onDelete(microtask.id))}
-                className="text-red-600"
-              >
-                Eliminar
-              </DropdownMenuItem>
+              <div className="flex flex-col">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleActionAndClose(() => onEdit(microtask))}
+                  className="justify-start h-6 px-2 rounded-none hover:bg-gray-100 text-left text-xs"
+                >
+                  Editar
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleActionAndClose(() => onDelete(microtask.id))}
+                  className="justify-start h-6 px-2 rounded-none hover:bg-gray-100 text-left text-xs text-red-600 hover:text-red-700"
+                >
+                  Eliminar
+                </Button>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
