@@ -72,10 +72,20 @@ const CompactTaskCard = memo(({
   const getPriorityColor = () => {
     switch (task.priority) {
       case 'urgent': return 'bg-red-500';
-      case 'high': return 'bg-yellow-500';
-      case 'medium': return 'bg-blue-500';
+      case 'high': return 'bg-orange-500';
+      case 'medium': return 'bg-yellow-500';
       case 'low': return 'bg-green-500';
       default: return 'bg-gray-300';
+    }
+  };
+
+  const getPriorityBadgeStyle = () => {
+    switch (task.priority) {
+      case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
+      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'low': return 'bg-green-100 text-green-800 border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -98,6 +108,8 @@ const CompactTaskCard = memo(({
       default: return `${baseClass} bg-gray-400`;
     }
   };
+
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
 
   const handleToggleComplete = (checked: boolean) => {
     if (checked) {
@@ -230,13 +242,20 @@ const CompactTaskCard = memo(({
                     <span className="text-xs">Sin asignar</span>
                   </div>
 
-                  {/* Fecha límite */}
+                  {/* Fecha límite - MÁS PROMINENTE */}
                   {task.due_date && (
-                    <div className="flex items-center gap-1.5">
+                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md ${
+                      isOverdue 
+                        ? 'bg-red-100 text-red-700 border border-red-200' 
+                        : 'bg-blue-50 text-blue-700 border border-blue-200'
+                    }`}>
                       <Calendar className="h-4 w-4 flex-shrink-0" />
-                      <span className="text-xs">
+                      <span className="text-sm font-medium">
                         {format(new Date(task.due_date), 'dd MMM', { locale: es })}
                       </span>
+                      {isOverdue && (
+                        <span className="text-xs font-semibold">VENCIDA</span>
+                      )}
                     </div>
                   )}
 
@@ -248,11 +267,14 @@ const CompactTaskCard = memo(({
                     </div>
                   )}
 
-                  {/* Prioridad */}
-                  <div className="flex items-center gap-1.5">
-                    <Flag className="h-4 w-4 flex-shrink-0" />
-                    <span className="text-xs">{getPriorityLabel()}</span>
-                  </div>
+                  {/* Prioridad - CON COLORES MÁS PROMINENTES */}
+                  <Badge 
+                    variant="outline" 
+                    className={`${getPriorityBadgeStyle()} font-medium border px-2 py-1`}
+                  >
+                    <Flag className="h-3 w-3 mr-1" />
+                    {getPriorityLabel()}
+                  </Badge>
                 </div>
               </div>
 
