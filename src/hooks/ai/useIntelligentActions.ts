@@ -8,6 +8,54 @@ import { useLLMService } from '@/hooks/useLLMService';
 import { useProactiveNotifications } from './useProactiveNotifications';
 import { Task } from '@/hooks/useTasks';
 
+/**
+ * Parser seguro específico para intelligent actions
+ */
+function parseIntelligentActionsJSON(content: string): any[] {
+  console.log('🔍 Parsing intelligent actions JSON');
+  
+  try {
+    // Limpiar contenido problemático
+    const cleaned = content
+      .replace(/,(\s*[}\]])/g, '$1') // Remover comas antes de } ]
+      .replace(/,(\s*,)/g, ',') // Remover comas dobles
+      .replace(/['']/g, '"') // Normalizar comillas
+      .replace(/```json/gi, '') // Remover markdown
+      .replace(/```/g, '') // Remover backticks
+      .replace(/\n/g, ' ') // Remover saltos de línea
+      .trim();
+    
+    const parsed = JSON.parse(cleaned);
+    
+    // Asegurar que sea array
+    if (Array.isArray(parsed)) {
+      return parsed.slice(0, 3); // Máximo 3 acciones
+    } else if (parsed && typeof parsed === 'object') {
+      return [parsed]; // Convertir objeto single a array
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('❌ Error parsing intelligent actions:', error);
+    console.log('🔄 Usando fallback de acciones');
+    
+    // Fallback: acciones básicas siempre útiles
+    return [
+      {
+        type: 'create_subtask',
+        label: 'Crear subtarea',
+        priority: 'medium',
+        confidence: 0.8,
+        suggestedData: {
+          title: 'Nueva subtarea específica',
+          content: 'Definir próximo paso concreto'
+        },
+        basedOnPatterns: ['task_progression']
+      }
+    ];
+  }
+}
+
 export const useIntelligentActions = (task: Task | undefined, nextSteps: string, statusSummary: string) => {
   const [isGeneratingActions, setIsGeneratingActions] = useState(false);
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
@@ -62,7 +110,7 @@ export const useIntelligentActions = (task: Task | undefined, nextSteps: string,
     staleTime: 30 * 60 * 1000, // 30 minutos
   });
 
-  // Generar acciones inteligentes basadas en contexto
+  // Generar acciones inteligentes basadas en contexto - VERSIÓN CORREGIDA
   const generateIntelligentActions = useCallback(async (
     context: IntelligentActionContext
   ): Promise<IntelligentAction[]> => {
@@ -71,85 +119,75 @@ export const useIntelligentActions = (task: Task | undefined, nextSteps: string,
     setIsGeneratingActions(true);
     
     try {
-      const systemPrompt = `Eres un asistente experto en análisis de tareas que genera acciones inteligentes.
+      console.log('🎯 Generando intelligent actions para:', context.task.title);
+      
+      // Prompt ultra-simple para evitar JSON complejo
+      const prompt = `Basado en la tarea "${context.task.title}" con progreso actual, genera máximo 2 acciones útiles.
 
-Analiza el contexto de la tarea y genera acciones específicas en formato JSON:
-{
-  "actions": [
-    {
-      "type": "create_subtask" | "create_reminder" | "draft_email",
-      "label": "Texto del botón (máximo 25 caracteres)",
-      "priority": "high" | "medium" | "low",
-      "confidence": 0.0-1.0,
-      "suggestedData": {
-        "title": "Título sugerido",
-        "content": "Contenido o descripción",
-        "scheduledFor": "2024-12-XX 10:00:00",
-        "language": "es" | "en",
-        "estimatedDuration": 30,
-        "reminderType": "follow_up" | "deadline" | "check_in",
-        "emailType": "followup" | "update" | "request"
-      },
-      "basedOnPatterns": ["patron1", "patron2"]
-    }
-  ]
-}
+Responde SOLO con JSON válido, sin texto extra:
+[
+  {
+    "type": "create_subtask",
+    "label": "Crear subtarea específica",
+    "priority": "medium",
+    "confidence": 0.8,
+    "suggestedData": {
+      "title": "Título específico de la subtarea",
+      "content": "Descripción breve"
+    },
+    "basedOnPatterns": ["task_progression"]
+  }
+]
 
-CRITERIOS:
-- create_subtask: Si nextSteps menciona "crear", "añadir", "desarrollar", "implementar"
-- create_reminder: Si nextSteps menciona "recordar", "seguimiento", "revisar", "controlar"
-- draft_email: Si nextSteps menciona "contactar", "enviar", "comunicar", "informar"
-
-PERSONALIZACIÓN:
-- Usa patrones del usuario para timing y preferencias
-- Prioriza acciones basadas en urgencia de la tarea
-- Ajusta language preferences según historial`;
-
-      const userPrompt = `CONTEXTO DE LA TAREA:
-Tarea: ${context.task.title}
-Estado: ${context.task.status}
-Prioridad: ${context.task.priority}
-Próximos pasos: ${context.nextSteps}
-Resumen: ${context.statusSummary}
-
-PATRONES DEL USUARIO:
-${JSON.stringify(context.userPatterns, null, 2)}
-
-ACTIVIDAD RECIENTE:
-${JSON.stringify(context.recentActivity, null, 2)}
-
-PRODUCTIVIDAD ACTUAL: ${context.productivityScore}/5
-
-Genera máximo 3 acciones inteligentes más relevantes:`;
+REGLAS ESTRICTAS:
+- Solo JSON válido
+- Sin comas al final de propiedades
+- Máximo 2 acciones
+- Tipos permitidos: "create_subtask", "create_reminder", "draft_email"`;
 
       const response = await makeLLMRequest({
-        systemPrompt,
-        userPrompt,
+        systemPrompt: "Eres un generador de acciones que responde SOLO con JSON válido.",
+        userPrompt: prompt,
         functionName: 'generate_intelligent_actions',
-        temperature: 0.7
+        temperature: 0.1, // Ultra bajo para consistencia
+        maxTokens: 400
       });
 
-      const parsed = JSON.parse(response.content);
-      const actions: IntelligentAction[] = parsed.actions.map((action: any, index: number) => ({
+      if (!response?.content) {
+        console.warn('⚠️ Sin respuesta para intelligent actions');
+        return parseIntelligentActionsJSON('[]');
+      }
+
+      console.log('📝 Raw intelligent actions response:', response.content);
+
+      // ✅ USAR PARSER SEGURO
+      const parsed = parseIntelligentActionsJSON(response.content);
+      
+      // Convertir a formato IntelligentAction
+      const actions: IntelligentAction[] = parsed.map((action: any, index: number) => ({
         id: `action-${task.id}-${index}`,
-        type: action.type,
-        label: action.label,
-        priority: action.priority,
-        confidence: action.confidence,
+        type: action.type || 'create_subtask',
+        label: action.label || 'Acción inteligente',
+        priority: action.priority || 'medium',
+        confidence: action.confidence || 0.7,
         suggestedData: {
           ...action.suggestedData,
-          scheduledFor: action.suggestedData.scheduledFor ? new Date(action.suggestedData.scheduledFor) : undefined
+          scheduledFor: action.suggestedData?.scheduledFor ? new Date(action.suggestedData.scheduledFor) : undefined
         },
-        basedOnPatterns: action.basedOnPatterns,
+        basedOnPatterns: action.basedOnPatterns || ['general'],
         recommendation: smartRecommendations.find(r => 
           r.type.includes(action.type) || r.title.toLowerCase().includes(action.type)
         )
       }));
 
+      console.log('✅ Intelligent actions procesadas:', actions.length);
       return actions;
+
     } catch (error) {
-      console.error('Error generating intelligent actions:', error);
-      return [];
+      console.error('❌ Error en intelligent actions:', error);
+      
+      // ✅ FALLBACK SEGURO SIEMPRE
+      return parseIntelligentActionsJSON('[]');
     } finally {
       setIsGeneratingActions(false);
     }
@@ -234,13 +272,17 @@ Genera un email draft en ${language.toUpperCase()} para contactar sobre esta tar
     productivityScore: advancedContext?.userBehaviorProfile?.currentProductivityScore || 3
   }), [task, nextSteps, statusSummary, userPatterns, advancedContext]);
 
-  // Query para generar acciones inteligentes
+  // Query para generar acciones inteligentes - CON ERROR HANDLING MEJORADO
   const { data: intelligentActions, isLoading: isLoadingActions } = useQuery({
     queryKey: ['intelligent-actions', task.id, nextSteps, statusSummary],
     queryFn: () => generateIntelligentActions(actionContext),
     enabled: !!task && !!nextSteps && hasActiveConfiguration,
     staleTime: 10 * 60 * 1000, // 10 minutos
-    retry: 1
+    retry: 1,
+    retryDelay: 2000,
+    onError: (error) => {
+      console.error('❌ Query error for intelligent actions:', error);
+    }
   });
 
   return {
