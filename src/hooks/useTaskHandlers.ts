@@ -44,9 +44,7 @@ export const useTaskHandlers = () => {
   const handleCreateSubtask = useCallback((parentTaskId: string, title: string) => {
     createSubtask({
       parentTaskId,
-      title,
-      status: 'pending',
-      priority: 'medium'
+      title
     });
   }, [createSubtask]);
 
