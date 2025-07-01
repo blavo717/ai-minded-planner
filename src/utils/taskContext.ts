@@ -71,10 +71,15 @@ export async function getTaskContext(taskId: string): Promise<TaskContext> {
         : 0;
 
     return {
-      mainTask,
-      subtasks: subtasks || [],
-      microtasks: microtasks || [],
-      recentLogs: recentLogs || [],
+      mainTask: mainTask as Task,
+      subtasks: (subtasks || []) as Task[],
+      microtasks: (microtasks || []) as Task[],
+      recentLogs: (recentLogs || []).map(log => ({
+        id: log.id,
+        description: log.title || log.content || 'Log entry',
+        created_at: log.created_at,
+        task_id: log.task_id
+      })),
       completionStatus: {
         totalSubtasks,
         completedSubtasks,
