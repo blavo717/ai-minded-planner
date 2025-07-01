@@ -1,3 +1,4 @@
+
 import { EnhancedTaskContext, getEnhancedTaskContext } from '@/utils/taskContextEnhanced';
 import { generateContextualSystemPrompt, selectOptimalMethodology, IA_PLANNER_IDENTITY } from '@/config/iaPlanner';
 import { TaskAISummary } from '@/services/taskAIService';
@@ -108,6 +109,7 @@ function parseSimplifiedResponse(content: string, context: EnhancedTaskContext):
     alerts: riskLevel === 'high' ? riskAssessment : undefined,
     specificActions,
     riskAssessment,
+    methodology: 'IA Planner', // Add methodology here
     insights: undefined // Eliminado - no aporta valor
   };
 }
