@@ -1,146 +1,175 @@
 
-import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, SkipForward, X, Clock, Calendar, Flag } from 'lucide-react';
+import { 
+  Play, 
+  SkipForward, 
+  X, 
+  Clock, 
+  AlertTriangle, 
+  Target,
+  Brain,
+  TrendingUp
+} from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { TaskWithReason } from '@/utils/taskPrioritization';
-import AITaskSummary from './AITaskSummary';
+
+export interface TaskWithReason {
+  task: Task;
+  reason: string;
+  priority: number;
+  urgencyScore: number;
+  contextualFactors: string[];
+  estimatedDuration?: number;
+}
 
 interface WhatToDoNowCardProps {
   taskWithReason: TaskWithReason;
   onStartWorking: (task: Task) => void;
   onSkipToNext: () => void;
   onDismiss: () => void;
+  className?: string;
 }
 
-const WhatToDoNowCard = ({ taskWithReason, onStartWorking, onSkipToNext, onDismiss }: WhatToDoNowCardProps) => {
-  const { task, reason } = taskWithReason;
-  const [isAnimating, setIsAnimating] = useState(false);
+export default function WhatToDoNowCard({
+  taskWithReason,
+  onStartWorking,
+  onSkipToNext,
+  onDismiss,
+  className = ''
+}: WhatToDoNowCardProps) {
+  const { task, reason, urgencyScore, contextualFactors, estimatedDuration } = taskWithReason;
 
-  const handleStartWorking = () => {
-    setIsAnimating(true);
-    setTimeout(() => {
-      onStartWorking(task);
-    }, 150);
+  const getUrgencyColor = (score: number) => {
+    if (score >= 8) return 'text-red-600 bg-red-50 border-red-200';
+    if (score >= 6) return 'text-orange-600 bg-orange-50 border-orange-200';
+    if (score >= 4) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+    return 'text-blue-600 bg-blue-50 border-blue-200';
   };
 
-  const getPriorityIcon = () => {
-    switch (task.priority) {
-      case 'urgent': return '🔥';
-      case 'high': return '⭐';
-      case 'medium': return '📋';
-      case 'low': return '📝';
-      default: return '📋';
-    }
+  const getUrgencyIcon = (score: number) => {
+    if (score >= 8) return <AlertTriangle className="h-4 w-4" />;
+    if (score >= 6) return <Clock className="h-4 w-4" />;
+    return <Target className="h-4 w-4" />;
   };
 
-  const getPriorityColor = () => {
-    switch (task.priority) {
-      case 'urgent': return 'from-red-50 to-red-100 border-red-200';
-      case 'high': return 'from-orange-50 to-orange-100 border-orange-200';
-      default: return 'from-blue-50 to-indigo-100 border-blue-200';
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return <Badge variant="destructive">Urgente</Badge>;
+      case 'high': return <Badge variant="secondary" className="bg-red-100 text-red-800">Alta</Badge>;
+      case 'medium': return <Badge variant="secondary">Media</Badge>;
+      case 'low': return <Badge variant="outline">Baja</Badge>;
+      default: return <Badge variant="outline">Sin prioridad</Badge>;
     }
   };
 
   return (
-    <Card className={`bg-gradient-to-r ${getPriorityColor()} transition-all duration-300 ${
-      isAnimating ? 'scale-95 opacity-75' : 'hover:shadow-md'
-    }`}>
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-4">
-          {/* Contenido principal */}
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            {/* Indicador pulsante */}
-            <div className="flex-shrink-0 mt-1">
-              <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-            </div>
-
-            {/* Información de la tarea */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-blue-900 text-sm">¿Qué hago ahora?</h3>
-                <span className="text-lg">{getPriorityIcon()}</span>
-              </div>
-              
-              <h4 className="font-medium text-gray-900 mb-1 truncate" title={task.title}>
-                {task.title}
-              </h4>
-              
-              <p className="text-sm text-blue-700 font-medium mb-2">
-                {reason}
-              </p>
-
-              {/* Metadata de la tarea */}
-              <div className="flex items-center gap-3 text-xs text-gray-600 mb-4">
-                {task.due_date && (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    <span>{format(new Date(task.due_date), 'dd MMM', { locale: es })}</span>
-                  </div>
-                )}
-                
-                {task.estimated_duration && (
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{task.estimated_duration}h</span>
-                  </div>
-                )}
-
-                <Badge variant="outline" className="text-xs">
-                  <Flag className="h-2 w-2 mr-1" />
-                  {task.priority === 'urgent' ? 'Urgente' : 
-                   task.priority === 'high' ? 'Alta' :
-                   task.priority === 'medium' ? 'Media' : 'Baja'}
-                </Badge>
-              </div>
-
-              {/* ✨ SECCIÓN IA - NUEVA INTEGRACIÓN */}
-              <div className="border-t border-orange-200 pt-4">
-                <AITaskSummary task={task} />
+    <Card className={`${className} border-l-4 border-l-purple-500`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <Brain className="h-4 w-4 text-purple-600" />
+              <CardTitle className="text-base">¿Qué hago ahora?</CardTitle>
+              <div className={`flex items-center gap-1 px-2 py-1 rounded-full border text-xs font-medium ${getUrgencyColor(urgencyScore)}`}>
+                {getUrgencyIcon(urgencyScore)}
+                Urgencia: {urgencyScore}/10
               </div>
             </div>
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="font-semibold text-purple-900">{task.title}</h3>
+              {getPriorityBadge(task.priority || 'medium')}
+            </div>
           </div>
-
-          {/* Acciones */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Button 
-              size="sm" 
-              className="bg-blue-600 hover:bg-blue-700 text-white gap-1"
-              onClick={handleStartWorking}
-              disabled={isAnimating}
-            >
-              <Play className="h-3 w-3" />
-              Trabajar
-            </Button>
-            
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={onSkipToNext}
-              className="gap-1"
-              disabled={isAnimating}
-            >
-              <SkipForward className="h-3 w-3" />
-              Siguiente
-            </Button>
-
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onDismiss}
-              className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button 
+            onClick={onDismiss}
+            variant="ghost" 
+            size="sm"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-      </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* AI Reasoning */}
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="h-3 w-3 text-purple-600" />
+            <span className="text-sm font-medium text-purple-800">Recomendación IA</span>
+          </div>
+          <p className="text-sm text-purple-700 leading-relaxed">{reason}</p>
+        </div>
+
+        {/* Task Details */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          {task.due_date && (
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Vence:</span>
+              <span className="font-medium">
+                {format(new Date(task.due_date), 'PPP', { locale: es })}
+              </span>
+            </div>
+          )}
+          
+          {estimatedDuration && (
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Duración estimada:</span>
+              <span className="font-medium">{estimatedDuration} min</span>
+            </div>
+          )}
+        </div>
+
+        {/* Contextual Factors */}
+        {contextualFactors && contextualFactors.length > 0 && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">Factores considerados:</h4>
+            <div className="flex flex-wrap gap-1">
+              {contextualFactors.map((factor, index) => (
+                <Badge key={index} variant="outline" className="text-xs">
+                  {factor}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Task Description */}
+        {task.description && (
+          <div className="bg-gray-50 rounded-lg p-3">
+            <h4 className="text-sm font-medium mb-1">Descripción:</h4>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {task.description}
+            </p>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 pt-2">
+          <Button 
+            onClick={() => onStartWorking(task)}
+            className="flex-1 bg-purple-600 hover:bg-purple-700"
+          >
+            <Play className="h-4 w-4 mr-2" />
+            Empezar a trabajar
+          </Button>
+          
+          <Button 
+            onClick={onSkipToNext}
+            variant="outline"
+            className="flex-1"
+          >
+            <SkipForward className="h-4 w-4 mr-2" />
+            Ver siguiente
+          </Button>
+        </div>
+      </CardContent>
     </Card>
   );
-};
-
-export default WhatToDoNowCard;
+}
