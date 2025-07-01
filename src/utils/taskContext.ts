@@ -1,13 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Task } from '@/hooks/useTasks';
-
-export interface TaskLog {
-  id: string;
-  description: string;
-  created_at: string;
-  task_id: string;
-}
+import { TaskLog } from '@/types/taskLogs';
 
 export interface TaskContext {
   mainTask: Task;
@@ -20,6 +14,14 @@ export interface TaskContext {
     totalMicrotasks: number;
     completedMicrotasks: number;
     overallProgress: number;
+  };
+  dependencies: {
+    blocking: Task[];
+    dependent: Task[];
+  };
+  projectContext?: {
+    name: string;
+    status: string;
   };
 }
 
@@ -63,7 +65,7 @@ export async function getTaskContext(taskId: string): Promise<TaskContext> {
       console.error('❌ Error obteniendo microtareas:', microtasksError);
     }
 
-    // Obtener logs recientes
+    // Obtener logs recientes usando la interface correcta
     const { data: recentLogs, error: logsError } = await supabase
       .from('task_logs')
       .select('*')
@@ -73,6 +75,34 @@ export async function getTaskContext(taskId: string): Promise<TaskContext> {
 
     if (logsError) {
       console.error('❌ Error obteniendo logs:', logsError);
+    }
+
+    // Obtener dependencias
+    const { data: blockingDeps } = await supabase
+      .from('task_dependencies')
+      .select('depends_on_task_id, tasks!task_dependencies_depends_on_task_id_fkey(*)')
+      .eq('task_id', taskId);
+
+    const { data: dependentDeps } = await supabase
+      .from('task_dependencies')
+      .select('task_id, tasks!task_dependencies_task_id_fkey(*)')
+      .eq('depends_on_task_id', taskId);
+
+    // Obtener contexto del proyecto si existe
+    let projectContext = undefined;
+    if (mainTask.project_id) {
+      const { data: project } = await supabase
+        .from('projects')
+        .select('name, status')
+        .eq('id', mainTask.project_id)
+        .single();
+      
+      if (project) {
+        projectContext = {
+          name: project.name,
+          status: project.status || 'active'
+        };
+      }
     }
 
     // Calcular progreso
@@ -87,23 +117,23 @@ export async function getTaskContext(taskId: string): Promise<TaskContext> {
         ? Math.round((completedMicrotasks / totalMicrotasks) * 100)
         : 0;
 
-    const result = {
+    const result: TaskContext = {
       mainTask: mainTask as Task,
       subtasks: (subtasks || []) as Task[],
       microtasks: (microtasks || []) as Task[],
-      recentLogs: (recentLogs || []).map(log => ({
-        id: log.id,
-        description: log.title || log.content || 'Log entry',
-        created_at: log.created_at,
-        task_id: log.task_id
-      })),
+      recentLogs: (recentLogs || []) as TaskLog[],
       completionStatus: {
         totalSubtasks,
         completedSubtasks,
         totalMicrotasks,
         completedMicrotasks,
         overallProgress
-      }
+      },
+      dependencies: {
+        blocking: blockingDeps?.map(dep => dep.tasks).filter(Boolean) || [],
+        dependent: dependentDeps?.map(dep => dep.tasks).filter(Boolean) || []
+      },
+      projectContext
     };
 
     console.log('✅ Contexto obtenido:', {
@@ -112,7 +142,9 @@ export async function getTaskContext(taskId: string): Promise<TaskContext> {
       taskStatus: mainTask.status,
       subtasksCount: result.subtasks.length,
       logsCount: result.recentLogs.length,
-      progress: result.completionStatus.overallProgress
+      progress: result.completionStatus.overallProgress,
+      hasDependencies: result.dependencies.blocking.length > 0 || result.dependencies.dependent.length > 0,
+      hasProjectContext: !!result.projectContext
     });
 
     return result;

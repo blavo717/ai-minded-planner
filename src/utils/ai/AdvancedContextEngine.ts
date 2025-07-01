@@ -1,4 +1,3 @@
-
 import { AIInsight } from '@/types/ai-insights';
 import { PatternAnalysisResult } from '@/types/ai-patterns';
 import { Task } from '@/hooks/useTasks';
@@ -38,6 +37,8 @@ export interface AdvancedContext {
     multitaskingTendency: number;
     procrastinationPatterns: Array<{ trigger: string; frequency: number }>;
     motivationalFactors: string[];
+    recentActivity: Array<{ type: string; timestamp: Date; context?: any }>;
+    currentProductivityScore: number;
   };
   workflowEfficiency: {
     overallScore: number;
@@ -124,6 +125,12 @@ export class AdvancedContextEngine {
     // Factores motivacionales
     const motivationalFactors = this.identifyMotivationalFactors(tasks, sessions, patterns);
 
+    // Actividad reciente
+    const recentActivity = this.extractRecentActivity(tasks, sessions);
+
+    // Score de productividad actual
+    const currentProductivityScore = this.calculateCurrentProductivityScore(tasks, sessions);
+
     return {
       workingHours,
       peakProductivityHours: peakHours,
@@ -132,7 +139,65 @@ export class AdvancedContextEngine {
       multitaskingTendency,
       procrastinationPatterns,
       motivationalFactors,
+      recentActivity,
+      currentProductivityScore,
     };
+  }
+
+  private extractRecentActivity(tasks: Task[], sessions: TaskSession[]) {
+    const activities = [];
+    
+    // Actividad de tareas recientes
+    const recentTasks = tasks
+      .filter(t => t.updated_at && new Date(t.updated_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+      .slice(0, 10);
+    
+    recentTasks.forEach(task => {
+      activities.push({
+        type: 'task_update',
+        timestamp: new Date(task.updated_at!),
+        context: { taskId: task.id, status: task.status, title: task.title }
+      });
+    });
+
+    // Actividad de sesiones recientes
+    const recentSessions = sessions
+      .filter(s => new Date(s.started_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+      .slice(0, 10);
+    
+    recentSessions.forEach(session => {
+      activities.push({
+        type: 'work_session',
+        timestamp: new Date(session.started_at),
+        context: { duration: session.duration_minutes, taskId: session.task_id }
+      });
+    });
+
+    return activities
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, 20);
+  }
+
+  private calculateCurrentProductivityScore(tasks: Task[], sessions: TaskSession[]): number {
+    const recentWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    
+    // Tareas completadas esta semana
+    const recentCompletedTasks = tasks.filter(t => 
+      t.status === 'completed' && 
+      t.completed_at && 
+      new Date(t.completed_at) > recentWeek
+    ).length;
+
+    // Sesiones de trabajo productivas esta semana
+    const recentSessions = sessions.filter(s => 
+      new Date(s.started_at) > recentWeek && 
+      (s.duration_minutes || 0) > 30
+    ).length;
+
+    // Score base en función de actividad
+    let score = Math.min(5, 1 + (recentCompletedTasks * 0.5) + (recentSessions * 0.3));
+    
+    return Math.max(1, Math.min(5, Math.round(score * 10) / 10));
   }
 
   private analyzeWorkflowEfficiency(
