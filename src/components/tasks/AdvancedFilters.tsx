@@ -1,7 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Search } from 'lucide-react';
 import { FilterState } from '@/types/filters';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
 import FilterHeader from './filters/FilterHeader';
@@ -162,7 +163,7 @@ const AdvancedFilters = ({
   };
 
   return (
-    <Card>
+    <Card className="w-48">
       <FilterHeader
         activeFiltersCount={getActiveFiltersCount()}
         isExpanded={isExpanded}
@@ -170,13 +171,19 @@ const AdvancedFilters = ({
         onClearFilters={clearAllFilters}
       />
       
-      <CardContent className="space-y-4">
-        <div>
-          <Input
-            placeholder="Buscar tareas..."
-            value={filters.search}
-            onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
-          />
+      <CardContent className="space-y-3 p-3">
+        {/* Buscador Principal - Más Visible */}
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-primary">Buscar Tareas</Label>
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Input
+              placeholder="Buscar..."
+              value={filters.search}
+              onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
+              className="pl-7 h-8 text-xs border-primary/20 focus:border-primary"
+            />
+          </div>
         </div>
 
         <SmartFiltersSection
@@ -191,7 +198,7 @@ const AdvancedFilters = ({
         />
 
         {isExpanded && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <StatusFilter
               selectedStatuses={filters.status}
               operator={filters.operators.status.type}

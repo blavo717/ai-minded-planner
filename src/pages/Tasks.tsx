@@ -115,9 +115,9 @@ const TasksContent = () => {
       <TasksInsightsSection showInsights={showInsights} />
 
       <div className="space-y-6">
-        {/* Layout optimizado para full width */}
-        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-          {/* Filtros - más compactos en pantallas grandes */}
+        {/* Layout optimizado: más espacio para tareas */}
+        <div className="grid grid-cols-1 xl:grid-cols-6 gap-4">
+          {/* Filtros - sidebar compacto */}
           <div className="xl:col-span-1">
             <TasksFiltersSection
               projects={projects}
@@ -132,8 +132,8 @@ const TasksContent = () => {
             />
           </div>
 
-          {/* Vista de tareas - aprovecha el espacio extra */}
-          <div className="xl:col-span-4">
+          {/* Vista de tareas - área expandida (83% del ancho) */}
+          <div className="xl:col-span-5">
             <TasksViewSection
               viewMode={viewMode}
               setViewMode={setViewMode}
