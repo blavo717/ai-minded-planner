@@ -156,7 +156,7 @@ if (typeof window !== 'undefined') {
     
     try {
       const { getTaskContext } = await import('@/utils/taskContext');
-      const { useLLMService } = await import('@/hooks/useLLLService');
+      const { useLLMService } = await import('@/hooks/useLLMService');
       
       const context = await getTaskContext(taskId);
       console.log('📊 Contexto obtenido:', context);
