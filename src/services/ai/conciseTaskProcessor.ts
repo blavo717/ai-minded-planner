@@ -110,14 +110,55 @@ export class ConciseTaskProcessor {
   }
   
   private static getDaysSinceLastActivity(context: TaskContext): number {
-    if (context.recentLogs.length === 0) return 999;
-    
-    const lastActivity = new Date(context.recentLogs[0].created_at);
-    return Math.floor((new Date().getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
+    try {
+      if (!context.recentLogs || context.recentLogs.length === 0) {
+        return this.getDaysSinceCreated(context);
+      }
+      
+      const lastLog = context.recentLogs[0];
+      if (!lastLog || !lastLog.created_at) {
+        return this.getDaysSinceCreated(context);
+      }
+      
+      const lastActivity = new Date(lastLog.created_at);
+      if (isNaN(lastActivity.getTime())) {
+        return this.getDaysSinceCreated(context);
+      }
+      
+      const diffMs = new Date().getTime() - lastActivity.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      // Validar resultado
+      if (diffDays < 0 || diffDays > 3650) {
+        return this.getDaysSinceCreated(context);
+      }
+      
+      return diffDays;
+    } catch (error) {
+      console.error('❌ Error calculando días sin actividad:', error);
+      return this.getDaysSinceCreated(context);
+    }
   }
   
   private static getDaysSinceCreated(context: TaskContext): number {
-    const created = new Date(context.mainTask.created_at);
-    return Math.floor((new Date().getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+    try {
+      const created = new Date(context.mainTask.created_at);
+      if (isNaN(created.getTime())) {
+        return 0;
+      }
+      
+      const diffMs = new Date().getTime() - created.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      // Validar resultado
+      if (diffDays < 0 || diffDays > 3650) {
+        return 0;
+      }
+      
+      return diffDays;
+    } catch (error) {
+      console.error('❌ Error calculando días desde creación:', error);
+      return 0;
+    }
   }
 }
