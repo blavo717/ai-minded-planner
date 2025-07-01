@@ -1,3 +1,4 @@
+
 // Layout components
 export { default as MainLayout } from './Layout/MainLayout';
 export { default as ProtectedRoute } from './ProtectedRoute';
@@ -11,10 +12,5 @@ export { default as Analytics } from '../pages/Analytics';
 export { default as AISettings } from '../pages/AISettings';
 export { default as LLMSettings } from '../pages/LLMSettings';
 export { default as Settings } from '../pages/Settings';
-export { default as TaskTesting } from '../pages/TaskTesting';
 export { default as Auth } from '../pages/Auth';
 export { default as NotFound } from '../pages/NotFound';
-
-// Testing Components
-export { Phase2ContextEngineTesting } from './testing/Phase2ContextEngineTesting';
-export { Phase2PerformanceTesting } from './testing/Phase2PerformanceTesting';
