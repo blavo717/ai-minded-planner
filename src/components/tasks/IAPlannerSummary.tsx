@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Brain, Target, TrendingUp, AlertTriangle, CheckCircle, Clock, Zap } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { useTaskStateAndStepsEnhanced } from '@/hooks/useTaskStateAndStepsEnhanced';
-import { useIntelligentActionsEnhanced } from '@/hooks/ai/useIntelligentActionsEnhanced';
 
 interface IAPlannerSummaryProps {
   task: Task | undefined;
@@ -25,11 +24,6 @@ export default function IAPlannerSummary({ task, className = '' }: IAPlannerSumm
     error,
     isPlannerActive
   } = useTaskStateAndStepsEnhanced(task?.id || '');
-  
-  const { 
-    intelligentActions, 
-    isGeneratingActions 
-  } = useIntelligentActionsEnhanced(task, nextSteps || '', statusSummary || '');
 
   // Early return if no task
   if (!task) {
@@ -174,41 +168,6 @@ export default function IAPlannerSummary({ task, className = '' }: IAPlannerSumm
             <span className="text-sm font-semibold text-red-800">Alerta Crítica</span>
           </div>
           <p className="text-sm text-red-700 leading-relaxed">{alerts}</p>
-        </div>
-      )}
-
-      {/* Intelligent Actions */}
-      {intelligentActions && intelligentActions.length > 0 && (
-        <div className="space-y-3 pt-2 border-t border-gray-200">
-          <div className="flex items-center gap-2">
-            <Zap className="h-3 w-3 text-purple-600" />
-            <span className="text-xs font-medium text-muted-foreground">
-              Acciones Inteligentes ({intelligentActions.length})
-            </span>
-          </div>
-          <div className="space-y-2">
-            {intelligentActions.slice(0, 2).map((action) => (
-              <div key={action.id} className="flex items-start gap-2 p-2 bg-purple-50 rounded-md">
-                <Badge variant="outline" className="text-xs">
-                  {action.priority}
-                </Badge>
-                <div className="flex-1">
-                  <div className="font-medium text-sm text-purple-900">{action.label}</div>
-                  {action.reasoning && (
-                    <div className="text-xs text-purple-700 mt-1">{action.reasoning}</div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Loading state for actions */}
-      {isGeneratingActions && (
-        <div className="flex items-center gap-2 text-muted-foreground p-2 bg-gray-50 rounded-md">
-          <Brain className="h-3 w-3 animate-pulse" />
-          <span className="text-xs">Generando acciones específicas...</span>
         </div>
       )}
 

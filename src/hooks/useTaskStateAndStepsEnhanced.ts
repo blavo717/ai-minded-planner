@@ -48,7 +48,6 @@ export function useTaskStateAndStepsEnhanced(taskId: string) {
     statusSummary: aiAnalysis?.statusSummary,
     nextSteps: aiAnalysis?.nextSteps,
     alerts: aiAnalysis?.alerts,
-    insights: aiAnalysis?.insights,
     riskLevel: aiAnalysis?.riskLevel,
     
     // Enhanced IA Planner results
