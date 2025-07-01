@@ -24,39 +24,56 @@ export interface TaskContext {
 }
 
 export async function getTaskContext(taskId: string): Promise<TaskContext> {
+  console.log('📊 Obteniendo contexto para task:', taskId);
+  
   try {
     // Obtener tarea principal
-    const { data: mainTask } = await supabase
+    const { data: mainTask, error: mainTaskError } = await supabase
       .from('tasks')
       .select('*')
       .eq('id', taskId)
       .single();
 
-    if (!mainTask) throw new Error('Task not found');
+    if (mainTaskError || !mainTask) {
+      console.error('❌ Error obteniendo tarea principal:', mainTaskError);
+      throw new Error('Task not found');
+    }
 
     // Obtener subtareas (nivel 2)
-    const { data: subtasks } = await supabase
+    const { data: subtasks, error: subtasksError } = await supabase
       .from('tasks')
       .select('*')
       .eq('parent_task_id', taskId)
       .eq('task_level', 2)
       .order('created_at', { ascending: true });
 
+    if (subtasksError) {
+      console.error('❌ Error obteniendo subtareas:', subtasksError);
+    }
+
     // Obtener microtareas (nivel 3) 
-    const { data: microtasks } = await supabase
+    const { data: microtasks, error: microtasksError } = await supabase
       .from('tasks')
       .select('*')
       .in('parent_task_id', subtasks?.map(s => s.id) || [])
       .eq('task_level', 3)
       .order('created_at', { ascending: true });
 
+    if (microtasksError) {
+      console.error('❌ Error obteniendo microtareas:', microtasksError);
+    }
+
     // Obtener logs recientes
-    const { data: recentLogs } = await supabase
+    const { data: recentLogs, error: logsError } = await supabase
       .from('task_logs')
       .select('*')
       .eq('task_id', taskId)
       .order('created_at', { ascending: false })
       .limit(8);
+
+    if (logsError) {
+      console.error('❌ Error obteniendo logs:', logsError);
+    }
 
     // Calcular progreso
     const totalSubtasks = subtasks?.length || 0;
@@ -70,7 +87,7 @@ export async function getTaskContext(taskId: string): Promise<TaskContext> {
         ? Math.round((completedMicrotasks / totalMicrotasks) * 100)
         : 0;
 
-    return {
+    const result = {
       mainTask: mainTask as Task,
       subtasks: (subtasks || []) as Task[],
       microtasks: (microtasks || []) as Task[],
@@ -88,8 +105,19 @@ export async function getTaskContext(taskId: string): Promise<TaskContext> {
         overallProgress
       }
     };
+
+    console.log('✅ Contexto obtenido:', {
+      hasMainTask: !!mainTask,
+      taskTitle: mainTask.title,
+      taskStatus: mainTask.status,
+      subtasksCount: result.subtasks.length,
+      logsCount: result.recentLogs.length,
+      progress: result.completionStatus.overallProgress
+    });
+
+    return result;
   } catch (error) {
-    console.error('Error getting task context:', error);
+    console.error('❌ Error getting task context:', error);
     throw error;
   }
 }

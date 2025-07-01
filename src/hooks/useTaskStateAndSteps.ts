@@ -7,6 +7,12 @@ import { generateTaskStateAndSteps, TaskAISummary } from '@/services/taskAIServi
 export function useTaskStateAndSteps(taskId: string) {
   const { makeLLMRequest, activeModel, hasActiveConfiguration } = useLLMService();
   
+  console.log('🔧 LLM Service status:', {
+    activeModel,
+    hasConfiguration: hasActiveConfiguration,
+    taskId
+  });
+  
   // Obtener contexto de la tarea
   const { data: context, isLoading: contextLoading, error: contextError } = useQuery({
     queryKey: ['task-context', taskId],

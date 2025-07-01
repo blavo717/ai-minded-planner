@@ -11,6 +11,14 @@ export async function generateTaskStateAndSteps(
   context: TaskContext,
   makeLLMRequest: ReturnType<typeof useLLMService>['makeLLMRequest']
 ): Promise<TaskAISummary> {
+  console.log('🤖 Iniciando generación IA:', {
+    taskTitle: context.mainTask.title,
+    taskStatus: context.mainTask.status,
+    hasLogs: context.recentLogs.length,
+    subtasksCount: context.subtasks.length,
+    progress: context.completionStatus.overallProgress
+  });
+
   const systemPrompt = "Eres un asistente experto en gestión de tareas que ayuda a equipos de trabajo a entender el estado actual y definir próximos pasos.";
   
   const userPrompt = `INFORMACIÓN DE LA TAREA:
@@ -57,6 +65,8 @@ EJEMPLOS DE RESPUESTA:
 RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO:`;
 
   try {
+    console.log('🚀 Enviando prompt a LLM...');
+    
     const response = await makeLLMRequest({
       systemPrompt,
       userPrompt,
@@ -65,8 +75,17 @@ RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO:`;
       maxTokens: 200
     });
 
+    console.log('📥 Respuesta LLM recibida:', {
+      hasContent: !!response.content,
+      contentLength: response.content?.length,
+      modelUsed: response.model_used
+    });
+
     const content = response.content.trim();
+    console.log('📝 Contenido a parsear:', content);
+    
     const parsed = parseAIResponse(content);
+    console.log('✅ Parsed result:', parsed);
     
     return {
       statusSummary: parsed.statusSummary || "Estado en proceso de análisis por IA",
@@ -74,7 +93,8 @@ RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO:`;
     };
 
   } catch (error) {
-    console.error('Error generating AI summary:', error);
+    console.error('❌ Error generating AI summary:', error);
+    console.log('🔄 Usando fallback inteligente');
     return generateIntelligentFallback(context);
   }
 }
