@@ -1,6 +1,8 @@
 
 import { Loader2, Sparkles, ArrowRight, AlertCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 import { useTaskStateAndSteps } from '@/hooks/useTaskStateAndSteps';
+import { useIntelligentActions } from '@/hooks/ai/useIntelligentActions';
+import { SmartActionButtons } from './actions/SmartActionButtons';
 
 interface AITaskSummaryProps {
   taskId: string;
@@ -18,8 +20,20 @@ export function AITaskSummary({ taskId, className = '' }: AITaskSummaryProps) {
     hasAI, 
     hasConfiguration,
     error,
-    currentModel 
+    currentModel,
+    context
   } = useTaskStateAndSteps(taskId);
+
+  const { 
+    intelligentActions, 
+    isGeneratingActions, 
+    trackActionUsage, 
+    triggerInsightUpdate 
+  } = useIntelligentActions(
+    context?.mainTask!, 
+    nextSteps || '', 
+    statusSummary || ''
+  );
 
   const getModelDisplayName = (model: string): string => {
     if (model?.includes('gemini')) return 'Gemini';
@@ -34,6 +48,11 @@ export function AITaskSummary({ taskId, className = '' }: AITaskSummaryProps) {
       case 'medium': return 'text-orange-700 border-orange-200 bg-orange-50';
       default: return 'text-green-700 border-green-200 bg-green-50';
     }
+  };
+
+  const handleActionComplete = (actionType: string) => {
+    trackActionUsage(actionType);
+    triggerInsightUpdate();
   };
 
   if (!hasConfiguration) {
@@ -106,8 +125,25 @@ export function AITaskSummary({ taskId, className = '' }: AITaskSummaryProps) {
           {nextSteps}
         </p>
       </div>
+
+      {/* NUEVA: Botones de Acción Inteligentes */}
+      {intelligentActions && intelligentActions.length > 0 && (
+        <div>
+          <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-2 mb-2">
+            <Sparkles className="h-4 w-4" />
+            Acciones inteligentes
+            {isGeneratingActions && <Loader2 className="h-3 w-3 animate-spin" />}
+          </h4>
+          <SmartActionButtons
+            task={context?.mainTask!}
+            actions={intelligentActions}
+            onActionComplete={handleActionComplete}
+            className="mb-2"
+          />
+        </div>
+      )}
       
-      {/* NUEVA: Alertas Críticas */}
+      {/* EXISTENTES: Alertas Críticas */}
       {alerts && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
           <h4 className="text-xs font-semibold text-red-700 uppercase tracking-wide flex items-center gap-2 mb-2">
@@ -120,7 +156,7 @@ export function AITaskSummary({ taskId, className = '' }: AITaskSummaryProps) {
         </div>
       )}
       
-      {/* NUEVA: Análisis Predictivo */}
+      {/* EXISTENTES: Análisis Predictivo */}
       {insights && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-2 mb-2">

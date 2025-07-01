@@ -1,6 +1,6 @@
-
 import { useLLMService } from '@/hooks/useLLMService';
 import { TaskContext } from '@/utils/taskContext';
+import { IntelligentAction } from '@/types/intelligent-actions';
 
 export interface TaskAISummary {
   statusSummary: string;
@@ -8,6 +8,7 @@ export interface TaskAISummary {
   alerts?: string;
   insights?: string;
   riskLevel?: 'low' | 'medium' | 'high';
+  intelligentActions?: IntelligentAction[];
 }
 
 // Helper functions for enhanced analysis
@@ -44,7 +45,7 @@ export async function generateTaskStateAndSteps(
   context: TaskContext,
   makeLLMRequest: ReturnType<typeof useLLMService>['makeLLMRequest']
 ): Promise<TaskAISummary> {
-  console.log('🤖 Iniciando generación IA con prompt expandido:', {
+  console.log('🤖 Iniciando generación IA con prompt expandido y acciones inteligentes:', {
     taskTitle: context.mainTask.title,
     taskStatus: context.mainTask.status,
     hasLogs: context.recentLogs.length,
@@ -55,7 +56,7 @@ export async function generateTaskStateAndSteps(
   const daysSinceCreated = getDaysSinceCreated(context);
   const daysSinceLastActivity = getDaysSinceLastActivity(context);
 
-  const systemPrompt = `Eres un asistente experto en gestión de proyectos que analiza contexto completo y genera insights predictivos.
+  const systemPrompt = `Eres un asistente experto en gestión de proyectos que analiza contexto completo y genera insights predictivos CON ACCIONES INTELIGENTES.
 
 Responde ÚNICAMENTE en formato JSON válido con esta estructura exacta:
 {
@@ -63,19 +64,30 @@ Responde ÚNICAMENTE en formato JSON válido con esta estructura exacta:
   "nextSteps": "3 acciones específicas numeradas con responsables y deadlines si es posible (máximo 30 palabras)",
   "alerts": "Alertas importantes: bloqueos activos, retrasos detectados, dependencias críticas, riesgos de deadline (máximo 25 palabras, solo si hay problemas reales)",
   "insights": "Análisis predictivo: velocidad de progreso, tiempo estimado restante, comparación con promedio, recomendaciones (máximo 25 palabras)",
-  "riskLevel": "low/medium/high basado en progreso, actividad reciente y proximidad a deadlines"
+  "riskLevel": "low/medium/high basado en progreso, actividad reciente y proximidad a deadlines",
+  "intelligentActions": [
+    {
+      "type": "create_subtask" | "create_reminder" | "draft_email",
+      "label": "Texto botón (máx 20 chars)",
+      "priority": "high" | "medium" | "low",
+      "confidence": 0.0-1.0,
+      "suggestedData": {
+        "title": "Título sugerido",
+        "content": "Descripción/contexto",
+        "scheduledFor": "2024-12-XX 10:00:00",
+        "estimatedDuration": 30
+      },
+      "basedOnPatterns": ["pattern1"]
+    }
+  ]
 }
 
-CRITERIOS PARA ALERTAS:
-- Sin actividad >3 días: "Sin actividad desde hace X días"
-- Progreso lento: "Progreso más lento que promedio"
-- Deadline próximo: "Vence en X días con Y% completado"
-- Bloqueos: "Bloqueado por dependencia de [tarea]"
+CRITERIOS PARA ACCIONES INTELIGENTES:
+- create_subtask: Si nextSteps contiene "crear", "añadir", "desarrollar", "implementar", "hacer"
+- create_reminder: Si nextSteps contiene "recordar", "seguimiento", "revisar", "controlar", "verificar"
+- draft_email: Si nextSteps contiene "contactar", "enviar", "comunicar", "informar", "consultar"
 
-CRITERIOS PARA INSIGHTS:
-- Velocidad: "Al ritmo actual, completion en X días"
-- Comparación: "X% más rápido/lento que tareas similares"
-- Recomendación: "Priorizar [subtarea] para mantener timeline"`;
+GENERAR MÁXIMO 2 ACCIONES MÁS RELEVANTES.`;
 
   const userPrompt = `INFORMACIÓN DE LA TAREA:
 - Tarea: ${context.mainTask.title}
@@ -94,19 +106,19 @@ ${context.recentLogs.slice(0, 3).map(log =>
   `• ${log.description} (${getRelativeTime(log.created_at)})`
 ).join('\n') || 'Sin actividad reciente'}
 
-Genera análisis completo en JSON:`;
+Genera análisis completo CON ACCIONES INTELIGENTES en JSON:`;
 
   try {
-    console.log('🚀 Enviando request con prompt expandido');
+    console.log('🚀 Enviando request con prompt expandido + acciones inteligentes');
     
     const response = await makeLLMRequest({
       systemPrompt,
       userPrompt,
-      functionName: 'enhanced_task_analysis',
+      functionName: 'enhanced_task_analysis_with_actions',
       temperature: 0.7
     });
 
-    console.log('📥 Respuesta completa:', response);
+    console.log('📥 Respuesta completa con acciones:', response);
 
     if (!response.content) {
       console.error('❌ Response sin contenido:', response);
@@ -116,14 +128,15 @@ Genera análisis completo en JSON:`;
     console.log('📝 Contenido IA recibido:', response.content);
     
     const parsed = parseEnhancedAIResponse(response.content);
-    console.log('✅ JSON expandido parseado:', parsed);
+    console.log('✅ JSON expandido con acciones parseado:', parsed);
     
     return {
       statusSummary: parsed.statusSummary || "Estado analizado por IA",
       nextSteps: parsed.nextSteps || "Definir próximas acciones",
       alerts: parsed.alerts || undefined,
       insights: parsed.insights || undefined,
-      riskLevel: parsed.riskLevel || 'low'
+      riskLevel: parsed.riskLevel || 'low',
+      intelligentActions: parsed.intelligentActions || []
     };
 
   } catch (error) {
@@ -176,6 +189,7 @@ function generateEnhancedIntelligentFallback(context: TaskContext): TaskAISummar
   let alerts = "";
   let insights = "";
   let riskLevel: 'low' | 'medium' | 'high' = 'low';
+  let intelligentActions: IntelligentAction[] = [];
   
   // Generar resumen inteligente
   if (completionStatus.overallProgress >= 90) {
@@ -202,12 +216,46 @@ function generateEnhancedIntelligentFallback(context: TaskContext): TaskAISummar
     riskLevel = 'medium';
   }
   
+  // Generar acciones inteligentes de fallback
+  if (completionStatus.overallProgress < 50) {
+    intelligentActions.push({
+      id: `fallback-subtask-${mainTask.id}`,
+      type: 'create_subtask',
+      label: 'Crear subtarea',
+      priority: 'medium',
+      confidence: 0.7,
+      suggestedData: {
+        title: `Avanzar en ${mainTask.title}`,
+        content: 'Subtarea para hacer progreso',
+        estimatedDuration: 60
+      },
+      basedOnPatterns: ['low_progress']
+    });
+  }
+  
+  if (daysSinceLastActivity > 2) {
+    intelligentActions.push({
+      id: `fallback-reminder-${mainTask.id}`,
+      type: 'create_reminder',
+      label: 'Recordatorio',
+      priority: 'high',
+      confidence: 0.8,
+      suggestedData: {
+        title: `Revisar ${mainTask.title}`,
+        content: 'Hacer seguimiento de la tarea',
+        scheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      },
+      basedOnPatterns: ['inactivity']
+    });
+  }
+  
   return { 
     statusSummary, 
     nextSteps, 
     alerts: alerts || undefined,
     insights,
-    riskLevel 
+    riskLevel,
+    intelligentActions
   };
 }
 
