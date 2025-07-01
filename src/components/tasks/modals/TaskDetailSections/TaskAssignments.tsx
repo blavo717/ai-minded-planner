@@ -23,17 +23,12 @@ interface TaskAssignmentsProps {
 
 const TaskAssignments = ({ task }: TaskAssignmentsProps) => {
   const { taskAssignments } = useTaskAssignments();
-  const { dependencies } = useTaskDependencies();
+  const { dependencies } = useTaskDependencies(task.id);
   const { profiles } = useProfiles();
 
   // Get assignments for this task
   const currentAssignments = taskAssignments.filter(
     assignment => assignment.task_id === task.id
-  );
-
-  // Get dependencies for this task
-  const taskDependencies = dependencies.filter(
-    dep => dep.dependent_task_id === task.id || dep.dependency_task_id === task.id
   );
 
   const getProfileName = (profileId: string) => {
@@ -49,12 +44,14 @@ const TaskAssignments = ({ task }: TaskAssignmentsProps) => {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'owner':
+      case 'responsible':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'collaborator':
+      case 'contributor':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'reviewer':
         return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'observer':
+        return 'bg-gray-100 text-gray-800 border-gray-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -62,12 +59,14 @@ const TaskAssignments = ({ task }: TaskAssignmentsProps) => {
 
   const getRoleLabel = (role: string) => {
     switch (role) {
-      case 'owner':
-        return 'Propietario';
-      case 'collaborator':
+      case 'responsible':
+        return 'Responsable';
+      case 'contributor':
         return 'Colaborador';
       case 'reviewer':
         return 'Revisor';
+      case 'observer':
+        return 'Observador';
       default:
         return 'Sin rol';
     }
@@ -110,15 +109,10 @@ const TaskAssignments = ({ task }: TaskAssignmentsProps) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={getRoleColor(assignment.role)}>
-                      {getRoleLabel(assignment.role)}
+                    <Badge className={getRoleColor(assignment.role_in_task)}>
+                      {getRoleLabel(assignment.role_in_task)}
                     </Badge>
-                    {assignment.status === 'accepted' && (
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    )}
-                    {assignment.status === 'pending' && (
-                      <Clock className="h-4 w-4 text-yellow-500" />
-                    )}
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
                   </div>
                 </div>
               ))}
@@ -138,34 +132,22 @@ const TaskAssignments = ({ task }: TaskAssignmentsProps) => {
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <ArrowRight className="h-5 w-5" />
-            Dependencias ({taskDependencies.length})
+            Dependencias ({dependencies.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {taskDependencies.length > 0 ? (
+          {dependencies.length > 0 ? (
             <div className="space-y-4">
-              {taskDependencies.map((dependency) => (
+              {dependencies.map((dependency) => (
                 <div key={dependency.id} className="p-3 border rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
-                    {dependency.dependent_task_id === task.id ? (
-                      <>
-                        <AlertTriangle className="h-4 w-4 text-orange-500" />
-                        <span className="text-sm font-medium">Esta tarea depende de:</span>
-                      </>
-                    ) : (
-                      <>
-                        <ArrowRight className="h-4 w-4 text-blue-500" />
-                        <span className="text-sm font-medium">Esta tarea bloquea a:</span>
-                      </>
-                    )}
+                    <AlertTriangle className="h-4 w-4 text-orange-500" />
+                    <span className="text-sm font-medium">Esta tarea depende de:</span>
                   </div>
                   <div className="ml-6">
                     <p className="font-medium">Tarea relacionada</p>
                     <p className="text-sm text-gray-600">
-                      ID: {dependency.dependent_task_id === task.id 
-                        ? dependency.dependency_task_id 
-                        : dependency.dependent_task_id
-                      }
+                      ID: {dependency.depends_on_task_id}
                     </p>
                     {dependency.dependency_type && (
                       <Badge variant="outline" className="mt-2 text-xs">
@@ -191,27 +173,27 @@ const TaskAssignments = ({ task }: TaskAssignmentsProps) => {
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">
-              {currentAssignments.filter(a => a.status === 'accepted').length}
+              {currentAssignments.filter(a => a.role_in_task === 'responsible').length}
             </div>
-            <p className="text-sm text-gray-500">Asignaciones Aceptadas</p>
+            <p className="text-sm text-gray-500">Responsables</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-600">
-              {currentAssignments.filter(a => a.status === 'pending').length}
+            <div className="text-2xl font-bold text-green-600">
+              {currentAssignments.filter(a => a.role_in_task === 'contributor').length}
             </div>
-            <p className="text-sm text-gray-500">Asignaciones Pendientes</p>
+            <p className="text-sm text-gray-500">Colaboradores</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-orange-600">
-              {taskDependencies.filter(d => d.dependent_task_id === task.id).length}
+              {dependencies.length}
             </div>
-            <p className="text-sm text-gray-500">Dependencias Bloqueantes</p>
+            <p className="text-sm text-gray-500">Dependencias</p>
           </CardContent>
         </Card>
       </div>

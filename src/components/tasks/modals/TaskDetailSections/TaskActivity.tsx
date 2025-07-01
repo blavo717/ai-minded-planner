@@ -21,7 +21,7 @@ interface TaskActivityProps {
 }
 
 const TaskActivity = ({ task }: TaskActivityProps) => {
-  const { taskLogs, isLoading } = useTaskLogs(task.id);
+  const { logs, isLoading } = useTaskLogs(task.id);
 
   const getLogIcon = (type: string) => {
     switch (type) {
@@ -41,15 +41,15 @@ const TaskActivity = ({ task }: TaskActivityProps) => {
   const getLogTitle = (log: any) => {
     switch (log.log_type) {
       case 'status_change':
-        return `Estado cambiado a: ${log.new_value}`;
+        return `Estado cambiado: ${log.title}`;
       case 'comment':
         return 'Comentario añadido';
       case 'assignment':
         return 'Tarea asignada';
       case 'time_tracking':
-        return `Tiempo registrado: ${log.duration || 0} minutos`;
+        return `Tiempo registrado: ${log.metadata?.duration || 0} minutos`;
       default:
-        return log.description || 'Actividad registrada';
+        return log.title || 'Actividad registrada';
     }
   };
 
@@ -71,14 +71,14 @@ const TaskActivity = ({ task }: TaskActivityProps) => {
   const taskCreationLog = {
     id: 'creation',
     log_type: 'created',
-    description: 'Tarea creada',
+    title: 'Tarea creada',
+    content: null,
     created_at: task.created_at,
-    old_value: null,
-    new_value: null
+    metadata: {}
   };
 
   // Combinar logs reales con log de creación
-  const allLogs = [taskCreationLog, ...(taskLogs || [])].sort(
+  const allLogs = [taskCreationLog, ...(logs || [])].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
@@ -131,19 +131,15 @@ const TaskActivity = ({ task }: TaskActivityProps) => {
                         <h4 className="font-medium text-gray-900">
                           {log.log_type === 'created' ? 'Tarea creada' : getLogTitle(log)}
                         </h4>
-                        {log.description && log.log_type !== 'created' && (
+                        {log.content && log.log_type !== 'created' && (
                           <p className="text-sm text-gray-600 mt-1">
-                            {log.description}
+                            {log.content}
                           </p>
                         )}
-                        {log.old_value && log.new_value && (
+                        {log.metadata && Object.keys(log.metadata).length > 0 && (
                           <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline" className="text-xs">
-                              De: {log.old_value}
-                            </Badge>
-                            <span className="text-gray-400">→</span>
-                            <Badge variant="outline" className="text-xs">
-                              A: {log.new_value}
+                              {JSON.stringify(log.metadata)}
                             </Badge>
                           </div>
                         )}
