@@ -29,43 +29,39 @@ export const generateTaskStateAndSteps = async (
   makeLLMRequest: any
 ): Promise<TaskAISummary> => {
   
-  const systemPrompt = `Eres un experto analista de productividad que genera resúmenes expandidos de tareas.
+  const systemPrompt = `Eres un experto analista de productividad. Tu respuesta debe ser ÚNICAMENTE un objeto JSON válido, sin texto adicional, sin explicaciones, sin comentarios.
 
-Tu respuesta debe ser EXCLUSIVAMENTE un JSON válido con esta estructura:
+FORMATO REQUERIDO (copia exactamente esta estructura):
 {
-  "statusSummary": "Análisis comprensivo del estado actual (máximo 150 palabras)",
-  "nextSteps": "Pasos concretos y específicos a seguir (máximo 100 palabras)",
-  "alerts": "OPCIONAL: Alertas críticas solo si hay riesgos reales",
-  "insights": "OPCIONAL: Análisis predictivo y recomendaciones estratégicas",
-  "riskLevel": "low" | "medium" | "high",
+  "statusSummary": "Análisis del estado actual en máximo 150 palabras",
+  "nextSteps": "Pasos específicos a seguir en máximo 100 palabras",
+  "alerts": "Alertas críticas solo si hay riesgos reales",
+  "insights": "Análisis predictivo y recomendaciones estratégicas",
+  "riskLevel": "low",
   "intelligentActions": [
     {
-      "type": "create_subtask" | "create_reminder" | "draft_email",
-      "label": "Texto del botón (máximo 25 caracteres)",
-      "priority": "high" | "medium" | "low",
-      "confidence": 0.0-1.0,
+      "type": "create_subtask",
+      "label": "Texto del botón máximo 25 chars",
+      "priority": "high",
+      "confidence": 0.8,
       "suggestedData": {
         "title": "Título sugerido",
         "content": "Contenido detallado",
         "scheduledFor": "2024-12-25T10:00:00.000Z",
-        "language": "es" | "en",
+        "language": "es",
         "estimatedDuration": 30
       }
     }
   ]
 }
 
-CRITERIOS DE RIESGO:
-- high: Tareas críticas atrasadas, dependencias bloqueadas, deadlines perdidos
-- medium: Retrasos menores, recursos limitados, coordinación necesaria  
-- low: Progreso normal, sin impedimentos significativos
+VALORES PERMITIDOS:
+- riskLevel: "low", "medium", "high"
+- type: "create_subtask", "create_reminder", "draft_email"
+- priority: "high", "medium", "low"
+- language: "es", "en"
 
-DETECCIÓN DE ACCIONES:
-- create_subtask: Si nextSteps sugiere "crear", "añadir", "desarrollar", "implementar"
-- create_reminder: Si nextSteps sugiere "recordar", "seguimiento", "revisar", "controlar"
-- draft_email: Si nextSteps sugiere "contactar", "enviar", "comunicar", "informar"
-
-NO incluyas explicaciones adicionales, solo el JSON.`;
+RESPONDE SOLO CON EL JSON. NO AGREGUES TEXTO ANTES O DESPUÉS.`;
 
   const userPrompt = `TAREA PRINCIPAL:
 Título: ${context.mainTask.title}
@@ -91,17 +87,38 @@ Dependientes: ${context.dependencies.dependent.length}
 CONTEXTO DEL PROYECTO:
 ${context.projectContext?.name || 'Sin proyecto'} - Estado: ${context.projectContext?.status || 'N/A'}
 
-Genera un análisis expandido con alertas, insights y acciones inteligentes:`;
+Genera análisis en JSON:`;
 
   try {
     const response = await makeLLMRequest({
       systemPrompt,
       userPrompt,
       functionName: 'enhanced_task_analysis',
-      temperature: 0.7
+      temperature: 0.3 // Reducir temperatura para más consistencia
     });
 
-    const parsed = JSON.parse(response.content);
+    // Limpiar la respuesta de posible texto adicional
+    let cleanResponse = response.content.trim();
+    
+    // Si la respuesta no empieza con {, buscar el primer {
+    if (!cleanResponse.startsWith('{')) {
+      const jsonStart = cleanResponse.indexOf('{');
+      if (jsonStart !== -1) {
+        cleanResponse = cleanResponse.substring(jsonStart);
+      }
+    }
+    
+    // Si la respuesta no termina con }, buscar el último }
+    if (!cleanResponse.endsWith('}')) {
+      const jsonEnd = cleanResponse.lastIndexOf('}');
+      if (jsonEnd !== -1) {
+        cleanResponse = cleanResponse.substring(0, jsonEnd + 1);
+      }
+    }
+
+    console.log('🧹 Respuesta limpia:', cleanResponse);
+
+    const parsed = JSON.parse(cleanResponse);
     
     // Convertir scheduledFor strings a Date objects
     if (parsed.intelligentActions) {
@@ -126,6 +143,7 @@ Genera un análisis expandido con alertas, insights y acciones inteligentes:`;
     };
   } catch (error) {
     console.error('Error in generateTaskStateAndSteps:', error);
+    console.error('Raw response:', response?.content);
     throw new Error('Failed to generate enhanced task analysis');
   }
 };
