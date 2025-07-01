@@ -1,173 +1,160 @@
 
-import { Loader2, Sparkles, ArrowRight, AlertCircle, AlertTriangle, TrendingUp } from 'lucide-react';
+import React from 'react';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { AlertTriangle, Brain, TrendingUp, Clock } from 'lucide-react';
+import { Task } from '@/hooks/useTasks';
 import { useTaskStateAndSteps } from '@/hooks/useTaskStateAndSteps';
 import { useIntelligentActions } from '@/hooks/ai/useIntelligentActions';
 import { SmartActionButtons } from './actions/SmartActionButtons';
 
 interface AITaskSummaryProps {
-  taskId: string;
+  task: Task | undefined;
   className?: string;
 }
 
-export function AITaskSummary({ taskId, className = '' }: AITaskSummaryProps) {
-  const { 
-    statusSummary, 
-    nextSteps, 
-    alerts,
-    insights,
-    riskLevel,
-    isLoading, 
-    hasAI, 
-    hasConfiguration,
-    error,
-    currentModel,
-    context
-  } = useTaskStateAndSteps(taskId);
-
+export default function AITaskSummary({ task, className = '' }: AITaskSummaryProps) {
+  const { summary, nextSteps, isLoading, error } = useTaskStateAndSteps(task?.id);
+  
   const { 
     intelligentActions, 
-    isGeneratingActions, 
-    trackActionUsage, 
-    triggerInsightUpdate 
-  } = useIntelligentActions(
-    context?.mainTask!, 
-    nextSteps || '', 
-    statusSummary || ''
-  );
+    isGeneratingActions 
+  } = useIntelligentActions(task, nextSteps || '', summary?.statusSummary || '');
 
-  const getModelDisplayName = (model: string): string => {
-    if (model?.includes('gemini')) return 'Gemini';
-    if (model?.includes('gpt')) return 'GPT';
-    if (model?.includes('claude')) return 'Claude';
-    return 'IA';
-  };
-
-  const getRiskColor = (risk?: string) => {
-    switch (risk) {
-      case 'high': return 'text-red-700 border-red-200 bg-red-50';
-      case 'medium': return 'text-orange-700 border-orange-200 bg-orange-50';
-      default: return 'text-green-700 border-green-200 bg-green-50';
-    }
-  };
-
-  const handleActionComplete = (actionType: string) => {
-    trackActionUsage(actionType);
-    triggerInsightUpdate();
-  };
-
-  if (!hasConfiguration) {
+  // Early return if no task
+  if (!task) {
     return (
-      <div className={`text-sm text-orange-700 ${className}`}>
-        <div className="flex items-center gap-2">
-          <AlertCircle className="h-3 w-3" />
-          <span>Configura tu API de IA en Configuración → LLM para activar resúmenes inteligentes</span>
+      <Card className={`p-4 ${className}`}>
+        <div className="text-sm text-muted-foreground">
+          No hay tarea seleccionada
         </div>
-      </div>
+      </Card>
     );
   }
 
   if (isLoading) {
     return (
-      <div className={`space-y-4 ${className}`}>
-        <div className="animate-pulse">
-          <div className="flex items-center gap-2 mb-2">
-            <Loader2 className="h-4 w-4 animate-spin text-orange-600" />
-            <div className="h-3 bg-orange-200 rounded w-32"></div>
-          </div>
-          <div className="h-4 bg-orange-200 rounded w-full mb-2"></div>
-          <div className="h-4 bg-orange-200 rounded w-3/4 mb-4"></div>
-          <div className="h-3 bg-blue-200 rounded w-24 mb-2"></div>
-          <div className="h-4 bg-blue-200 rounded w-full"></div>
+      <Card className={`p-4 ${className}`}>
+        <div className="flex items-center gap-2">
+          <Brain className="h-4 w-4 animate-pulse text-blue-500" />
+          <span className="text-sm text-muted-foreground">Analizando tarea con IA...</span>
         </div>
-      </div>
+      </Card>
     );
   }
 
-  if (error || !hasAI) {
+  if (error) {
     return (
-      <div className={`text-sm text-orange-700 ${className}`}>
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-3 w-3" />
-          <span>Analizando estado avanzado de la tarea...</span>
+      <Card className={`p-4 border-red-200 ${className}`}>
+        <div className="flex items-center gap-2 text-red-600">
+          <AlertTriangle className="h-4 w-4" />
+          <span className="text-sm">Error al analizar la tarea</span>
         </div>
-      </div>
+      </Card>
     );
   }
+
+  if (!summary) {
+    return (
+      <Card className={`p-4 ${className}`}>
+        <div className="text-sm text-muted-foreground">
+          No hay análisis disponible
+        </div>
+      </Card>
+    );
+  }
+
+  const getRiskBadgeColor = (risk: string) => {
+    switch (risk) {
+      case 'high': return 'bg-red-100 text-red-800 border-red-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default: return 'bg-green-100 text-green-800 border-green-200';
+    }
+  };
 
   return (
-    <div className={`space-y-4 ${className}`}>
-      {/* Resumen Estado Mejorado con Indicador de Riesgo */}
-      <div className={`p-3 rounded-lg border ${getRiskColor(riskLevel)}`}>
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wide flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
-            Resumen estado
-            {riskLevel === 'high' && <AlertTriangle className="h-4 w-4 text-red-600" />}
-          </h4>
-          {currentModel && (
-            <span className="text-xs font-medium opacity-70">
-              {getModelDisplayName(currentModel)}
-            </span>
-          )}
+    <Card className={`p-4 space-y-4 ${className}`}>
+      {/* Header con estado y riesgo */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Brain className="h-4 w-4 text-blue-500" />
+          <h3 className="font-medium text-sm">Análisis IA</h3>
         </div>
-        <p className="text-sm leading-relaxed font-medium">
-          {statusSummary}
-        </p>
-      </div>
-      
-      {/* Próximos Pasos */}
-      <div>
-        <h4 className="text-xs font-semibold text-orange-700 uppercase tracking-wide flex items-center gap-2 mb-2">
-          <ArrowRight className="h-4 w-4" />
-          Próximos pasos
-        </h4>
-        <p className="text-sm text-orange-800 leading-relaxed">
-          {nextSteps}
-        </p>
+        
+        {summary.riskLevel && (
+          <Badge 
+            variant="outline" 
+            className={getRiskBadgeColor(summary.riskLevel)}
+          >
+            Riesgo: {summary.riskLevel}
+          </Badge>
+        )}
       </div>
 
-      {/* NUEVA: Botones de Acción Inteligentes */}
+      {/* Resumen del estado */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-3 w-3 text-green-600" />
+          <span className="text-xs font-medium text-muted-foreground">Estado Actual</span>
+        </div>
+        <p className="text-sm leading-relaxed">{summary.statusSummary}</p>
+      </div>
+
+      {/* Próximos pasos */}
+      {nextSteps && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Clock className="h-3 w-3 text-blue-600" />
+            <span className="text-xs font-medium text-muted-foreground">Próximos Pasos</span>
+          </div>
+          <p className="text-sm leading-relaxed">{nextSteps}</p>
+        </div>
+      )}
+
+      {/* Alertas críticas */}
+      {summary.alerts && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="flex items-center gap-2 mb-1">
+            <AlertTriangle className="h-3 w-3 text-red-600" />
+            <span className="text-xs font-medium text-red-800">Alerta</span>
+          </div>
+          <p className="text-sm text-red-700">{summary.alerts}</p>
+        </div>
+      )}
+
+      {/* Insights adicionales */}
+      {summary.insights && (
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="flex items-center gap-2 mb-1">
+            <Brain className="h-3 w-3 text-blue-600" />
+            <span className="text-xs font-medium text-blue-800">Insights</span>
+          </div>
+          <p className="text-sm text-blue-700">{summary.insights}</p>
+        </div>
+      )}
+
+      {/* Acciones inteligentes */}
       {intelligentActions && intelligentActions.length > 0 && (
-        <div>
-          <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-2 mb-2">
-            <Sparkles className="h-4 w-4" />
-            Acciones inteligentes
-            {isGeneratingActions && <Loader2 className="h-3 w-3 animate-spin" />}
-          </h4>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Brain className="h-3 w-3 text-purple-600" />
+            <span className="text-xs font-medium text-muted-foreground">Acciones Sugeridas</span>
+          </div>
           <SmartActionButtons
-            task={context?.mainTask!}
+            task={task}
             actions={intelligentActions}
-            onActionComplete={handleActionComplete}
-            className="mb-2"
+            className="flex-wrap gap-1"
           />
         </div>
       )}
-      
-      {/* EXISTENTES: Alertas Críticas */}
-      {alerts && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-          <h4 className="text-xs font-semibold text-red-700 uppercase tracking-wide flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-4 w-4" />
-            Alertas críticas
-          </h4>
-          <p className="text-sm text-red-800 leading-relaxed font-medium">
-            {alerts}
-          </p>
+
+      {/* Loading de acciones */}
+      {isGeneratingActions && (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Brain className="h-3 w-3 animate-pulse" />
+          <span className="text-xs">Generando acciones inteligentes...</span>
         </div>
       )}
-      
-      {/* EXISTENTES: Análisis Predictivo */}
-      {insights && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-2 mb-2">
-            <TrendingUp className="h-4 w-4" />
-            Análisis predictivo
-          </h4>
-          <p className="text-sm text-blue-800 leading-relaxed">
-            {insights}
-          </p>
-        </div>
-      )}
-    </div>
+    </Card>
   );
 }

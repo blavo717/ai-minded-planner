@@ -8,7 +8,7 @@ import { useLLMService } from '@/hooks/useLLMService';
 import { useProactiveNotifications } from './useProactiveNotifications';
 import { Task } from '@/hooks/useTasks';
 
-export const useIntelligentActions = (task: Task, nextSteps: string, statusSummary: string) => {
+export const useIntelligentActions = (task: Task | undefined, nextSteps: string, statusSummary: string) => {
   const [isGeneratingActions, setIsGeneratingActions] = useState(false);
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
   
@@ -16,6 +16,22 @@ export const useIntelligentActions = (task: Task, nextSteps: string, statusSumma
   const { smartRecommendations, advancedContext } = usePhase6Advanced();
   const { trackTaskCreation } = usePatternTracking();
   const { processInsights } = useProactiveNotifications();
+
+  // Early return if task is undefined
+  if (!task) {
+    return {
+      intelligentActions: [],
+      isGeneratingActions: false,
+      isGeneratingEmail: false,
+      generateDraftEmail: async () => {
+        throw new Error('No task available');
+      },
+      actionContext: null,
+      hasConfiguration: hasActiveConfiguration,
+      trackActionUsage: () => {},
+      triggerInsightUpdate: () => {},
+    };
+  }
 
   // Obtener patrones del usuario para personalización
   const { data: userPatterns } = useQuery({
@@ -50,7 +66,7 @@ export const useIntelligentActions = (task: Task, nextSteps: string, statusSumma
   const generateIntelligentActions = useCallback(async (
     context: IntelligentActionContext
   ): Promise<IntelligentAction[]> => {
-    if (!hasActiveConfiguration) return [];
+    if (!hasActiveConfiguration || !context.task) return [];
 
     setIsGeneratingActions(true);
     
@@ -146,6 +162,10 @@ Genera máximo 3 acciones inteligentes más relevantes:`;
   ): Promise<DraftEmailContent> => {
     if (!hasActiveConfiguration) {
       throw new Error('No LLM configuration available');
+    }
+
+    if (!context.task) {
+      throw new Error('No task available');
     }
 
     setIsGeneratingEmail(true);
