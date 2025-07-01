@@ -1,3 +1,4 @@
+
 // =============================================================================
 // HOOKS AI - INDEX OPTIMIZADO
 // Organizados por categoría para evitar imports circulares
@@ -28,9 +29,6 @@ export { useAITesting } from './useAITesting';
 export type { AIContextConfig, ExtendedAIContext } from '@/types/ai-context';
 export type { AIContext } from '@/types/ai-context-advanced';
 
-// Insight Types
-export type { AIInsight, InsightGenerationConfig, UserContext } from '@/types/ai-insights';
-
 // Notification Types
 export type { ProactiveNotification, NotificationConfig } from '@/types/proactive-notifications';
 
@@ -47,15 +45,13 @@ export type {
 // Advanced Context Types
 export type {
   AdvancedContext,
-  ContextualRecommendation,
   AdvancedContextConfig
 } from '@/utils/ai/AdvancedContextEngine';
 
 // Recommendation Types
 export type {
   ActionableRecommendation,
-  RecommendationFeedback,
-  SmartRecommendationConfig
+  RecommendationFeedback
 } from '@/utils/ai/SmartRecommendationEngine';
 
 // =============================================================================
@@ -74,4 +70,5 @@ export { defaultContextualDataCollector } from '@/utils/ai/ContextualDataCollect
 // - Grouped exports by functionality
 // - Types are clearly separated from implementations
 // - Utilities are re-exported only when safe
+// - Fixed missing type imports to resolve build errors
 // =============================================================================
