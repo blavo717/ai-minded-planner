@@ -29,6 +29,7 @@ const MicrotaskItem = ({ microtask, onUpdate, onDelete }: MicrotaskItemProps) =>
   const [editingMicrotaskId, setEditingMicrotaskId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [selectedLogTask, setSelectedLogTask] = useState<Task | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const isCompleted = microtask.status === 'completed';
   const isEditing = editingMicrotaskId === microtask.id;
@@ -60,6 +61,11 @@ const MicrotaskItem = ({ microtask, onUpdate, onDelete }: MicrotaskItemProps) =>
   const handleCancelEdit = () => {
     setEditingMicrotaskId(null);
     setEditTitle('');
+  };
+
+  const handleActionAndClose = (action: () => void) => {
+    action();
+    setDropdownOpen(false);
   };
 
   return (
@@ -122,15 +128,15 @@ const MicrotaskItem = ({ microtask, onUpdate, onDelete }: MicrotaskItemProps) =>
           />
 
           <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-            <DropdownMenu>
+            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
                   <MoreHorizontal className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="bg-white shadow-lg border z-50">
                 <DropdownMenuItem 
-                  onClick={() => onDelete(microtask.id)}
+                  onClick={() => handleActionAndClose(() => onDelete(microtask.id))}
                   className="text-red-600"
                 >
                   <Trash2 className="h-3 w-3 mr-2" />

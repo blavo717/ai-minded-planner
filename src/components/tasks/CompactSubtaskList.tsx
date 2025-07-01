@@ -44,6 +44,7 @@ const CompactSubtaskList = memo(({
   const [selectedLogTask, setSelectedLogTask] = useState<Task | null>(null);
   const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [dropdownOpenMap, setDropdownOpenMap] = useState<Record<string, boolean>>({});
   const { updateTask, deleteTask } = useTaskMutations();
 
   console.log('CompactSubtaskList rendered:', {
@@ -66,6 +67,13 @@ const CompactSubtaskList = memo(({
     }
     setExpandedSubtasks(newExpanded);
     console.log('Toggling subtask expansion:', subtaskId, 'expanded:', newExpanded.has(subtaskId));
+  };
+
+  const setDropdownOpen = (subtaskId: string, open: boolean) => {
+    setDropdownOpenMap(prev => ({
+      ...prev,
+      [subtaskId]: open
+    }));
   };
 
   function handleCreateSubtask() {
@@ -105,6 +113,11 @@ const CompactSubtaskList = memo(({
     setEditTitle('');
   }
 
+  const handleActionAndClose = (subtaskId: string, action: () => void) => {
+    action();
+    setDropdownOpen(subtaskId, false);
+  };
+
   return (
     <>
       <div className="ml-6 border-l-2 border-gray-200 pl-4 space-y-1">
@@ -116,6 +129,7 @@ const CompactSubtaskList = memo(({
           const completedMicrotasks = microtasks.filter(m => m.status === 'completed').length;
           const isCompleted = subtask.status === 'completed';
           const isEditing = editingSubtaskId === subtask.id;
+          const isDropdownOpen = dropdownOpenMap[subtask.id] || false;
 
           console.log('Rendering subtask:', {
             id: subtask.id,
@@ -208,18 +222,21 @@ const CompactSubtaskList = memo(({
                   <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
 
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <DropdownMenu>
+                    <DropdownMenu 
+                      open={isDropdownOpen} 
+                      onOpenChange={(open) => setDropdownOpen(subtask.id, open)}
+                    >
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
                           <MoreHorizontal className="h-3 w-3" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-40 bg-white shadow-lg border z-50">
-                        <DropdownMenuItem onClick={() => onEditTask(subtask)}>
+                        <DropdownMenuItem onClick={() => handleActionAndClose(subtask.id, () => onEditTask(subtask))}>
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => deleteTask(subtask.id)}
+                          onClick={() => handleActionAndClose(subtask.id, () => deleteTask(subtask.id))}
                           className="text-red-600"
                         >
                           Eliminar

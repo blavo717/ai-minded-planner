@@ -1,4 +1,3 @@
-
 import React, { memo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,6 +60,7 @@ const CompactTaskCard = memo(({
   const [selectedLogTask, setSelectedLogTask] = useState<Task | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { updateTask } = useTaskMutations();
 
   const completedSubtasks = subtasks.filter(st => st.status === 'completed').length;
@@ -139,6 +139,16 @@ const CompactTaskCard = memo(({
   const handleCancelEdit = () => {
     setEditTitle(task.title);
     setIsEditingTitle(false);
+  };
+
+  const handleCreateSubtaskAndKeepOpen = () => {
+    onCreateSubtask(task.id, 'Nueva subtarea');
+    // No cerramos el dropdown aquí
+  };
+
+  const handleActionAndClose = (action: () => void) => {
+    action();
+    setDropdownOpen(false);
   };
 
   return (
@@ -298,7 +308,7 @@ const CompactTaskCard = memo(({
                 <div className={getStatusDot()} />
 
                 {/* Menú de acciones */}
-                <DropdownMenu>
+                <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="ghost" 
@@ -309,25 +319,28 @@ const CompactTaskCard = memo(({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border z-50">
-                    <DropdownMenuItem onClick={() => onEditTask(task)}>
+                    <DropdownMenuItem onClick={() => handleActionAndClose(() => onEditTask(task))}>
                       Editar tarea
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onCreateSubtask(task.id, 'Nueva subtarea')}>
+                    <DropdownMenuItem 
+                      onSelect={(e) => e.preventDefault()}
+                      onClick={handleCreateSubtaskAndKeepOpen}
+                    >
                       Añadir subtarea
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onManageDependencies(task)}>
+                    <DropdownMenuItem onClick={() => handleActionAndClose(() => onManageDependencies(task))}>
                       Dependencias
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onAssignTask(task)}>
+                    <DropdownMenuItem onClick={() => handleActionAndClose(() => onAssignTask(task))}>
                       Asignar
                     </DropdownMenuItem>
                     {isCompleted && (
-                      <DropdownMenuItem onClick={() => onArchiveTask(task.id)}>
+                      <DropdownMenuItem onClick={() => handleActionAndClose(() => onArchiveTask(task.id))}>
                         Archivar
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem 
-                      onClick={() => onArchiveTask(task.id)}
+                      onClick={() => handleActionAndClose(() => onArchiveTask(task.id))}
                       className="text-red-600"
                     >
                       Eliminar
