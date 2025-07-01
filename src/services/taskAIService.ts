@@ -1,9 +1,8 @@
-
 import { TaskContext } from '@/utils/taskContext';
 import { ConciseTaskProcessor } from './ai/conciseTaskProcessor';
 import { IntelligentPromptBuilder } from './ai/intelligentPromptBuilder';
 import { ContextualInsightGenerator } from './ai/contextualInsightGenerator';
-import { ActionableRecommendationEngine } from './ai/actionableRecommendationEngine';
+import { generateActionableRecommendations } from './ai/actionableRecommendationEngine';
 
 export interface TaskAISummary {
   statusSummary: string;
@@ -249,7 +248,7 @@ export const generateTaskStateAndSteps = async (
   
   // ✨ Generar análisis local específico (siempre disponible como backup)
   const specificInsights = ContextualInsightGenerator.generateSpecificInsights(context);
-  const smartActions = ActionableRecommendationEngine.generateSmartActions(context);
+  const smartActions = await generateActionableRecommendations();
 
   try {
     // ✨ Construir prompt ultra-conciso

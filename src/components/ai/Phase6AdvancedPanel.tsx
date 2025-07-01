@@ -44,7 +44,6 @@ const Phase6AdvancedPanel = () => {
 
   const {
     insights,
-    patternAnalysis,
     isGenerating: isGeneratingInsights,
     generateInsights,
   } = useInsightGeneration();
@@ -59,7 +58,7 @@ const Phase6AdvancedPanel = () => {
 
   // Generar contexto avanzado
   const generateAdvancedContext = async () => {
-    if (!patternAnalysis || tasks.length === 0) return;
+    if (tasks.length === 0) return;
 
     setIsGenerating(true);
     try {
@@ -84,22 +83,11 @@ const Phase6AdvancedPanel = () => {
         },
       };
 
-      const context = await defaultAdvancedContextEngine.generateAdvancedContext(
-        tasks,
-        sessions,
-        patternAnalysis,
-        aggregatedContextualData,
-        insights
-      );
+      const context = await defaultAdvancedContextEngine.generateAdvancedContext();
       setAdvancedContext(context);
 
       // Generar recomendaciones inteligentes
-      const recommendations = await defaultSmartRecommendationEngine.generateSmartRecommendations(
-        context,
-        tasks,
-        patternAnalysis,
-        insights
-      );
+      const recommendations = await defaultSmartRecommendationEngine.generateSmartRecommendations();
       setSmartRecommendations(recommendations);
 
       toast({
@@ -120,10 +108,10 @@ const Phase6AdvancedPanel = () => {
 
   // Auto-generar contexto cuando hay datos suficientes
   useEffect(() => {
-    if (patternAnalysis && tasks.length > 0 && !advancedContext && !isGenerating) {
+    if (insights.length > 0 && tasks.length > 0 && !advancedContext && !isGenerating) {
       generateAdvancedContext();
     }
-  }, [patternAnalysis, tasks.length]);
+  }, [insights.length, tasks.length]);
 
   // Handler para el botón de recopilar datos
   const handleCollectData = async () => {

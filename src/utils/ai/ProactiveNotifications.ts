@@ -7,9 +7,16 @@ export class ProactiveNotificationManager {
 
   constructor(config: Partial<NotificationConfig> = {}) {
     this.config = {
-      enabledChannels: ['toast'],
-      deliveryFrequency: 'normal',
-      priorityThreshold: 0.7,
+      enableProductivityReminders: true,
+      enableTaskHealthAlerts: true,
+      enableDeadlineWarnings: true,
+      enableAchievementCelebrations: true,
+      maxNotificationsPerHour: 3,
+      priorities: {
+        enableHigh: true,
+        enableMedium: true,
+        enableLow: false,
+      },
       ...config
     };
   }
@@ -30,7 +37,7 @@ export class ProactiveNotificationManager {
   }
 
   getPendingNotifications(): ProactiveNotification[] {
-    return this.notifications.filter(n => !n.isDelivered && !n.isDismissed);
+    return this.notifications.filter(n => !n.isDismissed);
   }
 
   markAsRead(notificationId: string): void {
