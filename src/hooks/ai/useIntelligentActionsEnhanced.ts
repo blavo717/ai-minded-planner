@@ -1,11 +1,12 @@
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { IntelligentAction, IntelligentActionContext } from '@/types/intelligent-actions';
 import { useLLMService } from '@/hooks/useLLMService';
 import { Task } from '@/hooks/useTasks';
 import { generateContextualSystemPrompt, IA_PLANNER_IDENTITY } from '@/config/iaPlanner';
 import { getEnhancedTaskContext } from '@/utils/taskContextEnhanced';
+import { parseIntelligentActionsJSON } from '@/utils/ai/jsonParser';
 
 export const useIntelligentActionsEnhanced = (
   task: Task | undefined, 
@@ -32,7 +33,7 @@ export const useIntelligentActionsEnhanced = (
     setIsGeneratingActions(true);
     
     try {
-      console.log('🤖 IA Planner generando acciones inteligentes para:', task.title);
+      console.log('🤖 IA Planner generando acciones específicas para:', task.title);
       
       // Get enhanced context
       const enhancedContext = await getEnhancedTaskContext(task.id);
@@ -40,47 +41,49 @@ export const useIntelligentActionsEnhanced = (
       // Generate IA Planner system prompt
       const systemPrompt = generateContextualSystemPrompt(enhancedContext, 'action_generation');
       
-      // Create specific prompt for action generation
-      const userPrompt = `Como IA Planner, genera máximo 3 acciones inteligentes ESPECÍFICAS para "${task.title}".
+      // Create SIMPLIFIED prompt focused on specific actions only
+      const userPrompt = `Genera EXACTAMENTE 2 acciones específicas para "${task.title}".
 
 CONTEXTO ACTUAL:
-- Estado: ${task.status}
-- Progreso: ${enhancedContext.completionStatus.overallProgress}%
+- Estado: ${task.status} | Progreso: ${enhancedContext.completionStatus.overallProgress}%
 - Días sin actividad: ${enhancedContext.daysSinceLastActivity}
-- Subtareas: ${enhancedContext.subtasks.length} (${enhancedContext.completionStatus.completedSubtasks} completadas)
-- Dependencias: ${enhancedContext.dependencies.blocking.length} bloqueantes
+- Subtareas: ${enhancedContext.subtasks.length} total, ${enhancedContext.completionStatus.completedSubtasks} completadas
 
-PRÓXIMOS PASOS IDENTIFICADOS:
+PRÓXIMOS PASOS:
 ${nextSteps}
 
-Genera acciones en formato JSON:
+Responde SOLO este JSON (sin markdown):
 [
   {
     "type": "create_subtask",
-    "label": "Título específico de la acción",
-    "priority": "high|medium|low",
-    "confidence": 0.0-1.0,
+    "label": "Acción específica 1",
+    "priority": "high",
+    "confidence": 0.8,
     "suggestedData": {
-      "title": "Título específico de la subtarea",
-      "content": "Descripción detallada de qué hacer exactamente"
+      "title": "Título específico",
+      "content": "Qué hacer exactamente"
     },
-    "basedOnPatterns": ["patron_detectado"],
-    "reasoning": "Por qué es importante esta acción específica"
+    "reasoning": "Por qué es importante"
+  },
+  {
+    "type": "create_subtask", 
+    "label": "Acción específica 2",
+    "priority": "medium",
+    "confidence": 0.7,
+    "suggestedData": {
+      "title": "Título específico", 
+      "content": "Qué hacer exactamente"
+    },
+    "reasoning": "Por qué es necesaria"
   }
-]
-
-REGLAS DEL IA PLANNER:
-- Acciones ESPECÍFICAS, no genéricas
-- Basadas en el contexto real de la tarea
-- Priorizadas por impacto y urgencia
-- Ejecutables inmediatamente`;
+]`;
 
       const response = await makeLLMRequest({
         systemPrompt,
         userPrompt,
         functionName: 'ia_planner_actions',
-        temperature: 0.2, // Low for consistent planning
-        maxTokens: 500
+        temperature: 0.2, // Mantener creatividad controlada
+        maxTokens: 800 // Aumentado para evitar truncamiento
       });
 
       if (!response?.content) {
@@ -88,10 +91,11 @@ REGLAS DEL IA PLANNER:
         return generateFallbackActions(enhancedContext);
       }
 
-      console.log('📝 IA Planner acciones raw:', response.content);
+      console.log('📝 IA Planner respuesta completa:', response.content);
 
-      // Parse actions safely
-      const actions = parsePlannerActions(response.content, task.id);
+      // Use robust JSON parser
+      const rawActions = parseIntelligentActionsJSON(response.content, task.id);
+      const actions = processActions(rawActions, task.id);
       
       console.log('✅ IA Planner acciones procesadas:', actions.length);
       return actions;
@@ -135,41 +139,25 @@ REGLAS DEL IA PLANNER:
   };
 };
 
-function parsePlannerActions(content: string, taskId: string): IntelligentAction[] {
-  try {
-    // Clean JSON response
-    const cleaned = content
-      .replace(/```json/gi, '')
-      .replace(/```/g, '')
-      .replace(/,(\s*[}\]])/g, '$1')
-      .trim();
-    
-    const parsed = JSON.parse(cleaned);
-    const actions = Array.isArray(parsed) ? parsed : [parsed];
-    
-    return actions.map((action: any, index: number) => ({
-      id: `planner-action-${taskId}-${index}`,
-      type: action.type || 'create_subtask',
-      label: action.label || 'Acción del IA Planner',
-      priority: action.priority || 'medium',
-      confidence: action.confidence || 0.8,
-      suggestedData: {
-        title: action.suggestedData?.title || action.label,
-        content: action.suggestedData?.content || 'Acción generada por IA Planner',
-        ...action.suggestedData
-      },
-      basedOnPatterns: action.basedOnPatterns || ['ia_planner_analysis'],
-      reasoning: action.reasoning || 'Recomendación del IA Planner'
-    })).slice(0, 3); // Limit to 3 actions
-
-  } catch (error) {
-    console.error('❌ Error parsing IA Planner actions:', error);
-    return [];
-  }
+function processActions(rawActions: any[], taskId: string): IntelligentAction[] {
+  return rawActions.map((action: any, index: number) => ({
+    id: `planner-action-${taskId}-${index}-${Date.now()}`,
+    type: action.type || 'create_subtask',
+    label: action.label || 'Acción del IA Planner',
+    priority: action.priority || 'medium',
+    confidence: action.confidence || 0.8,
+    suggestedData: {
+      title: action.suggestedData?.title || action.label,
+      content: action.suggestedData?.content || 'Acción generada por IA Planner',
+      ...action.suggestedData
+    },
+    basedOnPatterns: action.basedOnPatterns || ['ia_planner_analysis'],
+    reasoning: action.reasoning || 'Recomendación del IA Planner'
+  })).slice(0, 2); // Limit to 2 actions
 }
 
 async function generateFallbackActions(context: any): Promise<IntelligentAction[]> {
-  console.log('🔄 Generando acciones fallback del IA Planner');
+  console.log('🔄 Generando acciones fallback específicas del IA Planner');
   
   const actions: IntelligentAction[] = [];
   
@@ -184,46 +172,28 @@ async function generateFallbackActions(context: any): Promise<IntelligentAction[
       suggestedData: {
         title: `Reactivar: ${context.mainTask.title}`,
         content: `${context.daysSinceLastActivity} días sin actividad. Revisar estado y definir próximo paso específico.`,
-        scheduledFor: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours
+        scheduledFor: new Date(Date.now() + 2 * 60 * 60 * 1000),
       },
       basedOnPatterns: ['stagnation_detected'],
       reasoning: 'Tarea sin actividad requiere atención inmediata'
     });
   }
   
-  // Action based on pending subtasks
+  // Action based on subtasks
   const pendingSubtasks = context.subtasks.filter((s: any) => s.status === 'pending');
   if (pendingSubtasks.length > 0) {
     actions.push({
       id: `planner-next-subtask-${context.mainTask.id}`,
       type: 'create_subtask',
-      label: 'Planificar Próxima Subtarea',
+      label: 'Continuar Próxima Subtarea',
       priority: 'medium',
       confidence: 0.8,
       suggestedData: {
-        title: `Planificar: ${pendingSubtasks[0].title}`,
-        content: `Definir plan detallado para "${pendingSubtasks[0].title}" como próximo paso.`,
+        title: `Trabajar en: ${pendingSubtasks[0].title}`,
+        content: `Continuar con "${pendingSubtasks[0].title}" como próximo paso específico.`,
       },
       basedOnPatterns: ['pending_subtasks'],
-      reasoning: 'Subtarea pendiente necesita planificación específica'
-    });
-  }
-  
-  // Action based on dependencies
-  if (context.dependencies.blocking.length > 0) {
-    const blockedTask = context.dependencies.blocking[0];
-    actions.push({
-      id: `planner-resolve-dependency-${context.mainTask.id}`,
-      type: 'create_subtask',
-      label: 'Resolver Dependencia Crítica',
-      priority: 'high',
-      confidence: 0.95,
-      suggestedData: {
-        title: `Resolver: ${blockedTask.title}`,
-        content: `Contactar responsable o encontrar alternativa para "${blockedTask.title}" que está bloqueando el progreso.`,
-      },
-      basedOnPatterns: ['dependency_blocking'],
-      reasoning: 'Dependencia bloqueante impide el progreso'
+      reasoning: 'Subtarea pendiente lista para continuar'
     });
   }
   

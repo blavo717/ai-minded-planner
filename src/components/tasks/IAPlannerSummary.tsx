@@ -17,11 +17,8 @@ export default function IAPlannerSummary({ task, className = '' }: IAPlannerSumm
     statusSummary, 
     nextSteps, 
     alerts, 
-    insights, 
     riskLevel,
     methodology,
-    activityInsights,
-    progressPrediction,
     specificActions,
     riskAssessment,
     isLoading, 
@@ -50,7 +47,7 @@ export default function IAPlannerSummary({ task, className = '' }: IAPlannerSumm
       <Card className={`p-4 ${className}`}>
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4 animate-pulse text-purple-500" />
-          <span className="text-sm text-muted-foreground">IA Planner analizando contexto completo...</span>
+          <span className="text-sm text-muted-foreground">IA Planner analizando...</span>
         </div>
       </Card>
     );
@@ -99,7 +96,7 @@ export default function IAPlannerSummary({ task, className = '' }: IAPlannerSumm
       riskLevel === 'medium' ? 'border-l-yellow-500' : 
       'border-l-purple-500'
     }`}>
-      {/* Header with IA Planner branding */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4 text-purple-500" />
@@ -127,7 +124,7 @@ export default function IAPlannerSummary({ task, className = '' }: IAPlannerSumm
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Target className="h-3 w-3 text-purple-600" />
-          <span className="text-xs font-medium text-muted-foreground">Análisis de Estado</span>
+          <span className="text-xs font-medium text-muted-foreground">Estado Específico</span>
         </div>
         <div className="bg-purple-50 border border-purple-200 rounded-md p-3">
           <p className="text-sm leading-relaxed font-medium text-purple-900">{statusSummary}</p>
@@ -139,7 +136,7 @@ export default function IAPlannerSummary({ task, className = '' }: IAPlannerSumm
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-3 w-3 text-green-600" />
-            <span className="text-xs font-medium text-muted-foreground">Plan de Acción</span>
+            <span className="text-xs font-medium text-muted-foreground">Próximos Pasos</span>
           </div>
           <div className="bg-green-50 border border-green-200 rounded-md p-3">
             <p className="text-sm leading-relaxed text-green-800">{nextSteps}</p>
@@ -174,31 +171,9 @@ export default function IAPlannerSummary({ task, className = '' }: IAPlannerSumm
         <div className="p-3 bg-red-50 border-l-4 border-red-400 rounded-md">
           <div className="flex items-center gap-2 mb-1">
             <AlertTriangle className="h-4 w-4 text-red-600" />
-            <span className="text-sm font-semibold text-red-800">Alerta del IA Planner</span>
+            <span className="text-sm font-semibold text-red-800">Alerta Crítica</span>
           </div>
           <p className="text-sm text-red-700 leading-relaxed">{alerts}</p>
-        </div>
-      )}
-
-      {/* Insights */}
-      {(activityInsights || progressPrediction) && (
-        <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-          <div className="flex items-center gap-2 mb-2">
-            <Brain className="h-4 w-4 text-gray-600" />
-            <span className="text-sm font-semibold text-gray-800">Insights del IA Planner</span>
-          </div>
-          <div className="space-y-2 text-sm text-gray-700">
-            {activityInsights && (
-              <div>
-                <span className="font-medium">Actividad:</span> {activityInsights}
-              </div>
-            )}
-            {progressPrediction && (
-              <div>
-                <span className="font-medium">Predicción:</span> {progressPrediction}
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -212,7 +187,7 @@ export default function IAPlannerSummary({ task, className = '' }: IAPlannerSumm
             </span>
           </div>
           <div className="space-y-2">
-            {intelligentActions.slice(0, 3).map((action, index) => (
+            {intelligentActions.slice(0, 2).map((action) => (
               <div key={action.id} className="flex items-start gap-2 p-2 bg-purple-50 rounded-md">
                 <Badge variant="outline" className="text-xs">
                   {action.priority}
@@ -233,7 +208,7 @@ export default function IAPlannerSummary({ task, className = '' }: IAPlannerSumm
       {isGeneratingActions && (
         <div className="flex items-center gap-2 text-muted-foreground p-2 bg-gray-50 rounded-md">
           <Brain className="h-3 w-3 animate-pulse" />
-          <span className="text-xs">IA Planner generando acciones específicas...</span>
+          <span className="text-xs">Generando acciones específicas...</span>
         </div>
       )}
 
@@ -241,7 +216,7 @@ export default function IAPlannerSummary({ task, className = '' }: IAPlannerSumm
       {isPlannerActive && (
         <div className="text-center pt-2 border-t border-gray-100">
           <span className="text-xs text-purple-600 font-medium">
-            ✨ Análisis completado por IA Planner v1.0
+            ✨ Análisis específico completado por IA Planner
           </span>
         </div>
       )}
