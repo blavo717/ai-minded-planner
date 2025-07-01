@@ -8,6 +8,7 @@ export interface IntelligentAction {
   label: string;
   priority: 'high' | 'medium' | 'low';
   confidence: number;
+  reasoning?: string; // Added reasoning property
   suggestedData: {
     title?: string;
     content?: string;
