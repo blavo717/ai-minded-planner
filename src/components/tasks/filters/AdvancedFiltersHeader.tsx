@@ -5,19 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Filter, RotateCcw } from 'lucide-react';
 
-interface FilterHeaderProps {
+interface AdvancedFiltersHeaderProps {
   activeFiltersCount: number;
   isExpanded: boolean;
   onToggleExpanded: () => void;
   onClearFilters: () => void;
 }
 
-const FilterHeader = ({ 
+const AdvancedFiltersHeader = ({ 
   activeFiltersCount, 
   isExpanded, 
   onToggleExpanded, 
   onClearFilters 
-}: FilterHeaderProps) => {
+}: AdvancedFiltersHeaderProps) => {
   return (
     <CardHeader>
       <CardTitle className="flex items-center justify-between">
@@ -55,4 +55,4 @@ const FilterHeader = ({
   );
 };
 
-export default FilterHeader;
+export default AdvancedFiltersHeader;
