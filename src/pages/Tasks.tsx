@@ -84,7 +84,7 @@ const TasksContent = () => {
 
   if (showHistory) {
     return (
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="space-y-6">
         <TasksHeader
           showInsights={showInsights}
           onToggleInsights={() => setShowInsights(!showInsights)}
@@ -101,7 +101,7 @@ const TasksContent = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
+    <div className="space-y-6">
       <TasksHeader
         showInsights={showInsights}
         onToggleInsights={() => setShowInsights(!showInsights)}
@@ -115,31 +115,40 @@ const TasksContent = () => {
       <TasksInsightsSection showInsights={showInsights} />
 
       <div className="space-y-6">
-        <TasksFiltersSection
-          projects={projects}
-          profiles={profiles}
-          availableTags={availableTags}
-          filters={filters}
-          onFiltersChange={handleFiltersChange}
-          onSaveFilter={handleSaveFilter}
-          onLoadFilter={loadFilter}
-          taskAssignments={taskAssignments}
-          taskDependencies={allTaskDependencies}
-        />
+        {/* Layout optimizado para full width */}
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+          {/* Filtros - más compactos en pantallas grandes */}
+          <div className="xl:col-span-1">
+            <TasksFiltersSection
+              projects={projects}
+              profiles={profiles}
+              availableTags={availableTags}
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onSaveFilter={handleSaveFilter}
+              onLoadFilter={loadFilter}
+              taskAssignments={taskAssignments}
+              taskDependencies={allTaskDependencies}
+            />
+          </div>
 
-        <TasksViewSection
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          filteredTasks={filteredTasks}
-          projects={projects}
-          getSubtasksForTask={getSubtasksForTask}
-          onEditTask={handleEditTask}
-          onManageDependencies={handleManageDependencies}
-          onAssignTask={handleAssignTask}
-          onCompleteTask={handleCompleteTask}
-          onArchiveTask={handleArchiveTask}
-          onCreateSubtask={handleCreateSubtask}
-        />
+          {/* Vista de tareas - aprovecha el espacio extra */}
+          <div className="xl:col-span-4">
+            <TasksViewSection
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              filteredTasks={filteredTasks}
+              projects={projects}
+              getSubtasksForTask={getSubtasksForTask}
+              onEditTask={handleEditTask}
+              onManageDependencies={handleManageDependencies}
+              onAssignTask={handleAssignTask}
+              onCompleteTask={handleCompleteTask}
+              onArchiveTask={handleArchiveTask}
+              onCreateSubtask={handleCreateSubtask}
+            />
+          </div>
+        </div>
       </div>
 
       <TaskModals />
