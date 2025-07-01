@@ -11,7 +11,7 @@ import { useTaskDependencies } from '@/hooks/useTaskDependencies';
 import TasksHeader from '@/components/tasks/TasksHeader';
 import TaskHistory from '@/components/tasks/TaskHistory';
 import TasksInsightsSection from '@/components/tasks/TasksInsightsSection';
-import TasksFiltersSection from '@/components/tasks/TasksFiltersSection';
+import TopFiltersBar from '@/components/tasks/filters/TopFiltersBar';
 import TasksViewSection from '@/components/tasks/TasksViewSection';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
@@ -82,6 +82,34 @@ const TasksContent = () => {
     setFilteredTasks(results);
   };
 
+  // Calcular estadísticas para filtros rápidos
+  const overdueTasks = mainTasks.filter(task => 
+    task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed'
+  ).length;
+
+  const todayTasks = mainTasks.filter(task => {
+    if (!task.due_date) return false;
+    const today = new Date();
+    const taskDate = new Date(task.due_date);
+    return taskDate.toDateString() === today.toDateString();
+  }).length;
+
+  const highPriorityTasks = mainTasks.filter(task => 
+    task.priority === 'high' || task.priority === 'urgent'
+  ).length;
+
+  const unassignedTasks = mainTasks.filter(task => {
+    const assignments = taskAssignments.filter(a => a.task_id === task.id);
+    return assignments.length === 0;
+  }).length;
+
+  const recentTasks = mainTasks.filter(task => {
+    const createdDate = new Date(task.created_at);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return createdDate >= sevenDaysAgo;
+  }).length;
+
   if (showHistory) {
     return (
       <div className="space-y-6">
@@ -101,7 +129,8 @@ const TasksContent = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col">
+      {/* Header principal */}
       <TasksHeader
         showInsights={showInsights}
         onToggleInsights={() => setShowInsights(!showInsights)}
@@ -112,43 +141,42 @@ const TasksContent = () => {
         onSearchResults={handleSearchResults}
       />
 
+      {/* Insights section */}
       <TasksInsightsSection showInsights={showInsights} />
 
-      <div className="space-y-6">
-        {/* Layout optimizado: más espacio para tareas */}
-        <div className="grid grid-cols-1 xl:grid-cols-6 gap-4">
-          {/* Filtros - sidebar compacto */}
-          <div className="xl:col-span-1">
-            <TasksFiltersSection
-              projects={projects}
-              profiles={profiles}
-              availableTags={availableTags}
-              filters={filters}
-              onFiltersChange={handleFiltersChange}
-              onSaveFilter={handleSaveFilter}
-              onLoadFilter={loadFilter}
-              taskAssignments={taskAssignments}
-              taskDependencies={allTaskDependencies}
-            />
-          </div>
+      {/* Filtros horizontales */}
+      <TopFiltersBar
+        projects={projects}
+        profiles={profiles}
+        availableTags={availableTags}
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        onSaveFilter={handleSaveFilter}
+        onLoadFilter={loadFilter}
+        taskAssignments={taskAssignments}
+        taskDependencies={allTaskDependencies}
+        overdueTasks={overdueTasks}
+        todayTasks={todayTasks}
+        highPriorityTasks={highPriorityTasks}
+        unassignedTasks={unassignedTasks}
+        recentTasks={recentTasks}
+      />
 
-          {/* Vista de tareas - área expandida (83% del ancho) */}
-          <div className="xl:col-span-5">
-            <TasksViewSection
-              viewMode={viewMode}
-              setViewMode={setViewMode}
-              filteredTasks={filteredTasks}
-              projects={projects}
-              getSubtasksForTask={getSubtasksForTask}
-              onEditTask={handleEditTask}
-              onManageDependencies={handleManageDependencies}
-              onAssignTask={handleAssignTask}
-              onCompleteTask={handleCompleteTask}
-              onArchiveTask={handleArchiveTask}
-              onCreateSubtask={handleCreateSubtask}
-            />
-          </div>
-        </div>
+      {/* Área principal de tareas - FULL WIDTH */}
+      <div className="flex-1 overflow-hidden">
+        <TasksViewSection
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          filteredTasks={filteredTasks}
+          projects={projects}
+          getSubtasksForTask={getSubtasksForTask}
+          onEditTask={handleEditTask}
+          onManageDependencies={handleManageDependencies}
+          onAssignTask={handleAssignTask}
+          onCompleteTask={handleCompleteTask}
+          onArchiveTask={handleArchiveTask}
+          onCreateSubtask={handleCreateSubtask}
+        />
       </div>
 
       <TaskModals />

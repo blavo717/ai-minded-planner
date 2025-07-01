@@ -37,14 +37,18 @@ const TasksViewSection = ({
   onCreateSubtask,
 }: TasksViewSectionProps) => {
   return (
-    <div className="space-y-6">
-      <TaskViewControls
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        taskCount={filteredTasks.length}
-      />
+    <div className="h-full flex flex-col">
+      {/* Controles de vista - aprovecha el ancho completo */}
+      <div className="border-b border-gray-200 px-6 py-4">
+        <TaskViewControls
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          taskCount={filteredTasks.length}
+        />
+      </div>
 
-      <div className="min-h-[400px]">
+      {/* Contenido principal - full width y height */}
+      <div className="flex-1 overflow-auto px-6 py-6">
         {viewMode === 'list' && (
           <CompactTaskList
             tasks={filteredTasks}

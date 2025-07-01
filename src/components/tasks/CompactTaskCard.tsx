@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { 
   MoreHorizontal,
   ChevronRight,
@@ -11,7 +12,10 @@ import {
   Calendar,
   Clock,
   Check,
-  X
+  X,
+  User,
+  Flag,
+  FolderOpen
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -75,6 +79,16 @@ const CompactTaskCard = memo(({
     }
   };
 
+  const getPriorityLabel = () => {
+    switch (task.priority) {
+      case 'urgent': return 'Urgente';
+      case 'high': return 'Alta';
+      case 'medium': return 'Media';
+      case 'low': return 'Baja';
+      default: return 'Sin definir';
+    }
+  };
+
   const getStatusDot = () => {
     const baseClass = "w-2 h-2 rounded-full";
     switch (task.status) {
@@ -119,43 +133,44 @@ const CompactTaskCard = memo(({
     <>
       <div className="space-y-0">
         <Card 
-          className={`border-l-4 transition-all duration-200 group ${
+          className={`border-l-4 transition-all duration-200 group hover:shadow-md ${
             isCompleted ? 'bg-gray-50 opacity-75' : 'bg-white hover:bg-gray-50'
           }`}
           style={{ borderLeftColor: project?.color || getPriorityColor().replace('bg-', '#') }}
         >
-          <div className="py-3 px-4">
-            <div className="flex items-center gap-3">
+          <div className="py-4 px-6">
+            <div className="flex items-center gap-4">
               {/* Checkbox prominente */}
               <Checkbox
                 checked={isCompleted}
                 onCheckedChange={handleToggleComplete}
-                className="h-4 w-4"
+                className="h-4 w-4 flex-shrink-0"
               />
 
-              {/* Botón de expansión - SIEMPRE VISIBLE */}
+              {/* Botón de expansión */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleToggleExpand}
-                className="h-4 w-4 p-0 text-gray-400 hover:text-gray-600"
+                className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 flex-shrink-0"
               >
                 {isExpanded ? (
-                  <ChevronDown className="h-3 w-3" />
+                  <ChevronDown className="h-4 w-4" />
                 ) : (
-                  <ChevronRight className="h-3 w-3" />
+                  <ChevronRight className="h-4 w-4" />
                 )}
               </Button>
 
-              {/* Contenido principal */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+              {/* Contenido principal - APROVECHA EL ANCHO COMPLETO */}
+              <div className="flex-1 min-w-0 flex items-center justify-between gap-6">
+                {/* Título de la tarea */}
+                <div className="flex-1 min-w-0">
                   {isEditingTitle ? (
-                    <div className="flex items-center gap-2 flex-1">
+                    <div className="flex items-center gap-2">
                       <Input
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
-                        className="h-6 text-base font-medium"
+                        className="h-7 text-base font-medium"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') handleSaveTitle();
@@ -166,7 +181,7 @@ const CompactTaskCard = memo(({
                       <Button
                         size="sm"
                         onClick={handleSaveTitle}
-                        className="h-6 w-6 p-0"
+                        className="h-7 w-7 p-0 flex-shrink-0"
                       >
                         <Check className="h-3 w-3" />
                       </Button>
@@ -174,7 +189,7 @@ const CompactTaskCard = memo(({
                         variant="ghost"
                         size="sm"
                         onClick={handleCancelEdit}
-                        className="h-6 w-6 p-0"
+                        className="h-7 w-7 p-0 flex-shrink-0"
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -190,27 +205,66 @@ const CompactTaskCard = memo(({
                       {task.title}
                     </h3>
                   )}
-                  
-                  {/* Metadata compacta */}
-                  <div className="flex items-center gap-1 text-xs text-gray-500">
-                    {task.due_date && (
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>{format(new Date(task.due_date), 'dd/MM', { locale: es })}</span>
-                      </div>
-                    )}
-                    {task.estimated_duration && (
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{task.estimated_duration}h</span>
-                      </div>
-                    )}
+                  {task.description && (
+                    <p className="text-sm text-gray-500 truncate mt-1">
+                      {task.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Metadata horizontal - APROVECHA EL ESPACIO EXTRA */}
+                <div className="flex items-center gap-6 text-sm text-gray-500 flex-shrink-0">
+                  {/* Proyecto */}
+                  {project && (
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <FolderOpen className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate max-w-32" title={project.name}>
+                        {project.name}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Asignación */}
+                  <div className="flex items-center gap-1.5">
+                    <User className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-xs">Sin asignar</span>
+                  </div>
+
+                  {/* Fecha límite */}
+                  {task.due_date && (
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-4 w-4 flex-shrink-0" />
+                      <span className="text-xs">
+                        {format(new Date(task.due_date), 'dd MMM', { locale: es })}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Duración estimada */}
+                  {task.estimated_duration && (
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 flex-shrink-0" />
+                      <span className="text-xs">{task.estimated_duration}h</span>
+                    </div>
+                  )}
+
+                  {/* Prioridad */}
+                  <div className="flex items-center gap-1.5">
+                    <Flag className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-xs">{getPriorityLabel()}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Indicadores de estado y progreso */}
-              <div className="flex items-center gap-2">
+              {/* Indicadores de estado y acciones */}
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {/* Progreso de subtareas */}
+                {showProgress && (
+                  <Badge variant="outline" className="text-xs px-2 py-1">
+                    {completedSubtasks}/{totalSubtasks}
+                  </Badge>
+                )}
+
                 {/* Log Icon */}
                 <TaskLogIcon 
                   taskId={task.id} 
@@ -218,61 +272,52 @@ const CompactTaskCard = memo(({
                   onClick={() => setSelectedLogTask(task)}
                 />
 
-                {/* Progreso de subtareas - solo si hay subtareas */}
-                {showProgress && (
-                  <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                    {completedSubtasks}/{totalSubtasks}
-                  </div>
-                )}
-
                 {/* Punto de estado */}
                 <div className={getStatusDot()} />
 
-                {/* Acciones - SIEMPRE VISIBLE */}
-                <div className="ml-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 hover:bg-gray-100 focus:bg-gray-100"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border z-50">
-                      <DropdownMenuItem onClick={() => onEditTask(task)}>
-                        Editar tarea
+                {/* Menú de acciones */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 hover:bg-gray-100 focus:bg-gray-100"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border z-50">
+                    <DropdownMenuItem onClick={() => onEditTask(task)}>
+                      Editar tarea
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onCreateSubtask(task.id, 'Nueva subtarea')}>
+                      Añadir subtarea
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onManageDependencies(task)}>
+                      Dependencias
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onAssignTask(task)}>
+                      Asignar
+                    </DropdownMenuItem>
+                    {isCompleted && (
+                      <DropdownMenuItem onClick={() => onArchiveTask(task.id)}>
+                        Archivar
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onCreateSubtask(task.id, 'Nueva subtarea')}>
-                        Añadir subtarea
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onManageDependencies(task)}>
-                        Dependencias
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onAssignTask(task)}>
-                        Asignar
-                      </DropdownMenuItem>
-                      {isCompleted && (
-                        <DropdownMenuItem onClick={() => onArchiveTask(task.id)}>
-                          Archivar
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem 
-                        onClick={() => onArchiveTask(task.id)}
-                        className="text-red-600"
-                      >
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                    )}
+                    <DropdownMenuItem 
+                      onClick={() => onArchiveTask(task.id)}
+                      className="text-red-600"
+                    >
+                      Eliminar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
         </Card>
 
-        {/* Lista expandible de subtareas O botón de crear si no hay subtareas */}
+        {/* Lista expandible de subtareas */}
         {isExpanded && (
           hasSubtasks ? (
             <CompactSubtaskList
@@ -283,12 +328,12 @@ const CompactTaskCard = memo(({
               getSubtasksForTask={getSubtasksForTask}
             />
           ) : (
-            <div className="ml-6 border-l-2 border-gray-200 pl-4 py-2">
+            <div className="ml-12 border-l-2 border-gray-200 pl-6 py-3">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onCreateSubtask(task.id, 'Nueva subtarea')}
-                className="h-6 text-xs text-gray-500 hover:text-gray-700 justify-start w-full"
+                className="h-7 text-xs text-gray-500 hover:text-gray-700 justify-start w-full"
               >
                 <ChevronRight className="h-3 w-3 mr-1" />
                 Añadir subtarea
