@@ -13,7 +13,7 @@ import {
 import { useTaskLogs } from '@/hooks/useTaskLogs';
 import { useTaskLogMutations } from '@/hooks/useTaskLogMutations';
 import TaskLogEntryForm from './TaskLogEntryForm';
-import LogTimeline from './logs/LogTimeline';
+import LogTimeline from './LogTimeline';
 
 interface TaskActivityLogModalProps {
   taskId: string;
