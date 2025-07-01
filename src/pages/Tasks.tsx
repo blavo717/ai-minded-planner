@@ -199,7 +199,7 @@ const TasksContent = () => {
         recentTasks={recentTasks}
       />
 
-      {/* ✨ NUEVA FUNCIÓN: "¿QUÉ HAGO AHORA?" */}
+      {/* ✨ FUNCIÓN "¿QUÉ HAGO AHORA?" CON IA INTEGRADA */}
       {nextTaskSuggestion && (
         <div className="px-6 py-2">
           <WhatToDoNowCard

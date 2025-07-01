@@ -8,6 +8,7 @@ import { Task } from '@/hooks/useTasks';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { TaskWithReason } from '@/utils/taskPrioritization';
+import { AITaskSummary } from './AITaskSummary';
 
 interface WhatToDoNowCardProps {
   taskWithReason: TaskWithReason;
@@ -74,7 +75,7 @@ const WhatToDoNowCard = ({ taskWithReason, onStartWorking, onSkipToNext, onDismi
               </p>
 
               {/* Metadata de la tarea */}
-              <div className="flex items-center gap-3 text-xs text-gray-600">
+              <div className="flex items-center gap-3 text-xs text-gray-600 mb-4">
                 {task.due_date && (
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
@@ -95,6 +96,11 @@ const WhatToDoNowCard = ({ taskWithReason, onStartWorking, onSkipToNext, onDismi
                    task.priority === 'high' ? 'Alta' :
                    task.priority === 'medium' ? 'Media' : 'Baja'}
                 </Badge>
+              </div>
+
+              {/* ✨ SECCIÓN IA - NUEVA INTEGRACIÓN */}
+              <div className="border-t border-orange-200 pt-4">
+                <AITaskSummary taskId={task.id} />
               </div>
             </div>
           </div>

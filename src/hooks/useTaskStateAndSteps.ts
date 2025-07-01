@@ -1,0 +1,50 @@
+
+import { useQuery } from '@tanstack/react-query';
+import { useLLMService } from '@/hooks/useLLMService';
+import { getTaskContext } from '@/utils/taskContext';
+import { generateTaskStateAndSteps, TaskAISummary } from '@/services/taskAIService';
+
+export function useTaskStateAndSteps(taskId: string) {
+  const { makeLLMRequest, activeModel, hasActiveConfiguration } = useLLMService();
+  
+  // Obtener contexto de la tarea
+  const { data: context, isLoading: contextLoading, error: contextError } = useQuery({
+    queryKey: ['task-context', taskId],
+    queryFn: () => getTaskContext(taskId),
+    enabled: !!taskId,
+    staleTime: 3 * 60 * 1000, // Cache por 3 minutos
+    retry: 2
+  });
+
+  // Generar resumen IA
+  const { 
+    data: aiSummary, 
+    isLoading: summaryLoading, 
+    error: summaryError 
+  } = useQuery({
+    queryKey: [
+      'task-ai-summary', 
+      taskId, 
+      context?.recentLogs?.length,
+      context?.completionStatus?.overallProgress,
+      activeModel // Regenerar si cambia el modelo
+    ],
+    queryFn: () => generateTaskStateAndSteps(context!, makeLLMRequest),
+    enabled: !!context && hasActiveConfiguration,
+    staleTime: 15 * 60 * 1000, // Cache por 15 minutos
+    retry: 1,
+    refetchOnWindowFocus: false
+  });
+
+  return {
+    statusSummary: aiSummary?.statusSummary,
+    nextSteps: aiSummary?.nextSteps,
+    isLoading: contextLoading || summaryLoading,
+    hasContext: !!context,
+    hasAI: !!aiSummary,
+    hasConfiguration: hasActiveConfiguration,
+    error: contextError || summaryError,
+    currentModel: activeModel,
+    context: context
+  };
+}
