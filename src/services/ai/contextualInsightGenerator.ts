@@ -98,7 +98,7 @@ export class ContextualInsightGenerator {
     }
     
     // Insight: Progreso estancado
-    if (completionStatus.overallProgress > 0 && completionStatus.overallProgress < 25 && recentLogs.length === 0) {
+    if (completionStatus.overallProgress > 0 && completionStatus.overallProgress < 25 && context.recentLogs.length === 0) {
       insights.push({
         type: 'progress_stalled',
         title: 'Progreso Inicial Estancado',
