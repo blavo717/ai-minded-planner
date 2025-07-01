@@ -3,7 +3,7 @@ import React from 'react';
 import { useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
-import { useProfiles, Profile } from '@/hooks/useProfiles';
+import { useProfiles } from '@/hooks/useProfiles';
 import TaskGanttModal from './TaskGanttModal';
 import CreateTaskModal from '@/components/modals/CreateTaskModal';
 
@@ -72,7 +72,7 @@ const TaskModals = () => {
         isOpen={isCreateTaskOpen}
         onClose={handleCloseCreateModal}
         projects={projects}
-        profiles={profiles as Profile[]}
+        profiles={profiles}
       />
     </>
   );
