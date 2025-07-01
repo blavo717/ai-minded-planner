@@ -7,13 +7,13 @@ import { generateTaskStateAndSteps, TaskAISummary } from '@/services/taskAIServi
 export function useTaskStateAndSteps(taskId: string) {
   const { makeLLMRequest, activeModel, hasActiveConfiguration } = useLLMService();
   
-  console.log('🔧 Comparando con estructura exitosa:', {
-    usingCorrectStructure: true,
+  console.log('🔧 Hook expandido con alertas e insights:', {
+    usingEnhancedStructure: true,
     activeModel,
     hasConfiguration: hasActiveConfiguration,
     taskId,
     temperature: 0.7,
-    functionName: 'task_summary_generation'
+    functionName: 'enhanced_task_analysis'
   });
   
   // Obtener contexto de la tarea
@@ -25,21 +25,21 @@ export function useTaskStateAndSteps(taskId: string) {
     retry: 2
   });
 
-  // Generar resumen IA
+  // Generar análisis IA expandido
   const { 
     data: aiSummary, 
     isLoading: summaryLoading, 
     error: summaryError 
   } = useQuery({
     queryKey: [
-      'task-ai-summary', 
+      'enhanced-task-ai-summary', 
       taskId, 
       context?.recentLogs?.length,
       context?.completionStatus?.overallProgress,
       activeModel // Regenerar si cambia el modelo
     ],
     queryFn: () => {
-      console.log('🎯 Ejecutando generateTaskStateAndSteps con estructura correcta');
+      console.log('🎯 Ejecutando generateTaskStateAndSteps con análisis expandido');
       return generateTaskStateAndSteps(context!, makeLLMRequest);
     },
     enabled: !!context && hasActiveConfiguration,
@@ -48,9 +48,12 @@ export function useTaskStateAndSteps(taskId: string) {
     refetchOnWindowFocus: false
   });
 
-  console.log('📊 Hook state:', {
+  console.log('📊 Enhanced hook state:', {
     hasContext: !!context,
     hasAI: !!aiSummary,
+    hasAlerts: !!aiSummary?.alerts,
+    hasInsights: !!aiSummary?.insights,
+    riskLevel: aiSummary?.riskLevel,
     contextLoading,
     summaryLoading,
     contextError: contextError?.message,
@@ -61,6 +64,9 @@ export function useTaskStateAndSteps(taskId: string) {
   return {
     statusSummary: aiSummary?.statusSummary,
     nextSteps: aiSummary?.nextSteps,
+    alerts: aiSummary?.alerts,
+    insights: aiSummary?.insights,
+    riskLevel: aiSummary?.riskLevel,
     isLoading: contextLoading || summaryLoading,
     hasContext: !!context,
     hasAI: !!aiSummary,

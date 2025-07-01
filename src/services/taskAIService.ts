@@ -5,13 +5,46 @@ import { TaskContext } from '@/utils/taskContext';
 export interface TaskAISummary {
   statusSummary: string;
   nextSteps: string;
+  alerts?: string;
+  insights?: string;
+  riskLevel?: 'low' | 'medium' | 'high';
+}
+
+// Helper functions for enhanced analysis
+function getDaysSinceCreated(context: TaskContext): number {
+  const createdDate = new Date(context.mainTask.created_at);
+  const now = new Date();
+  return Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getDaysSinceLastActivity(context: TaskContext): number {
+  if (context.recentLogs.length === 0) {
+    return getDaysSinceCreated(context);
+  }
+  
+  const lastActivityDate = new Date(context.recentLogs[0].created_at);
+  const now = new Date();
+  return Math.floor((now.getTime() - lastActivityDate.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+  
+  if (diffInHours < 24) {
+    return `hace ${diffInHours}h`;
+  } else {
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `hace ${diffInDays}d`;
+  }
 }
 
 export async function generateTaskStateAndSteps(
   context: TaskContext,
   makeLLMRequest: ReturnType<typeof useLLMService>['makeLLMRequest']
 ): Promise<TaskAISummary> {
-  console.log('🤖 Iniciando generación IA con estructura correcta:', {
+  console.log('🤖 Iniciando generación IA con prompt expandido:', {
     taskTitle: context.mainTask.title,
     taskStatus: context.mainTask.status,
     hasLogs: context.recentLogs.length,
@@ -19,45 +52,57 @@ export async function generateTaskStateAndSteps(
     progress: context.completionStatus.overallProgress
   });
 
-  const systemPrompt = `Eres un asistente experto en gestión de tareas que genera resúmenes contextuales.
+  const daysSinceCreated = getDaysSinceCreated(context);
+  const daysSinceLastActivity = getDaysSinceLastActivity(context);
+
+  const systemPrompt = `Eres un asistente experto en gestión de proyectos que analiza contexto completo y genera insights predictivos.
 
 Responde ÚNICAMENTE en formato JSON válido con esta estructura exacta:
-{"statusSummary":"descripción del estado actual en máximo 24 palabras","nextSteps":"próximas acciones específicas en máximo 20 palabras"}
+{
+  "statusSummary": "Contexto completo: qué se ha hecho, estado actual, progreso con timeframe (máximo 35 palabras)",
+  "nextSteps": "3 acciones específicas numeradas con responsables y deadlines si es posible (máximo 30 palabras)",
+  "alerts": "Alertas importantes: bloqueos activos, retrasos detectados, dependencias críticas, riesgos de deadline (máximo 25 palabras, solo si hay problemas reales)",
+  "insights": "Análisis predictivo: velocidad de progreso, tiempo estimado restante, comparación con promedio, recomendaciones (máximo 25 palabras)",
+  "riskLevel": "low/medium/high basado en progreso, actividad reciente y proximidad a deadlines"
+}
 
-EJEMPLOS:
-{"statusSummary":"Proyecto moldes CS1-CS6 en progreso, 7 subtareas completadas (29%), pendiente asignación forwarder","nextSteps":"Asignar forwarder para transporte y completar envío plantillas pendientes"}
+CRITERIOS PARA ALERTAS:
+- Sin actividad >3 días: "Sin actividad desde hace X días"
+- Progreso lento: "Progreso más lento que promedio"
+- Deadline próximo: "Vence en X días con Y% completado"
+- Bloqueos: "Bloqueado por dependencia de [tarea]"
 
-{"statusSummary":"Documentos completados y enviados al equipo, esperando feedback de stakeholders principales","nextSteps":"Agendar reunión de revisión y consolidar comentarios para segunda versión"}`;
+CRITERIOS PARA INSIGHTS:
+- Velocidad: "Al ritmo actual, completion en X días"
+- Comparación: "X% más rápido/lento que tareas similares"
+- Recomendación: "Priorizar [subtarea] para mantener timeline"`;
 
   const userPrompt = `INFORMACIÓN DE LA TAREA:
-Tarea Principal: ${context.mainTask.title}
-${context.mainTask.description ? `Descripción: ${context.mainTask.description}` : ''}
-Estado: ${context.mainTask.status}
-Prioridad: ${context.mainTask.priority || 'No definida'}
-Progreso General: ${context.completionStatus.overallProgress}%
+- Tarea: ${context.mainTask.title}
+- Estado: ${context.mainTask.status}
+- Progreso: ${context.completionStatus.overallProgress}%
+- Días desde creación: ${daysSinceCreated}
+- Días sin actividad: ${daysSinceLastActivity}
+- Subtareas completadas: ${context.completionStatus.completedSubtasks}/${context.completionStatus.totalSubtasks}
+- Última actividad: ${context.recentLogs[0]?.description || 'Sin actividad reciente'}
 
-PROGRESO DETALLADO:
-- Subtareas: ${context.completionStatus.completedSubtasks}/${context.completionStatus.totalSubtasks} completadas
-- Microtareas: ${context.completionStatus.completedMicrotasks}/${context.completionStatus.totalMicrotasks} completadas
+SUBTAREAS PENDIENTES:
+${context.subtasks.filter(s => s.status !== 'completed').map(s => `• ${s.title} (${s.status})`).join('\n') || 'No hay subtareas pendientes'}
 
-SUBTAREAS ACTUALES:
-${context.subtasks.map(st => `• ${st.title} (${st.status})`).join('\n') || 'No hay subtareas'}
-
-ACTIVIDAD RECIENTE:
-${context.recentLogs.slice(0, 5).map(log => 
-  `• ${log.description} (${new Date(log.created_at).toLocaleDateString()})`
+LOGS RECIENTES:
+${context.recentLogs.slice(0, 3).map(log => 
+  `• ${log.description} (${getRelativeTime(log.created_at)})`
 ).join('\n') || 'Sin actividad reciente'}
 
-Genera resumen del estado actual y próximos pasos específicos en JSON:`;
+Genera análisis completo en JSON:`;
 
   try {
-    console.log('🚀 Enviando request con estructura de useAIAssistantSimple');
+    console.log('🚀 Enviando request con prompt expandido');
     
-    // ✅ USAR EXACTAMENTE LA MISMA ESTRUCTURA QUE FUNCIONA - SIN maxTokens
     const response = await makeLLMRequest({
       systemPrompt,
       userPrompt,
-      functionName: 'task_summary_generation',
+      functionName: 'enhanced_task_analysis',
       temperature: 0.7
     });
 
@@ -70,28 +115,31 @@ Genera resumen del estado actual y próximos pasos específicos en JSON:`;
 
     console.log('📝 Contenido IA recibido:', response.content);
     
-    const parsed = parseAIResponse(response.content);
-    console.log('✅ JSON parseado:', parsed);
+    const parsed = parseEnhancedAIResponse(response.content);
+    console.log('✅ JSON expandido parseado:', parsed);
     
     return {
       statusSummary: parsed.statusSummary || "Estado analizado por IA",
-      nextSteps: parsed.nextSteps || "Definir próximas acciones"
+      nextSteps: parsed.nextSteps || "Definir próximas acciones",
+      alerts: parsed.alerts || undefined,
+      insights: parsed.insights || undefined,
+      riskLevel: parsed.riskLevel || 'low'
     };
 
   } catch (error) {
     console.error('❌ Error en generateTaskStateAndSteps:', error);
-    console.log('🔄 Usando fallback inteligente');
-    return generateIntelligentFallback(context);
+    console.log('🔄 Usando fallback inteligente expandido');
+    return generateEnhancedIntelligentFallback(context);
   }
 }
 
-function parseAIResponse(content: string): Partial<TaskAISummary> {
-  console.log('🔍 Parseando respuesta:', content);
+function parseEnhancedAIResponse(content: string): Partial<TaskAISummary> {
+  console.log('🔍 Parseando respuesta expandida:', content);
   
   try {
     // Intentar JSON directo primero
     const result = JSON.parse(content.trim());
-    console.log('✅ JSON parseado exitosamente:', result);
+    console.log('✅ JSON expandido parseado exitosamente:', result);
     return result;
   } catch (error) {
     console.log('⚠️ JSON directo falló, intentando extracción...');
@@ -108,51 +156,71 @@ function parseAIResponse(content: string): Partial<TaskAISummary> {
       }
     }
     
-    // Fallback simple
+    // Fallback expandido
     return {
       statusSummary: content.slice(0, 100) || "Respuesta IA recibida",
-      nextSteps: "Continuar con siguiente tarea"
+      nextSteps: "Continuar con siguiente tarea",
+      insights: "Análisis en progreso",
+      riskLevel: 'medium'
     };
   }
 }
 
-function generateIntelligentFallback(context: TaskContext): TaskAISummary {
+function generateEnhancedIntelligentFallback(context: TaskContext): TaskAISummary {
   const { completionStatus, mainTask, recentLogs } = context;
+  const daysSinceLastActivity = getDaysSinceLastActivity(context);
+  const daysSinceCreated = getDaysSinceCreated(context);
   
   let statusSummary = "";
   let nextSteps = "";
+  let alerts = "";
+  let insights = "";
+  let riskLevel: 'low' | 'medium' | 'high' = 'low';
   
+  // Generar resumen inteligente
   if (completionStatus.overallProgress >= 90) {
-    statusSummary = "Tarea casi completada, en fase final de revisión y cierre del proyecto";
-    nextSteps = "Revisar detalles finales y confirmar completitud antes de marcar como terminado";
+    statusSummary = `Tarea casi completada (${completionStatus.overallProgress}%), en fase final tras ${daysSinceCreated} días de trabajo`;
+    nextSteps = "1. Revisar detalles finales 2. Confirmar completitud 3. Marcar como terminado";
+    insights = "Finalización prevista en 1-2 días, progreso excelente";
   } else if (completionStatus.overallProgress >= 50) {
-    statusSummary = `Progreso significativo alcanzado (${completionStatus.overallProgress}%), desarrollo en curso según planificación`;
-    nextSteps = "Continuar con subtareas pendientes manteniendo el ritmo actual de trabajo";
-  } else if (recentLogs.length > 0) {
-    const lastLog = recentLogs[0];
-    statusSummary = `Actividad reciente: ${lastLog.description.slice(0, 40)}... - trabajo en progreso`;
-    nextSteps = "Revisar siguiente subtarea en la lista y definir acciones específicas";
-  } else if (mainTask.status === 'in_progress') {
-    statusSummary = "Tarea iniciada, requiere atención continua para mantener progreso y cumplir objetivos";
-    nextSteps = "Identificar primera subtarea prioritaria y establecer plan de trabajo detallado";
+    statusSummary = `Progreso significativo alcanzado (${completionStatus.overallProgress}%), desarrollo activo desde hace ${daysSinceCreated} días`;
+    nextSteps = "1. Continuar subtareas pendientes 2. Mantener ritmo actual 3. Revisar próximos hitos";
+    insights = "Ritmo de progreso saludable, estimado 5-7 días para completion";
   } else {
-    statusSummary = "Tarea preparada para iniciar, recursos disponibles y contexto establecido correctamente";
-    nextSteps = "Comenzar con primera subtarea de mayor prioridad según plan establecido";
+    statusSummary = `Tarea en desarrollo inicial (${completionStatus.overallProgress}%), ${daysSinceCreated} días desde inicio`;
+    nextSteps = "1. Priorizar primera subtarea 2. Establecer plan detallado 3. Definir deadlines";
+    insights = "Requiere aceleración para mantener timeline esperado";
+    riskLevel = 'medium';
   }
   
-  return { statusSummary, nextSteps };
+  // Generar alertas si hay problemas
+  if (daysSinceLastActivity > 3) {
+    alerts = `Sin actividad desde hace ${daysSinceLastActivity} días - requiere atención urgente`;
+    riskLevel = 'high';
+  } else if (completionStatus.overallProgress < 20 && daysSinceCreated > 7) {
+    alerts = "Progreso lento detectado - revisar bloqueos potenciales";
+    riskLevel = 'medium';
+  }
+  
+  return { 
+    statusSummary, 
+    nextSteps, 
+    alerts: alerts || undefined,
+    insights,
+    riskLevel 
+  };
 }
 
 // Función de testing para browser console
 declare global {
   interface Window {
-    testTaskAIWithCorrectStructure: (taskId: string) => Promise<any>;
+    testEnhancedTaskAI: (taskId: string) => Promise<any>;
   }
 }
 
 if (typeof window !== 'undefined') {
-  window.testTaskAIWithCorrectStructure = async (taskId: string) => {
-    console.log('🧪 Test con estructura correcta...');
+  window.testEnhancedTaskAI = async (taskId: string) => {
+    console.log('🧪 Test con prompt expandido...');
     
     try {
       const { getTaskContext } = await import('@/utils/taskContext');
@@ -161,22 +229,13 @@ if (typeof window !== 'undefined') {
       const context = await getTaskContext(taskId);
       console.log('📊 Contexto obtenido:', context);
       
-      // Usar exactamente la misma estructura que useAIAssistantSimple
-      const systemPrompt = "Eres un asistente que responde solo en JSON: {\"test\":\"respuesta exitosa\"}";
-      const userPrompt = "Responde con JSON de test confirmando que la estructura funciona";
-      
       const { makeLLMRequest } = useLLMService();
-      const response = await makeLLMRequest({
-        systemPrompt,
-        userPrompt,
-        functionName: 'test_task_ai',
-        temperature: 0.7
-      });
+      const response = await generateTaskStateAndSteps(context, makeLLMRequest);
       
-      console.log('🎯 Test result:', response);
+      console.log('🎯 Enhanced AI result:', response);
       return response;
     } catch (error) {
-      console.error('❌ Test error:', error);
+      console.error('❌ Enhanced test error:', error);
       return error;
     }
   };
