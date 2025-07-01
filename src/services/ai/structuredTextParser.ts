@@ -69,7 +69,7 @@ export class StructuredTextParser {
     
     return {
       statusSummary: sections.statusSummary || 'Análisis en proceso',
-      nextSteps: sections.nextSteps || cache: process',
+      nextSteps: sections.nextSteps || 'Continuar con progreso actual',
       alerts: sections.alerts,
       insights: sections.insights,
       riskLevel: this.detectRiskLevel(text),
