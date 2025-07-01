@@ -17,11 +17,6 @@ export type {
 } from '@/types/contextual-data';
 
 export { usePhase6Advanced } from './usePhase6Advanced';
-export type {
-  AdvancedContext,
-  ContextualRecommendation,
-  AdvancedContextConfig
-} from '@/utils/ai/AdvancedContextEngine';
 
 export { useAITesting } from './useAITesting';
 

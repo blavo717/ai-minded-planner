@@ -6,12 +6,12 @@ import { useAIContext } from './useAIContext';
 export function useInsightGeneration(config = {}) {
   const [insights, setInsights] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const { contextData } = useAIContext();
+  const { currentContext } = useAIContext();
 
   useEffect(() => {
     // Simplified insight generation - currently disabled
     setInsights([]);
-  }, [contextData]);
+  }, [currentContext]);
 
   const generateInsights = async () => {
     setIsGenerating(true);

@@ -50,9 +50,8 @@ const AIValidationDashboard = () => {
         insights: {
           status: 'healthy',
           components: {
-            patternAnalysis: !!insights.patternAnalysis,
             generatedInsights: insights.insights.length > 0,
-            criticalInsights: insights.criticalInsights.length > 0
+            hasInsights: insights.hasInsights
           }
         },
         dataCollection: {

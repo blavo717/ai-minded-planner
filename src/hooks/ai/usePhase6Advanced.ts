@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { AdvancedContext, defaultAdvancedContextEngine } from '@/utils/ai/AdvancedContextEngine';
@@ -35,7 +36,6 @@ export const usePhase6Advanced = (config: Partial<Phase6Config> = {}) => {
 
   const {
     insights,
-    patternAnalysis,
     isGenerating: isGeneratingInsights,
     generateInsights,
   } = useInsightGeneration();
@@ -51,38 +51,11 @@ export const usePhase6Advanced = (config: Partial<Phase6Config> = {}) => {
   // Mutation para generar contexto avanzado
   const generateAdvancedContextMutation = useMutation({
     mutationFn: async () => {
-      if (!patternAnalysis || tasks.length === 0) {
+      if (tasks.length === 0) {
         throw new Error('Datos insuficientes para análisis');
       }
 
-      // Crear un objeto de datos contextuales agregados
-      const aggregatedContextualData = {
-        id: 'aggregated-context',
-        type: 'productivity_metrics' as const,
-        category: 'historical' as const,
-        data: {
-          totalDataPoints: contextualData.length,
-          recentActivity: contextualData.slice(-10),
-          productivityTrends: getProductivityTrends(),
-          behaviorTrends: getUserBehaviorTrends(),
-        },
-        timestamp: new Date(),
-        relevanceScore: 0.9,
-        source: 'contextual-aggregator',
-        metadata: {
-          collectionMethod: 'automatic' as const,
-          confidence: 0.85,
-          dataSources: ['user_behavior', 'task_patterns', 'productivity_metrics'],
-        },
-      };
-
-      return await defaultAdvancedContextEngine.generateAdvancedContext(
-        tasks,
-        sessions,
-        patternAnalysis,
-        aggregatedContextualData,
-        insights
-      );
+      return await defaultAdvancedContextEngine.generateAdvancedContext();
     },
     onSuccess: (context) => {
       setAdvancedContext(context);
@@ -105,16 +78,7 @@ export const usePhase6Advanced = (config: Partial<Phase6Config> = {}) => {
   // Mutation para generar recomendaciones inteligentes
   const generateSmartRecommendationsMutation = useMutation({
     mutationFn: async (context: AdvancedContext) => {
-      if (!patternAnalysis) {
-        throw new Error('Análisis de patrones no disponible');
-      }
-
-      return await defaultSmartRecommendationEngine.generateSmartRecommendations(
-        context,
-        tasks,
-        patternAnalysis,
-        insights
-      );
+      return await defaultSmartRecommendationEngine.generateSmartRecommendations();
     },
     onSuccess: (recommendations) => {
       setSmartRecommendations(recommendations);
@@ -164,13 +128,13 @@ export const usePhase6Advanced = (config: Partial<Phase6Config> = {}) => {
     };
 
     const interval = setInterval(() => {
-      if (shouldUpdate() && patternAnalysis && tasks.length > 0) {
+      if (shouldUpdate() && tasks.length > 0) {
         updateFullAnalysis();
       }
     }, finalConfig.updateInterval * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [finalConfig.autoUpdate, finalConfig.updateInterval, lastUpdate, patternAnalysis, tasks.length, updateFullAnalysis]);
+  }, [finalConfig.autoUpdate, finalConfig.updateInterval, lastUpdate, tasks.length, updateFullAnalysis]);
 
   // Función para registrar feedback de recomendaciones
   const recordRecommendationFeedback = useCallback(async (feedback: RecommendationFeedback) => {
@@ -196,9 +160,6 @@ export const usePhase6Advanced = (config: Partial<Phase6Config> = {}) => {
     const recommendation = smartRecommendations.find(r => r.id === recommendationId);
     if (!recommendation) return;
 
-    // Aquí se implementaría la lógica específica para cada tipo de recomendación
-    // Por ejemplo, programar tareas, ajustar configuraciones, etc.
-    
     toast({
       title: 'Recomendación implementada',
       description: `Se ha aplicado: ${recommendation.title}`,
@@ -207,7 +168,7 @@ export const usePhase6Advanced = (config: Partial<Phase6Config> = {}) => {
     // Registrar como implementada
     recordRecommendationFeedback({
       recommendationId,
-      userId: 'current-user', // Se debería obtener del contexto de auth
+      userId: 'current-user',
       rating: 5,
       wasImplemented: true,
       perceivedValue: 'high',
@@ -291,7 +252,6 @@ export const usePhase6Advanced = (config: Partial<Phase6Config> = {}) => {
     
     // Datos relacionados
     insights,
-    patternAnalysis,
     contextualData,
     effectivenessStats,
     

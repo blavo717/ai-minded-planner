@@ -25,7 +25,7 @@ export const useProactiveNotifications = (options: UseProactiveNotificationsOpti
   const queryClient = useQueryClient();
   const { tasks } = useTasks();
   const { sessions } = useTaskSessions();
-  const { insights, patternAnalysis, isGenerating } = useInsightGeneration();
+  const { insights, isGenerating } = useInsightGeneration();
 
   const [notifications, setNotifications] = useState<ProactiveNotification[]>([]);
   const [notificationManager] = useState(() => new ProactiveNotificationManager(config));
@@ -35,19 +35,10 @@ export const useProactiveNotifications = (options: UseProactiveNotificationsOpti
   // Mutation para procesar insights y generar notificaciones
   const processInsightsMutation = useMutation({
     mutationFn: async () => {
-      if (!patternAnalysis) {
-        throw new Error('No pattern analysis available');
-      }
-
       console.log('Processing insights for proactive notifications...');
       setIsProcessing(true);
       
-      return await notificationManager.processInsights(
-        insights,
-        patternAnalysis,
-        tasks,
-        sessions
-      );
+      return await notificationManager.processInsights();
     },
     onSuccess: (newNotifications) => {
       setNotifications(prev => {
@@ -132,13 +123,13 @@ export const useProactiveNotifications = (options: UseProactiveNotificationsOpti
 
   // Auto-procesar cuando cambien los insights
   useEffect(() => {
-    if (autoProcess && insights.length > 0 && patternAnalysis && !isGenerating && !isProcessing) {
+    if (autoProcess && insights.length > 0 && !isGenerating && !isProcessing) {
       // Solo procesar si ha pasado tiempo suficiente desde la última vez
       if (!lastProcessed || Date.now() - lastProcessed.getTime() > 10 * 60 * 1000) { // 10 minutos
         processInsightsMutation.mutate();
       }
     }
-  }, [insights, patternAnalysis, isGenerating, autoProcess, isProcessing, lastProcessed, processInsightsMutation]);
+  }, [insights, isGenerating, autoProcess, isProcessing, lastProcessed, processInsightsMutation]);
 
   // Interval para entregar notificaciones pendientes
   useEffect(() => {

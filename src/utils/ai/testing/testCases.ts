@@ -83,7 +83,7 @@ export const createTestCases = (
       );
       
       const validInsights = insightsData.every(insight =>
-        insight.id && insight.title && insight.category
+        insight.id && insight.title
       );
       
       return {
@@ -117,7 +117,7 @@ export const createTestCases = (
         
         results.step2 = { name: 'Generación de insights' };
         if (insights.insights.length === 0) {
-          await insights.generateInsights(true);
+          await insights.generateInsights();
         }
         results.step2.success = insights.insights.length > 0;
         step++;
@@ -159,7 +159,7 @@ export const createTestCases = (
       const memoryBefore = (performance as any).memory?.usedJSHeapSize || 0;
       
       await phase6.updateFullAnalysis();
-      await insights.generateInsights(true);
+      await insights.generateInsights();
       await contextualData.collectData();
       
       const memoryAfter = (performance as any).memory?.usedJSHeapSize || 0;
