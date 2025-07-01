@@ -27,6 +27,7 @@ interface MicrotaskItemProps {
 const MicrotaskItem = ({ microtask, onUpdate, onDelete, onEdit }: MicrotaskItemProps) => {
   const [editingMicrotaskId, setEditingMicrotaskId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const isCompleted = microtask.status === 'completed';
   const isEditing = editingMicrotaskId === microtask.id;
@@ -58,6 +59,11 @@ const MicrotaskItem = ({ microtask, onUpdate, onDelete, onEdit }: MicrotaskItemP
   const handleCancelEdit = () => {
     setEditingMicrotaskId(null);
     setEditTitle('');
+  };
+
+  const handleActionAndClose = (action: () => void) => {
+    action();
+    setDropdownOpen(false);
   };
 
   return (
@@ -122,18 +128,18 @@ const MicrotaskItem = ({ microtask, onUpdate, onDelete, onEdit }: MicrotaskItemP
         <div className="w-1 h-1 rounded-full bg-indigo-400" />
 
         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-          <DropdownMenu>
+          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-3 w-3 p-0">
                 <MoreHorizontal className="h-2 w-2" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32 bg-white shadow-lg border z-50">
-              <DropdownMenuItem onClick={() => onEdit(microtask)}>
+              <DropdownMenuItem onClick={() => handleActionAndClose(() => onEdit(microtask))}>
                 Editar
               </DropdownMenuItem>
               <DropdownMenuItem 
-                onClick={() => onDelete(microtask.id)}
+                onClick={() => handleActionAndClose(() => onDelete(microtask.id))}
                 className="text-red-600"
               >
                 Eliminar

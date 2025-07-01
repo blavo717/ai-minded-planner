@@ -37,6 +37,7 @@ interface CompactSubtaskItemProps {
   onLogClick: (task: Task) => void;
   onEditTask: () => void;
   onDeleteTask: () => void;
+  onCreateMicrotask?: (subtaskId: string) => void;
   children?: React.ReactNode;
 }
 
@@ -57,6 +58,7 @@ const CompactSubtaskItem = ({
   onLogClick,
   onEditTask,
   onDeleteTask,
+  onCreateMicrotask,
   children
 }: CompactSubtaskItemProps) => {
   const isCompleted = subtask.status === 'completed';
@@ -66,6 +68,14 @@ const CompactSubtaskItem = ({
   const handleActionAndClose = (action: () => void) => {
     action();
     onDropdownOpenChange(false);
+  };
+
+  const handleCreateMicrotaskKeepOpen = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onCreateMicrotask) {
+      onCreateMicrotask(subtask.id);
+    }
   };
 
   return (
@@ -163,6 +173,14 @@ const CompactSubtaskItem = ({
                 <DropdownMenuItem onClick={() => handleActionAndClose(onEditTask)}>
                   Editar
                 </DropdownMenuItem>
+                {onCreateMicrotask && (
+                  <DropdownMenuItem 
+                    onPointerDown={handleCreateMicrotaskKeepOpen}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    Añadir microtarea
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem 
                   onClick={() => handleActionAndClose(onDeleteTask)}
                   className="text-red-600"

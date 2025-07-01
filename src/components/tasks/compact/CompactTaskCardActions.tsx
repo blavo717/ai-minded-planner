@@ -58,6 +58,12 @@ const CompactTaskCardActions = ({
     onDropdownOpenChange(false);
   };
 
+  const handleCreateSubtaskKeepOpen = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onCreateSubtask();
+  };
+
   return (
     <div className="flex items-center gap-3 flex-shrink-0">
       {/* Progreso de subtareas */}
@@ -93,8 +99,8 @@ const CompactTaskCardActions = ({
             Editar tarea
           </DropdownMenuItem>
           <DropdownMenuItem 
+            onPointerDown={handleCreateSubtaskKeepOpen}
             onSelect={(e) => e.preventDefault()}
-            onClick={onCreateSubtask}
           >
             Añadir subtarea
           </DropdownMenuItem>

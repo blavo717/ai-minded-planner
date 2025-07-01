@@ -29,7 +29,7 @@ const CompactSubtaskList = memo(({
   const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [dropdownOpenMap, setDropdownOpenMap] = useState<Record<string, boolean>>({});
-  const { updateTask, deleteTask } = useTaskMutations();
+  const { updateTask, deleteTask, createMicrotask } = useTaskMutations();
 
   console.log('CompactSubtaskList rendered:', {
     parentTaskId: parentTask.id,
@@ -66,6 +66,13 @@ const CompactSubtaskList = memo(({
       setNewSubtaskTitle('');
       setIsCreating(false);
     }
+  }
+
+  function handleCreateMicrotask(subtaskId: string) {
+    createMicrotask({ 
+      parentSubtaskId: subtaskId, 
+      title: 'Nueva microtarea' 
+    });
   }
 
   function handleToggleSubtaskComplete(subtask: Task, checked: boolean) {
@@ -135,6 +142,7 @@ const CompactSubtaskList = memo(({
               onLogClick={setSelectedLogTask}
               onEditTask={() => onEditTask(subtask)}
               onDeleteTask={() => deleteTask(subtask.id)}
+              onCreateMicrotask={handleCreateMicrotask}
             >
               <CompactMicrotaskList
                 parentSubtask={subtask}
