@@ -3,11 +3,12 @@ import { TaskContext } from '@/utils/taskContext';
 
 /**
  * Constructor de prompts inteligentes para análisis contextual avanzado
+ * NUEVO: Genera texto estructurado en lugar de JSON
  */
 export class IntelligentPromptBuilder {
   
   /**
-   * Construye prompt especializado según el contexto específico de la tarea
+   * Construye prompt especializado para texto estructurado
    */
   static buildContextualAnalysisPrompt(context: TaskContext): { systemPrompt: string; userPrompt: string } {
     const { mainTask, completionStatus, recentLogs, dependencies } = context;
@@ -15,33 +16,19 @@ export class IntelligentPromptBuilder {
     // Detectar patrón de la tarea
     const taskPattern = this.detectTaskPattern(mainTask, completionStatus, recentLogs);
     
-    const systemPrompt = `Eres un analista de productividad experto que genera insights específicos y accionables.
+    const systemPrompt = `Eres un analista de productividad experto que genera análisis específicos y accionables.
 
-MISIÓN: Analizar la situación actual de la tarea y generar un análisis útil que ayude a tomar decisiones concretas.
+MISIÓN: Analizar la situación de la tarea y generar un análisis útil en TEXTO ESTRUCTURADO.
 
-FORMATO DE RESPUESTA JSON:
-{
-  "statusSummary": "Análisis específico con datos cuantitativos y contexto real",
-  "nextSteps": "Acciones concretas y priorizadas basadas en el análisis",
-  "alerts": "Solo si hay problemas reales que requieren atención inmediata",
-  "insights": "Patrones detectados y recomendaciones estratégicas específicas",
-  "riskLevel": "low|medium|high",
-  "intelligentActions": [
-    {
-      "type": "create_subtask|create_reminder|schedule_review",
-      "label": "Acción específica (max 30 chars)",
-      "priority": "high|medium|low",
-      "confidence": 0.7,
-      "suggestedData": {
-        "title": "Título específico basado en contexto",
-        "content": "Descripción detallada de la acción",
-        "scheduledFor": "2024-12-30T09:00:00.000Z",
-        "language": "es",
-        "estimatedDuration": 45
-      }
-    }
-  ]
-}
+FORMATO DE RESPUESTA REQUERIDO (usar exactamente estos marcadores):
+
+ESTADO: [Análisis específico del estado actual con datos cuantitativos]
+
+PRÓXIMOS PASOS: [Acciones concretas y priorizadas que se deben tomar]
+
+ALERTA: [Solo si hay problemas reales que requieren atención inmediata]
+
+ANÁLISIS: [Patrones detectados y recomendaciones estratégicas específicas]
 
 PRINCIPIOS DE ANÁLISIS:
 1. ESPECÍFICO: Usar datos reales (números, fechas, progreso)
@@ -50,12 +37,14 @@ PRINCIPIOS DE ANÁLISIS:
 4. INTELIGENTE: Detectar patrones y problemas ocultos
 5. ÚTIL: Proveer información que acelere el progreso
 
-PATRONES DE ANÁLISIS:
-- Tareas estancadas: Sin actividad >3 días
-- Progreso lento: <20% completado en >7 días
-- Subtareas bloqueantes: Dependencias no resueltas
-- Sobrecarga: >10 subtareas activas simultáneas
-- Deadline pressure: <7 días para fecha límite`;
+PATRONES A DETECTAR:
+• Tareas estancadas: Sin actividad >3 días
+• Progreso lento: <20% completado en >7 días
+• Subtareas bloqueantes: Dependencias no resueltas
+• Sobrecarga: >10 subtareas activas simultáneas
+• Deadline pressure: <7 días para fecha límite
+
+RESPONDE SOLO CON EL TEXTO ESTRUCTURADO USANDO LOS MARCADORES EXACTOS.`;
 
     const userPrompt = this.buildSpecificUserPrompt(context, taskPattern);
     
@@ -111,7 +100,7 @@ PATRONES DE ANÁLISIS:
     prompt += `\nPATRÓN DETECTADO: ${pattern.name}\n`;
     prompt += `CARACTERÍSTICAS: ${pattern.characteristics.join(', ')}\n`;
     
-    prompt += `\nGENERA ANÁLISIS ESPECÍFICO Y ACCIONABLE BASADO EN ESTOS DATOS REALES.`;
+    prompt += `\nGENERA ANÁLISIS ESPECÍFICO USANDO LOS MARCADORES EXACTOS (ESTADO:, PRÓXIMOS PASOS:, etc.)`;
     
     return prompt;
   }

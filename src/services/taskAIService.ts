@@ -1,10 +1,9 @@
 
 import { TaskContext } from '@/utils/taskContext';
-import { parseJsonSafely } from './ai/jsonParsingUtils';
-import { validateAndCompleteResponse, createFallbackResponse } from './ai/responseValidation';
-import { IntelligentPromptBuilder } from './ai/intelligentPromptBuilder';
+import { StructuredTextParser, ParsedLLMResponse } from './ai/structuredTextParser';
 import { ContextualInsightGenerator } from './ai/contextualInsightGenerator';
 import { ActionableRecommendationEngine } from './ai/actionableRecommendationEngine';
+import { IntelligentPromptBuilder } from './ai/intelligentPromptBuilder';
 
 export interface TaskAISummary {
   statusSummary: string;
@@ -16,17 +15,22 @@ export interface TaskAISummary {
 }
 
 /**
- * Combina insights del LLM con análisis local específico
+ * Combina análisis del LLM (texto estructurado) con análisis local específico
  */
-function combineInsightsIntelligently(llmInsights: string | undefined, localInsights: any[]): string {
+function combineAnalysisIntelligently(
+  llmAnalysis: ParsedLLMResponse | null, 
+  localInsights: any[], 
+  localActions: any[]
+): TaskAISummary {
+  
   let combinedInsights = '';
   
-  // Usar insights del LLM si existen y son útiles
-  if (llmInsights && llmInsights.length > 50 && !llmInsights.includes('análisis no disponible')) {
-    combinedInsights += llmInsights;
+  // Usar análisis del LLM como base principal
+  if (llmAnalysis && llmAnalysis.insights) {
+    combinedInsights += llmAnalysis.insights;
   }
   
-  // Agregar insights específicos más relevantes
+  // Enriquecer con insights específicos más relevantes del análisis local
   const highConfidenceInsights = localInsights.filter(insight => insight.confidence > 0.7);
   if (highConfidenceInsights.length > 0) {
     if (combinedInsights) combinedInsights += '\n\n';
@@ -37,11 +41,19 @@ function combineInsightsIntelligently(llmInsights: string | undefined, localInsi
     });
   }
   
-  return combinedInsights || 'Análisis contextual en proceso';
+  // Usar análisis del LLM como principal, análisis local como complemento
+  return {
+    statusSummary: llmAnalysis?.statusSummary || 'Análisis contextual en proceso',
+    nextSteps: llmAnalysis?.nextSteps || 'Revisar estado actual y definir acción específica',
+    alerts: llmAnalysis?.alerts || undefined,
+    insights: combinedInsights || 'Análisis contextual disponible',
+    riskLevel: llmAnalysis?.riskLevel || 'medium',
+    intelligentActions: localActions.slice(0, 3) // Top 3 acciones más relevantes
+  };
 }
 
 /**
- * Crea fallback inteligente usando análisis local cuando LLM falla
+ * Crea fallback inteligente usando análisis local cuando LLM falla completamente
  */
 function createIntelligentFallback(context: TaskContext, insights: any[], actions: any[]): TaskAISummary {
   const { mainTask, completionStatus } = context;
@@ -59,7 +71,7 @@ function createIntelligentFallback(context: TaskContext, insights: any[], action
     statusSummary += `. ${topInsight.description}`;
   }
   
-  // Generar próximos pasos específicos
+  // Generar próximos pasos específicos  
   let nextSteps = 'Próximos pasos específicos: ';
   if (actions.length > 0) {
     nextSteps += actions[0].suggestedData?.content || 'Revisar estado actual y definir acción específica';
@@ -83,7 +95,7 @@ function createIntelligentFallback(context: TaskContext, insights: any[], action
     nextSteps,
     riskLevel,
     insights: insights.length > 0 ? `Detectados ${insights.length} patrones específicos que requieren atención` : undefined,
-    intelligentActions: actions.slice(0, 2) // Top 2 acciones más relevantes
+    intelligentActions: actions.slice(0, 2)
   };
 }
 
@@ -92,108 +104,79 @@ export const generateTaskStateAndSteps = async (
   makeLLMRequest: any
 ): Promise<TaskAISummary> => {
   
-  console.log('🧠 Iniciando análisis IA inteligente contextual para:', context.mainTask.title);
+  console.log('🧠 Iniciando análisis IA con texto estructurado para:', context.mainTask.title);
   
-  let response: any; // ✅ Declarar fuera del try
+  // ✨ Generar análisis local específico (siempre disponible)
+  const specificInsights = ContextualInsightGenerator.generateSpecificInsights(context);
+  console.log('🔍 Insights específicos generados:', specificInsights.length);
+  
+  const smartActions = ActionableRecommendationEngine.generateSmartActions(context);
+  console.log('⚡ Acciones inteligentes generadas:', smartActions.length);
+
+  let llmAnalysis: ParsedLLMResponse | null = null;
 
   try {
-    // ✨ NUEVA FUNCIONALIDAD: Generar insights específicos localmente
-    const specificInsights = ContextualInsightGenerator.generateSpecificInsights(context);
-    console.log('🔍 Insights específicos generados:', specificInsights.length);
-    
-    // ✨ NUEVA FUNCIONALIDAD: Generar acciones inteligentes localmente
-    const smartActions = ActionableRecommendationEngine.generateSmartActions(context);
-    console.log('⚡ Acciones inteligentes generadas:', smartActions.length);
-    
-    // ✨ NUEVA FUNCIONALIDAD: Construir prompt contextual inteligente
+    // ✨ Construir prompt para texto estructurado
     const { systemPrompt, userPrompt } = IntelligentPromptBuilder.buildContextualAnalysisPrompt(context);
     
-    console.log('📤 Enviando prompt contextual inteligente al LLM...');
+    console.log('📤 Enviando prompt para texto estructurado al LLM...');
     
-    response = await makeLLMRequest({
+    const response = await makeLLMRequest({
       systemPrompt,
       userPrompt,
-      functionName: 'intelligent_contextual_analysis',
-      temperature: 0.3, // ✅ Balanceado para creatividad contextual
-      max_tokens: 800, // ✅ Más tokens para análisis detallado
-      stop: ["\n\n\n", "```"], // ✅ Detener en patrones problemáticos
+      functionName: 'structured_text_analysis',
+      temperature: 0.3,
+      max_tokens: 800,
+      stop: ["\n\n\n", "---"], // Detener en separadores problemáticos
     });
 
-    const content = response?.content || response?.message?.content || '';
+    const rawText = response?.content || response?.message?.content || '';
     
-    if (!content) {
-      throw new Error('Empty response from LLM');
+    if (rawText && rawText.length > 50) {
+      console.log('🔍 Texto LLM recibido, parseando...', rawText.substring(0, 100) + '...');
+      
+      // ✨ Usar el nuevo parser de texto estructurado  
+      llmAnalysis = StructuredTextParser.parseStructuredText(rawText);
+      
+      console.log('✅ Análisis LLM parseado exitosamente:', {
+        hasStatus: !!llmAnalysis.statusSummary,
+        hasNextSteps: !!llmAnalysis.nextSteps,
+        hasInsights: !!llmAnalysis.insights,
+        riskLevel: llmAnalysis.riskLevel
+      });
+    } else {
+      console.warn('⚠️ Respuesta LLM vacía o muy corta');
     }
-
-    console.log('🔍 Raw LLM response preview:', content.substring(0, 200) + '...');
-    
-    // ✅ Usar parser robusto existente
-    const parsed = parseJsonSafely(content);
-    
-    // ✅ Validar y completar respuesta
-    const validated = validateAndCompleteResponse(parsed);
-    
-    // ✨ NUEVA FUNCIONALIDAD: Enriquecer respuesta con análisis local
-    const enrichedResponse = {
-      ...validated,
-      // Combinar insights: LLM + análisis local específico
-      insights: combineInsightsIntelligently(validated.insights, specificInsights),
-      // Usar acciones locales inteligentes si LLM no las generó bien
-      intelligentActions: validated.intelligentActions?.length > 0 ? 
-        validated.intelligentActions : 
-        smartActions
-    };
-    
-    // Convertir scheduledFor strings a Date objects
-    if (enrichedResponse.intelligentActions) {
-      enrichedResponse.intelligentActions = enrichedResponse.intelligentActions.map((action: any) => ({
-        ...action,
-        suggestedData: {
-          ...action.suggestedData,
-          scheduledFor: action.suggestedData?.scheduledFor ? 
-            new Date(action.suggestedData.scheduledFor) : 
-            undefined
-        }
-      }));
-    }
-    
-    console.log('✅ Successfully generated Enhanced TaskAISummary:', {
-      hasStatusSummary: !!enrichedResponse.statusSummary,
-      hasNextSteps: !!enrichedResponse.nextSteps,
-      hasInsights: !!enrichedResponse.insights,
-      riskLevel: enrichedResponse.riskLevel,
-      actionsCount: enrichedResponse.intelligentActions?.length || 0,
-      localInsights: specificInsights.length,
-      localActions: smartActions.length
-    });
-
-    return enrichedResponse;
 
   } catch (error) {
-    console.error('🚨 Error in generateTaskStateAndSteps:', {
+    console.error('🚨 Error al obtener análisis del LLM:', {
       message: error instanceof Error ? error.message : 'Unknown error',
-      taskId: context.mainTask.id,
-      taskTitle: context.mainTask.title,
-      responsePreview: response?.content?.substring(0, 200) || 'No response content',
-      fullError: error
+      taskId: context.mainTask.id
     });
-
-    // ⚡ NUEVA FUNCIONALIDAD: Fallback inteligente con análisis local
-    console.log('🔄 Usando fallback inteligente con análisis local...');
-    
-    try {
-      const localInsights = ContextualInsightGenerator.generateSpecificInsights(context);
-      const localActions = ActionableRecommendationEngine.generateSmartActions(context);
-      
-      const intelligentFallback = createIntelligentFallback(context, localInsights, localActions);
-      
-      console.log('✅ Fallback inteligente generado exitosamente');
-      return intelligentFallback;
-      
-    } catch (fallbackError) {
-      console.error('🚨 Error en fallback inteligente:', fallbackError);
-      // ✅ Fallback seguro final
-      return createFallbackResponse(context.mainTask.title);
-    }
   }
+
+  // ✨ Combinar análisis LLM + análisis local
+  const finalAnalysis = combineAnalysisIntelligently(llmAnalysis, specificInsights, smartActions);
+  
+  // Convertir scheduledFor strings a Date objects en acciones
+  if (finalAnalysis.intelligentActions) {
+    finalAnalysis.intelligentActions = finalAnalysis.intelligentActions.map((action: any) => ({
+      ...action,
+      suggestedData: {
+        ...action.suggestedData,
+        scheduledFor: action.suggestedData?.scheduledFor ? 
+          new Date(action.suggestedData.scheduledFor) : 
+          undefined
+      }
+    }));
+  }
+  
+  console.log('✅ Análisis final combinado generado:', {
+    hasLLMAnalysis: !!llmAnalysis,
+    hasLocalInsights: specificInsights.length > 0,
+    hasActions: finalAnalysis.intelligentActions?.length || 0,
+    riskLevel: finalAnalysis.riskLevel
+  });
+
+  return finalAnalysis;
 };
