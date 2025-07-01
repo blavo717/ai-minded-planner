@@ -5,7 +5,7 @@ import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useTasksContext } from '@/components/tasks/providers/TasksProvider';
 
 export const useTaskHandlers = () => {
-  const { createTask, archiveTask } = useTaskMutations();
+  const { createSubtask, archiveTask } = useTaskMutations();
   const {
     setEditingTask,
     setIsEditModalOpen,
@@ -42,13 +42,13 @@ export const useTaskHandlers = () => {
   }, [archiveTask]);
 
   const handleCreateSubtask = useCallback((parentTaskId: string, title: string) => {
-    createTask({
+    createSubtask({
+      parentTaskId,
       title,
-      parent_task_id: parentTaskId,
       status: 'pending',
       priority: 'medium'
     });
-  }, [createTask]);
+  }, [createSubtask]);
 
   return {
     handleEditTask,
