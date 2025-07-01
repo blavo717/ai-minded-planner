@@ -20,7 +20,7 @@ interface TasksViewSectionProps {
   onAssignTask: (task: Task) => void;
   onCompleteTask: (task: Task) => void;
   onArchiveTask: (taskId: string) => void;
-  onCreateSubtask: (parentTaskId: string, title: string) => void;
+  onCreateSubtask: (task: Task) => void;
 }
 
 const TasksViewSection = ({
