@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { Project } from '@/hooks/useProjects';
-import { useTasksContext } from '@/hooks/useTasksContext';
+import { useTasksContext } from '@/components/tasks/providers/TasksProvider';
 
 interface TasksHeaderProps {
   showInsights: boolean;

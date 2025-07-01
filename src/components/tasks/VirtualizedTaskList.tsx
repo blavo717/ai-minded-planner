@@ -15,7 +15,7 @@ interface VirtualizedTaskListProps {
   onAssignTask: (task: Task) => void;
   onCompleteTask: (task: Task) => void;
   onArchiveTask: (taskId: string) => void;
-  onCreateSubtask: (parentTaskId: string, title: string) => void;
+  onCreateSubtask: (task: Task) => void;
   height?: number;
   itemHeight?: number;
 }
@@ -32,7 +32,7 @@ interface TaskItemProps {
     onAssignTask: (task: Task) => void;
     onCompleteTask: (task: Task) => void;
     onArchiveTask: (taskId: string) => void;
-    onCreateSubtask: (parentTaskId: string, title: string) => void;
+    onCreateSubtask: (task: Task) => void;
   };
 }
 
@@ -46,13 +46,12 @@ const TaskItem = memo(({ index, style, data }: TaskItemProps) => {
       <div className="px-1 pb-4 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
         <TaskCard
           task={task}
-          subtasks={subtasks}
-          project={project}
-          onEditTask={data.onEditTask}
+          projects={data.projects}
+          onEdit={data.onEditTask}
+          onComplete={data.onCompleteTask}
+          onArchive={(task) => data.onArchiveTask(task.id)}
           onManageDependencies={data.onManageDependencies}
-          onAssignTask={data.onAssignTask}
-          onCompleteTask={data.onCompleteTask}
-          onArchiveTask={data.onArchiveTask}
+          onAssign={data.onAssignTask}
           onCreateSubtask={data.onCreateSubtask}
         />
       </div>
@@ -114,13 +113,12 @@ const VirtualizedTaskList = memo(({
             >
               <TaskCard
                 task={task}
-                subtasks={subtasks}
-                project={project}
-                onEditTask={onEditTask}
+                projects={projects}
+                onEdit={onEditTask}
+                onComplete={onCompleteTask}
+                onArchive={(task) => onArchiveTask(task.id)}
                 onManageDependencies={onManageDependencies}
-                onAssignTask={onAssignTask}
-                onCompleteTask={onCompleteTask}
-                onArchiveTask={onArchiveTask}
+                onAssign={onAssignTask}
                 onCreateSubtask={onCreateSubtask}
               />
             </div>

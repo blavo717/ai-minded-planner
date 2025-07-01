@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -74,7 +75,6 @@ const CompactTaskCard = ({
   };
 
   const handleCardClick = () => {
-    // CORRECCIÓN: Usar los estados correctos del contexto
     setDetailTask(task);
     setIsTaskDetailModalOpen(true);
   };

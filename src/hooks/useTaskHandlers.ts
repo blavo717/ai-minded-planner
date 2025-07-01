@@ -41,10 +41,10 @@ export const useTaskHandlers = () => {
     archiveTask(taskId);
   }, [archiveTask]);
 
-  const handleCreateSubtask = useCallback((parentTaskId: string, title: string) => {
+  const handleCreateSubtask = useCallback((task: Task) => {
     createSubtask({
-      parentTaskId,
-      title
+      parentTaskId: task.id,
+      title: `Subtarea de ${task.title}`
     });
   }, [createSubtask]);
 

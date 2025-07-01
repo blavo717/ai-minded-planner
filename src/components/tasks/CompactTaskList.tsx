@@ -13,7 +13,7 @@ interface CompactTaskListProps {
   onAssignTask: (task: Task) => void;
   onCompleteTask: (task: Task) => void;
   onArchiveTask: (taskId: string) => void;
-  onCreateSubtask: (parentTaskId: string, title: string) => void;
+  onCreateSubtask: (task: Task) => void;
 }
 
 const CompactTaskList = memo(({ 
@@ -46,15 +46,13 @@ const CompactTaskList = memo(({
           <CompactTaskCard
             key={task.id}
             task={task}
-            subtasks={subtasks}
-            project={project}
-            onEditTask={onEditTask}
+            projects={projects}
+            onEdit={onEditTask}
             onManageDependencies={onManageDependencies}
-            onAssignTask={onAssignTask}
-            onCompleteTask={onCompleteTask}
-            onArchiveTask={onArchiveTask}
+            onAssign={onAssignTask}
+            onComplete={onCompleteTask}
+            onArchive={(task) => onArchiveTask(task.id)}
             onCreateSubtask={onCreateSubtask}
-            getSubtasksForTask={getSubtasksForTask}
           />
         );
       })}
