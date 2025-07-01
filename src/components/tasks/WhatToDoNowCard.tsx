@@ -8,7 +8,7 @@ import { Task } from '@/hooks/useTasks';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { TaskWithReason } from '@/utils/taskPrioritization';
-import { AITaskSummary } from './AITaskSummary';
+import AITaskSummary from './AITaskSummary';
 
 interface WhatToDoNowCardProps {
   taskWithReason: TaskWithReason;
@@ -100,7 +100,7 @@ const WhatToDoNowCard = ({ taskWithReason, onStartWorking, onSkipToNext, onDismi
 
               {/* ✨ SECCIÓN IA - NUEVA INTEGRACIÓN */}
               <div className="border-t border-orange-200 pt-4">
-                <AITaskSummary taskId={task.id} />
+                <AITaskSummary task={task} />
               </div>
             </div>
           </div>

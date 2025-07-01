@@ -14,12 +14,12 @@ interface AITaskSummaryProps {
 }
 
 export default function AITaskSummary({ task, className = '' }: AITaskSummaryProps) {
-  const { summary, nextSteps, isLoading, error } = useTaskStateAndSteps(task?.id);
+  const { statusSummary, nextSteps, alerts, insights, riskLevel, isLoading, error } = useTaskStateAndSteps(task?.id || '');
   
   const { 
     intelligentActions, 
     isGeneratingActions 
-  } = useIntelligentActions(task, nextSteps || '', summary?.statusSummary || '');
+  } = useIntelligentActions(task, nextSteps || '', statusSummary || '');
 
   // Early return if no task
   if (!task) {
@@ -54,7 +54,7 @@ export default function AITaskSummary({ task, className = '' }: AITaskSummaryPro
     );
   }
 
-  if (!summary) {
+  if (!statusSummary) {
     return (
       <Card className={`p-4 ${className}`}>
         <div className="text-sm text-muted-foreground">
@@ -81,12 +81,12 @@ export default function AITaskSummary({ task, className = '' }: AITaskSummaryPro
           <h3 className="font-medium text-sm">Análisis IA</h3>
         </div>
         
-        {summary.riskLevel && (
+        {riskLevel && (
           <Badge 
             variant="outline" 
-            className={getRiskBadgeColor(summary.riskLevel)}
+            className={getRiskBadgeColor(riskLevel)}
           >
-            Riesgo: {summary.riskLevel}
+            Riesgo: {riskLevel}
           </Badge>
         )}
       </div>
@@ -97,7 +97,7 @@ export default function AITaskSummary({ task, className = '' }: AITaskSummaryPro
           <TrendingUp className="h-3 w-3 text-green-600" />
           <span className="text-xs font-medium text-muted-foreground">Estado Actual</span>
         </div>
-        <p className="text-sm leading-relaxed">{summary.statusSummary}</p>
+        <p className="text-sm leading-relaxed">{statusSummary}</p>
       </div>
 
       {/* Próximos pasos */}
@@ -112,24 +112,24 @@ export default function AITaskSummary({ task, className = '' }: AITaskSummaryPro
       )}
 
       {/* Alertas críticas */}
-      {summary.alerts && (
+      {alerts && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="flex items-center gap-2 mb-1">
             <AlertTriangle className="h-3 w-3 text-red-600" />
             <span className="text-xs font-medium text-red-800">Alerta</span>
           </div>
-          <p className="text-sm text-red-700">{summary.alerts}</p>
+          <p className="text-sm text-red-700">{alerts}</p>
         </div>
       )}
 
       {/* Insights adicionales */}
-      {summary.insights && (
+      {insights && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
           <div className="flex items-center gap-2 mb-1">
             <Brain className="h-3 w-3 text-blue-600" />
             <span className="text-xs font-medium text-blue-800">Insights</span>
           </div>
-          <p className="text-sm text-blue-700">{summary.insights}</p>
+          <p className="text-sm text-blue-700">{insights}</p>
         </div>
       )}
 
