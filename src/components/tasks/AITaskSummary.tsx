@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Brain, TrendingUp, Clock } from 'lucide-react';
+import { AlertTriangle, Brain, TrendingUp, Clock, Target, Zap, AlertCircle } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { useTaskStateAndSteps } from '@/hooks/useTaskStateAndSteps';
 import { useIntelligentActions } from '@/hooks/ai/useIntelligentActions';
@@ -37,7 +37,7 @@ export default function AITaskSummary({ task, className = '' }: AITaskSummaryPro
       <Card className={`p-4 ${className}`}>
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4 animate-pulse text-blue-500" />
-          <span className="text-sm text-muted-foreground">Analizando tarea con IA...</span>
+          <span className="text-sm text-muted-foreground">Generando análisis inteligente contextual...</span>
         </div>
       </Card>
     );
@@ -72,87 +72,109 @@ export default function AITaskSummary({ task, className = '' }: AITaskSummaryPro
     }
   };
 
+  const getRiskIcon = (risk: string) => {
+    switch (risk) {
+      case 'high': return <AlertCircle className="h-3 w-3" />;
+      case 'medium': return <AlertTriangle className="h-3 w-3" />;
+      default: return <Target className="h-3 w-3" />;
+    }
+  };
+
   return (
-    <Card className={`p-4 space-y-4 ${className}`}>
-      {/* Header con estado y riesgo */}
+    <Card className={`p-4 space-y-4 ${className} border-l-4 ${
+      riskLevel === 'high' ? 'border-l-red-500' : 
+      riskLevel === 'medium' ? 'border-l-yellow-500' : 
+      'border-l-green-500'
+    }`}>
+      {/* Header mejorado con estado y riesgo */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Brain className="h-4 w-4 text-blue-500" />
-          <h3 className="font-medium text-sm">Análisis IA</h3>
+          <Zap className="h-4 w-4 text-blue-500" />
+          <h3 className="font-medium text-sm">Análisis IA Contextual</h3>
         </div>
         
         {riskLevel && (
           <Badge 
             variant="outline" 
-            className={getRiskBadgeColor(riskLevel)}
+            className={`${getRiskBadgeColor(riskLevel)} flex items-center gap-1`}
           >
-            Riesgo: {riskLevel}
+            {getRiskIcon(riskLevel)}
+            {riskLevel === 'high' ? 'Crítico' : 
+             riskLevel === 'medium' ? 'Medio' : 'Bajo'}
           </Badge>
         )}
       </div>
 
-      {/* Resumen del estado */}
+      {/* Resumen del estado mejorado */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <TrendingUp className="h-3 w-3 text-green-600" />
-          <span className="text-xs font-medium text-muted-foreground">Estado Actual</span>
+          <span className="text-xs font-medium text-muted-foreground">Estado Específico</span>
         </div>
-        <p className="text-sm leading-relaxed">{statusSummary}</p>
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+          <p className="text-sm leading-relaxed font-medium text-blue-900">{statusSummary}</p>
+        </div>
       </div>
 
-      {/* Próximos pasos */}
+      {/* Próximos pasos mejorados */}
       {nextSteps && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Clock className="h-3 w-3 text-blue-600" />
-            <span className="text-xs font-medium text-muted-foreground">Próximos Pasos</span>
+            <span className="text-xs font-medium text-muted-foreground">Acciones Específicas</span>
           </div>
-          <p className="text-sm leading-relaxed">{nextSteps}</p>
+          <div className="bg-green-50 border border-green-200 rounded-md p-3">
+            <p className="text-sm leading-relaxed text-green-800">{nextSteps}</p>
+          </div>
         </div>
       )}
 
-      {/* Alertas críticas */}
+      {/* Alertas críticas mejoradas */}
       {alerts && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+        <div className="p-3 bg-red-50 border-l-4 border-red-400 rounded-md">
           <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="h-3 w-3 text-red-600" />
-            <span className="text-xs font-medium text-red-800">Alerta</span>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <span className="text-sm font-semibold text-red-800">Alerta Crítica</span>
           </div>
-          <p className="text-sm text-red-700">{alerts}</p>
+          <p className="text-sm text-red-700 leading-relaxed">{alerts}</p>
         </div>
       )}
 
-      {/* Insights adicionales */}
+      {/* Insights contextuales mejorados */}
       {insights && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <div className="flex items-center gap-2 mb-1">
-            <Brain className="h-3 w-3 text-blue-600" />
-            <span className="text-xs font-medium text-blue-800">Insights</span>
+        <div className="p-3 bg-purple-50 border-l-4 border-purple-400 rounded-md">
+          <div className="flex items-center gap-2 mb-2">
+            <Brain className="h-4 w-4 text-purple-600" />
+            <span className="text-sm font-semibold text-purple-800">Insights Contextuales</span>
           </div>
-          <p className="text-sm text-blue-700">{insights}</p>
+          <div className="text-sm text-purple-700 leading-relaxed whitespace-pre-line">
+            {insights}
+          </div>
         </div>
       )}
 
-      {/* Acciones inteligentes */}
+      {/* Acciones inteligentes mejoradas */}
       {intelligentActions && intelligentActions.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3 pt-2 border-t border-gray-200">
           <div className="flex items-center gap-2">
-            <Brain className="h-3 w-3 text-purple-600" />
-            <span className="text-xs font-medium text-muted-foreground">Acciones Sugeridas</span>
+            <Zap className="h-3 w-3 text-purple-600" />
+            <span className="text-xs font-medium text-muted-foreground">
+              Acciones Inteligentes ({intelligentActions.length})
+            </span>
           </div>
           <SmartActionButtons
             task={task}
             actions={intelligentActions}
-            className="flex-wrap gap-1"
+            className="flex flex-wrap gap-2"
           />
         </div>
       )}
 
-      {/* Loading de acciones */}
+      {/* Loading de acciones mejorado */}
       {isGeneratingActions && (
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2 text-muted-foreground p-2 bg-gray-50 rounded-md">
           <Brain className="h-3 w-3 animate-pulse" />
-          <span className="text-xs">Generando acciones inteligentes...</span>
+          <span className="text-xs">Generando acciones contextual inteligentes...</span>
         </div>
       )}
     </Card>
