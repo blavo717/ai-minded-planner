@@ -2,20 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-
-export interface Profile {
-  id: string;
-  full_name?: string;
-  email?: string;
-  phone?: string;
-  role?: string;
-  department?: string;
-  skills?: string[];
-  timezone?: string;
-  avatar_url?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { Profile } from '@/types/profile';
 
 export const useProfile = () => {
   const { user } = useAuth();
@@ -33,7 +20,12 @@ export const useProfile = () => {
         .single();
 
       if (error) throw error;
-      return data as Profile;
+      
+      // Ensure full_name is always present
+      return {
+        ...data,
+        full_name: data.full_name || data.email || 'Usuario Sin Nombre'
+      } as Profile;
     },
     enabled: !!user,
   });

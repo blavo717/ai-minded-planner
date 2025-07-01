@@ -1,20 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
-export interface Profile {
-  id: string;
-  email?: string;
-  full_name: string; // Made required to match CreateTaskModal expectations
-  avatar_url?: string;
-  timezone?: string;
-  role?: 'project_manager' | 'engineer' | 'coordinator' | 'specialist' | 'admin';
-  skills?: string[];
-  phone?: string;
-  department?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { Profile } from '@/types/profile';
 
 export const useProfiles = () => {
   const { data: profiles = [], isLoading: profilesLoading } = useQuery({

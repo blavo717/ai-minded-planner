@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,6 +35,7 @@ import { CreateTaskData } from '@/hooks/useTasks';
 import { Project } from '@/hooks/useProjects';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useTaskAssignmentMutations } from '@/hooks/useTaskAssignmentMutations';
+import { Profile } from '@/types/profile';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'El título es requerido'),
@@ -51,13 +51,6 @@ const taskSchema = z.object({
 });
 
 type TaskFormData = z.infer<typeof taskSchema>;
-
-interface Profile {
-  id: string;
-  full_name: string;
-  email: string;
-  role?: string;
-}
 
 interface CreateTaskModalProps {
   isOpen: boolean;
