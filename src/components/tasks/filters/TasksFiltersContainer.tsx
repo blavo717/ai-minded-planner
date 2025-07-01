@@ -1,6 +1,6 @@
 
 import React from 'react';
-import TasksFiltersContainer from '@/components/tasks/filters/TasksFiltersContainer';
+import AdvancedFilters from '@/components/tasks/AdvancedFilters';
 import { FilterState } from '@/types/filters';
 
 interface Project {
@@ -15,7 +15,7 @@ interface Profile {
   email?: string;
 }
 
-interface TasksFiltersSectionProps {
+interface TasksFiltersContainerProps {
   projects: Project[];
   profiles: Profile[];
   availableTags: string[];
@@ -27,7 +27,7 @@ interface TasksFiltersSectionProps {
   taskDependencies: any[];
 }
 
-const TasksFiltersSection = ({
+const TasksFiltersContainer = ({
   projects,
   profiles,
   availableTags,
@@ -37,22 +37,20 @@ const TasksFiltersSection = ({
   onLoadFilter,
   taskAssignments,
   taskDependencies
-}: TasksFiltersSectionProps) => {
+}: TasksFiltersContainerProps) => {
   return (
-    <div className="animate-slide-in">
-      <TasksFiltersContainer
-        projects={projects}
-        profiles={profiles}
-        availableTags={availableTags}
-        filters={filters}
-        onFiltersChange={onFiltersChange}
-        onSaveFilter={onSaveFilter}
-        onLoadFilter={onLoadFilter}
-        taskAssignments={taskAssignments}
-        taskDependencies={taskDependencies}
-      />
-    </div>
+    <AdvancedFilters
+      projects={projects}
+      profiles={profiles}
+      availableTags={availableTags}
+      filters={filters}
+      onFiltersChange={onFiltersChange}
+      onSaveFilter={onSaveFilter}
+      onLoadFilter={onLoadFilter}
+      taskAssignments={taskAssignments}
+      taskDependencies={taskDependencies}
+    />
   );
 };
 
-export default TasksFiltersSection;
+export default TasksFiltersContainer;

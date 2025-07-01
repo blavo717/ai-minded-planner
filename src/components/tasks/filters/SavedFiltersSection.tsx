@@ -1,8 +1,7 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Bookmark } from 'lucide-react';
+import SavedFiltersGrid from './SavedFiltersGrid';
 import { FilterState } from '@/types/filters';
 
 interface SavedFilter {
@@ -23,20 +22,10 @@ const SavedFiltersSection = ({ savedFilters, loading, onLoadFilter }: SavedFilte
   return (
     <div className="space-y-2">
       <Label className="text-xs font-medium">Filtros Guardados</Label>
-      <div className="flex flex-wrap gap-2">
-        {savedFilters.map((savedFilter) => (
-          <Button
-            key={savedFilter.id}
-            variant="outline"
-            size="sm"
-            onClick={() => onLoadFilter(savedFilter.filter_data)}
-            className="text-xs"
-          >
-            <Bookmark className="h-3 w-3 mr-1" />
-            {savedFilter.name}
-          </Button>
-        ))}
-      </div>
+      <SavedFiltersGrid 
+        savedFilters={savedFilters}
+        onLoadFilter={onLoadFilter}
+      />
     </div>
   );
 };
