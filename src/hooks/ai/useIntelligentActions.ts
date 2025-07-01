@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { IntelligentAction, IntelligentActionContext, DraftEmailContent } from '@/types/intelligent-actions';
+import { IntelligentAction, IntelligentActionContext, DraftEmailContent, UserPattern } from '@/types/intelligent-actions';
 import { usePhase6Advanced } from './usePhase6Advanced';
 import { usePatternTracking } from '@/hooks/usePatternTracking';
 import { useLLMService } from '@/hooks/useLLMService';
@@ -20,12 +20,27 @@ export const useIntelligentActions = (task: Task, nextSteps: string, statusSumma
   // Obtener patrones del usuario para personalización
   const { data: userPatterns } = useQuery({
     queryKey: ['user-patterns', task.user_id],
-    queryFn: async () => {
+    queryFn: async (): Promise<UserPattern[]> => {
       // Simular obtención de patrones del usuario
       return [
-        { type: 'task_creation', preferredTime: '09:00', frequency: 'daily' },
-        { type: 'communication', preferredLanguage: 'es', tone: 'professional' },
-        { type: 'productivity', peakHours: [9, 10, 11, 14, 15] }
+        { 
+          type: 'task_creation', 
+          preferredTime: '09:00', 
+          frequency: 'daily',
+          workingHours: [9, 17],
+          peakHours: [9, 10, 11, 14, 15]
+        },
+        { 
+          type: 'communication', 
+          preferredLanguage: 'es', 
+          tone: 'professional' 
+        },
+        { 
+          type: 'productivity', 
+          peakHours: [9, 10, 11, 14, 15],
+          averageTaskDuration: 120,
+          multitaskingTendency: 0.7
+        }
       ];
     },
     staleTime: 30 * 60 * 1000, // 30 minutos
@@ -55,7 +70,9 @@ Analiza el contexto de la tarea y genera acciones específicas en formato JSON:
         "content": "Contenido o descripción",
         "scheduledFor": "2024-12-XX 10:00:00",
         "language": "es" | "en",
-        "estimatedDuration": 30
+        "estimatedDuration": 30,
+        "reminderType": "follow_up" | "deadline" | "check_in",
+        "emailType": "followup" | "update" | "request"
       },
       "basedOnPatterns": ["patron1", "patron2"]
     }
@@ -103,7 +120,10 @@ Genera máximo 3 acciones inteligentes más relevantes:`;
         label: action.label,
         priority: action.priority,
         confidence: action.confidence,
-        suggestedData: action.suggestedData,
+        suggestedData: {
+          ...action.suggestedData,
+          scheduledFor: action.suggestedData.scheduledFor ? new Date(action.suggestedData.scheduledFor) : undefined
+        },
         basedOnPatterns: action.basedOnPatterns,
         recommendation: smartRecommendations.find(r => 
           r.type.includes(action.type) || r.title.toLowerCase().includes(action.type)
