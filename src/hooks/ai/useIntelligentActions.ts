@@ -280,9 +280,6 @@ Genera un email draft en ${language.toUpperCase()} para contactar sobre esta tar
     staleTime: 10 * 60 * 1000, // 10 minutos
     retry: 1,
     retryDelay: 2000,
-    onError: (error) => {
-      console.error('❌ Query error for intelligent actions:', error);
-    }
   });
 
   return {
