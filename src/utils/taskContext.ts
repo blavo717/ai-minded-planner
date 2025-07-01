@@ -77,16 +77,43 @@ export async function getTaskContext(taskId: string): Promise<TaskContext> {
       console.error('❌ Error obteniendo logs:', logsError);
     }
 
-    // Obtener dependencias
-    const { data: blockingDeps } = await supabase
+    // Obtener dependencias - FIX: Corregir las consultas de dependencias
+    let blockingTasks: Task[] = [];
+    let dependentTasks: Task[] = [];
+
+    // Obtener tareas que bloquean esta tarea
+    const { data: blockingDeps, error: blockingError } = await supabase
       .from('task_dependencies')
-      .select('depends_on_task_id, tasks!task_dependencies_depends_on_task_id_fkey(*)')
+      .select('depends_on_task_id')
       .eq('task_id', taskId);
 
-    const { data: dependentDeps } = await supabase
+    if (blockingDeps && blockingDeps.length > 0) {
+      const { data: blockingTasksData, error: blockingTasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .in('id', blockingDeps.map(dep => dep.depends_on_task_id));
+
+      if (!blockingTasksError && blockingTasksData) {
+        blockingTasks = blockingTasksData as Task[];
+      }
+    }
+
+    // Obtener tareas que dependen de esta tarea
+    const { data: dependentDeps, error: dependentError } = await supabase
       .from('task_dependencies')
-      .select('task_id, tasks!task_dependencies_task_id_fkey(*)')
+      .select('task_id')
       .eq('depends_on_task_id', taskId);
+
+    if (dependentDeps && dependentDeps.length > 0) {
+      const { data: dependentTasksData, error: dependentTasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .in('id', dependentDeps.map(dep => dep.task_id));
+
+      if (!dependentTasksError && dependentTasksData) {
+        dependentTasks = dependentTasksData as Task[];
+      }
+    }
 
     // Obtener contexto del proyecto si existe
     let projectContext = undefined;
@@ -130,8 +157,8 @@ export async function getTaskContext(taskId: string): Promise<TaskContext> {
         overallProgress
       },
       dependencies: {
-        blocking: blockingDeps?.map(dep => dep.tasks).filter(Boolean) || [],
-        dependent: dependentDeps?.map(dep => dep.tasks).filter(Boolean) || []
+        blocking: blockingTasks,
+        dependent: dependentTasks
       },
       projectContext
     };
