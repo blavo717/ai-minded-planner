@@ -18,6 +18,7 @@ interface CompactTaskCardHeaderProps {
   onEditTitleChange: (value: string) => void;
   onSaveTitle: () => void;
   onCancelEdit: () => void;
+  onTitleClick?: () => void; // NEW: Handler for title click
 }
 
 const CompactTaskCardHeader = ({
@@ -31,8 +32,17 @@ const CompactTaskCardHeader = ({
   onDoubleClickTitle,
   onEditTitleChange,
   onSaveTitle,
-  onCancelEdit
+  onCancelEdit,
+  onTitleClick
 }: CompactTaskCardHeaderProps) => {
+  const handleTitleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onTitleClick) {
+      onTitleClick();
+    }
+  };
+
   return (
     <div className="flex items-center gap-4">
       {/* Checkbox prominente */}
@@ -89,11 +99,12 @@ const CompactTaskCardHeader = ({
           </div>
         ) : (
           <h3 
-            className={`font-medium text-base truncate cursor-pointer hover:text-blue-600 ${
+            className={`font-medium text-base truncate cursor-pointer hover:text-blue-600 transition-colors ${
               isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'
             }`}
+            onClick={handleTitleClick}
             onDoubleClick={onDoubleClickTitle}
-            title="Doble clic para editar"
+            title="Click para ver detalles • Doble clic para editar"
           >
             {task.title}
           </h3>

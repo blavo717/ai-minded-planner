@@ -24,6 +24,10 @@ interface TasksContextType {
   isCompleteModalOpen: boolean;
   setIsCompleteModalOpen: (open: boolean) => void;
   
+  // NEW: Task Detail Modal
+  isTaskDetailModalOpen: boolean;
+  setIsTaskDetailModalOpen: (open: boolean) => void;
+  
   // View and state management
   viewMode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower';
   setViewMode: (mode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower') => void;
@@ -37,6 +41,10 @@ interface TasksContextType {
   
   selectedTask: Task | null;
   setSelectedTask: (task: Task | null) => void;
+  
+  // NEW: Task for detail view
+  detailTask: Task | null;
+  setDetailTask: (task: Task | null) => void;
   
   dependenciesTask: Task | null;
   setDependenciesTask: (task: Task | null) => void;
@@ -73,6 +81,7 @@ export const TasksProvider = ({ children }: TasksProviderProps) => {
   const [isDependenciesModalOpen, setIsDependenciesModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false);
   
   // View states
   const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower'>('list');
@@ -82,6 +91,7 @@ export const TasksProvider = ({ children }: TasksProviderProps) => {
   // Task states
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [dependenciesTask, setDependenciesTask] = useState<Task | null>(null);
   const [assigningTask, setAssigningTask] = useState<Task | null>(null);
   const [completingTask, setCompletingTask] = useState<Task | null>(null);
@@ -100,6 +110,8 @@ export const TasksProvider = ({ children }: TasksProviderProps) => {
     setIsAssignModalOpen,
     isCompleteModalOpen,
     setIsCompleteModalOpen,
+    isTaskDetailModalOpen,
+    setIsTaskDetailModalOpen,
     
     // View states
     viewMode,
@@ -114,6 +126,8 @@ export const TasksProvider = ({ children }: TasksProviderProps) => {
     setEditingTask,
     selectedTask,
     setSelectedTask,
+    detailTask,
+    setDetailTask,
     dependenciesTask,
     setDependenciesTask,
     assigningTask,

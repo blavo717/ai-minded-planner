@@ -4,6 +4,7 @@ import { Card, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Task } from '@/hooks/useTasks';
 import { Project } from '@/hooks/useProjects';
+import { useTasksContext } from './providers/TasksProvider';
 import TaskCardActions from './TaskCardActions';
 import TaskCardBadges from './TaskCardBadges';
 import TaskCardHeader from './TaskCardHeader';
@@ -32,9 +33,18 @@ const TaskCard = memo(({
   onArchiveTask,
   onCreateSubtask 
 }: TaskCardProps) => {
+  // NEW: Get context for task detail modal
+  const { setDetailTask, setIsTaskDetailModalOpen } = useTasksContext();
+
   const handleCreateSubtaskClick = useCallback((title: string) => {
     onCreateSubtask(task.id, title);
   }, [onCreateSubtask, task.id]);
+
+  // NEW: Handle title click to open detail modal
+  const handleTitleClick = () => {
+    setDetailTask(task);
+    setIsTaskDetailModalOpen(true);
+  };
 
   const completedSubtasks = subtasks.filter(st => st.status === 'completed').length;
   const totalSubtasks = subtasks.length;
@@ -56,7 +66,11 @@ const TaskCard = memo(({
       <CardHeader className="pb-3">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <TaskCardHeader task={task} isCompleted={isCompleted} />
+            <TaskCardHeader 
+              task={task} 
+              isCompleted={isCompleted} 
+              onTitleClick={handleTitleClick}
+            />
           </div>
           
           <div className="flex-shrink-0 self-start">

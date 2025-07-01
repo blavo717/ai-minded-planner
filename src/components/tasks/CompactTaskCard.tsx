@@ -8,6 +8,7 @@ import { Project } from '@/hooks/useProjects';
 import CompactSubtaskList from './CompactSubtaskList';
 import TaskActivityLogModal from './TaskActivityLogModal';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
+import { useTasksContext } from './providers/TasksProvider';
 import CompactTaskCardHeader from './compact/CompactTaskCardHeader';
 import CompactTaskCardMetadata from './compact/CompactTaskCardMetadata';
 import CompactTaskCardActions from './compact/CompactTaskCardActions';
@@ -43,6 +44,9 @@ const CompactTaskCard = memo(({
   const [editTitle, setEditTitle] = useState(task.title);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { updateTask } = useTaskMutations();
+  
+  // NEW: Get context for task detail modal
+  const { setDetailTask, setIsTaskDetailModalOpen } = useTasksContext();
 
   const completedSubtasks = subtasks.filter(st => st.status === 'completed').length;
   const totalSubtasks = subtasks.length;
@@ -73,6 +77,12 @@ const CompactTaskCard = memo(({
   const handleDoubleClickTitle = () => {
     setIsEditingTitle(true);
     setEditTitle(task.title);
+  };
+
+  // NEW: Handle title click to open detail modal
+  const handleTitleClick = () => {
+    setDetailTask(task);
+    setIsTaskDetailModalOpen(true);
   };
 
   const handleSaveTitle = () => {
@@ -114,6 +124,7 @@ const CompactTaskCard = memo(({
               onToggleComplete={handleToggleComplete}
               onToggleExpand={handleToggleExpand}
               onDoubleClickTitle={handleDoubleClickTitle}
+              onTitleClick={handleTitleClick}
               onEditTitleChange={setEditTitle}
               onSaveTitle={handleSaveTitle}
               onCancelEdit={handleCancelEdit}

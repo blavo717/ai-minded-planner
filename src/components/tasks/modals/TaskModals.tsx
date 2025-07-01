@@ -2,11 +2,13 @@
 import React from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useProfiles, Profile } from '@/hooks/useProfiles';
+import { useTasks } from '@/hooks/useTasks';
 import CreateTaskModal from '@/components/modals/CreateTaskModal';
 import EditTaskModal from '@/components/tasks/EditTaskModal';
 import ManageDependenciesModal from '@/components/tasks/ManageDependenciesModal';
 import AssignTaskModal from '@/components/modals/AssignTaskModal';
 import CompleteTaskModal from './CompleteTaskModal';
+import TaskDetailModal from './TaskDetailModal';
 import { useTasksContext } from '../providers/TasksProvider';
 
 // Create a compatible profile type for CreateTaskModal
@@ -20,6 +22,8 @@ interface CompatibleProfile {
 const TaskModals = () => {
   const { projects } = useProjects();
   const { profiles } = useProfiles();
+  const { mainTasks } = useTasks();
+  
   const {
     isCreateTaskOpen,
     setIsCreateTaskOpen,
@@ -31,6 +35,8 @@ const TaskModals = () => {
     setIsAssignModalOpen,
     isCompleteModalOpen,
     setIsCompleteModalOpen,
+    isTaskDetailModalOpen,
+    setIsTaskDetailModalOpen,
     editingTask,
     setEditingTask,
     dependenciesTask,
@@ -39,6 +45,8 @@ const TaskModals = () => {
     setAssigningTask,
     completingTask,
     setCompletingTask,
+    detailTask,
+    setDetailTask,
   } = useTasksContext();
 
   // Filter and transform profiles to ensure full_name exists
@@ -50,6 +58,27 @@ const TaskModals = () => {
       email: profile.email || '', // Provide default empty string if email is undefined
       role: profile.role,
     }));
+
+  // Navigation functions for task detail modal
+  const handleNavigateToPrevious = () => {
+    if (!detailTask) return;
+    const currentIndex = mainTasks.findIndex(t => t.id === detailTask.id);
+    if (currentIndex > 0) {
+      setDetailTask(mainTasks[currentIndex - 1]);
+    }
+  };
+
+  const handleNavigateToNext = () => {
+    if (!detailTask) return;
+    const currentIndex = mainTasks.findIndex(t => t.id === detailTask.id);
+    if (currentIndex < mainTasks.length - 1) {
+      setDetailTask(mainTasks[currentIndex + 1]);
+    }
+  };
+
+  const currentTaskIndex = detailTask ? mainTasks.findIndex(t => t.id === detailTask.id) : -1;
+  const hasPrevious = currentTaskIndex > 0;
+  const hasNext = currentTaskIndex >= 0 && currentTaskIndex < mainTasks.length - 1;
 
   return (
     <>
@@ -106,6 +135,23 @@ const TaskModals = () => {
           }}
           taskId={completingTask.id}
           taskTitle={completingTask.title}
+        />
+      )}
+
+      {detailTask && (
+        <TaskDetailModal
+          isOpen={isTaskDetailModalOpen}
+          onClose={() => {
+            setIsTaskDetailModalOpen(false);
+            setDetailTask(null);
+          }}
+          task={detailTask}
+          allTasks={mainTasks}
+          projects={projects}
+          onNavigateToPrevious={handleNavigateToPrevious}
+          onNavigateToNext={handleNavigateToNext}
+          hasPrevious={hasPrevious}
+          hasNext={hasNext}
         />
       )}
     </>
