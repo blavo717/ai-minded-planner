@@ -15,6 +15,78 @@ export interface TaskAISummary {
   intelligentActions?: any[];
 }
 
+/**
+ * Combina insights del LLM con análisis local específico
+ */
+function combineInsightsIntelligently(llmInsights: string | undefined, localInsights: any[]): string {
+  let combinedInsights = '';
+  
+  // Usar insights del LLM si existen y son útiles
+  if (llmInsights && llmInsights.length > 50 && !llmInsights.includes('análisis no disponible')) {
+    combinedInsights += llmInsights;
+  }
+  
+  // Agregar insights específicos más relevantes
+  const highConfidenceInsights = localInsights.filter(insight => insight.confidence > 0.7);
+  if (highConfidenceInsights.length > 0) {
+    if (combinedInsights) combinedInsights += '\n\n';
+    combinedInsights += 'ANÁLISIS ESPECÍFICO:\n';
+    
+    highConfidenceInsights.slice(0, 2).forEach(insight => {
+      combinedInsights += `• ${insight.title}: ${insight.description} → ${insight.actionable}\n`;
+    });
+  }
+  
+  return combinedInsights || 'Análisis contextual en proceso';
+}
+
+/**
+ * Crea fallback inteligente usando análisis local cuando LLM falla
+ */
+function createIntelligentFallback(context: TaskContext, insights: any[], actions: any[]): TaskAISummary {
+  const { mainTask, completionStatus } = context;
+  
+  // Generar resumen específico basado en datos
+  let statusSummary = `"${mainTask.title}" - ${completionStatus.overallProgress}% completado`;
+  
+  if (completionStatus.totalSubtasks > 0) {
+    statusSummary += ` (${completionStatus.completedSubtasks}/${completionStatus.totalSubtasks} subtareas)`;
+  }
+  
+  // Agregar insight más relevante
+  const topInsight = insights.find(i => i.confidence > 0.8);
+  if (topInsight) {
+    statusSummary += `. ${topInsight.description}`;
+  }
+  
+  // Generar próximos pasos específicos
+  let nextSteps = 'Próximos pasos específicos: ';
+  if (actions.length > 0) {
+    nextSteps += actions[0].suggestedData?.content || 'Revisar estado actual y definir acción específica';
+  } else if (insights.length > 0) {
+    nextSteps += insights[0].actionable || 'Continuar con el progreso actual';
+  } else {
+    nextSteps += 'Revisar subtareas pendientes y seleccionar la más crítica';
+  }
+  
+  // Determinar nivel de riesgo basado en insights
+  let riskLevel: 'low' | 'medium' | 'high' = 'low';
+  const highUrgencyInsights = insights.filter(i => i.urgency === 'high');
+  if (highUrgencyInsights.length > 0) {
+    riskLevel = 'high';
+  } else if (insights.filter(i => i.urgency === 'medium').length > 0) {
+    riskLevel = 'medium';
+  }
+  
+  return {
+    statusSummary,
+    nextSteps,
+    riskLevel,
+    insights: insights.length > 0 ? `Detectados ${insights.length} patrones específicos que requieren atención` : undefined,
+    intelligentActions: actions.slice(0, 2) // Top 2 acciones más relevantes
+  };
+}
+
 export const generateTaskStateAndSteps = async (
   context: TaskContext,
   makeLLMRequest: any
@@ -65,7 +137,7 @@ export const generateTaskStateAndSteps = async (
     const enrichedResponse = {
       ...validated,
       // Combinar insights: LLM + análisis local específico
-      insights: this.combineInsightsIntelligently(validated.insights, specificInsights),
+      insights: combineInsightsIntelligently(validated.insights, specificInsights),
       // Usar acciones locales inteligentes si LLM no las generó bien
       intelligentActions: validated.intelligentActions?.length > 0 ? 
         validated.intelligentActions : 
@@ -113,7 +185,7 @@ export const generateTaskStateAndSteps = async (
       const localInsights = ContextualInsightGenerator.generateSpecificInsights(context);
       const localActions = ActionableRecommendationEngine.generateSmartActions(context);
       
-      const intelligentFallback = this.createIntelligentFallback(context, localInsights, localActions);
+      const intelligentFallback = createIntelligentFallback(context, localInsights, localActions);
       
       console.log('✅ Fallback inteligente generado exitosamente');
       return intelligentFallback;
@@ -123,77 +195,5 @@ export const generateTaskStateAndSteps = async (
       // ✅ Fallback seguro final
       return createFallbackResponse(context.mainTask.title);
     }
-  }
-
-  /**
-   * Combina insights del LLM con análisis local específico
-   */
-  private static combineInsightsIntelligently(llmInsights: string | undefined, localInsights: any[]): string {
-    let combinedInsights = '';
-    
-    // Usar insights del LLM si existen y son útiles
-    if (llmInsights && llmInsights.length > 50 && !llmInsights.includes('análisis no disponible')) {
-      combinedInsights += llmInsights;
-    }
-    
-    // Agregar insights específicos más relevantes
-    const highConfidenceInsights = localInsights.filter(insight => insight.confidence > 0.7);
-    if (highConfidenceInsights.length > 0) {
-      if (combinedInsights) combinedInsights += '\n\n';
-      combinedInsights += 'ANÁLISIS ESPECÍFICO:\n';
-      
-      highConfidenceInsights.slice(0, 2).forEach(insight => {
-        combinedInsights += `• ${insight.title}: ${insight.description} → ${insight.actionable}\n`;
-      });
-    }
-    
-    return combinedInsights || 'Análisis contextual en proceso';
-  }
-
-  /**
-   * Crea fallback inteligente usando análisis local cuando LLM falla
-   */
-  private static createIntelligentFallback(context: TaskContext, insights: any[], actions: any[]): TaskAISummary {
-    const { mainTask, completionStatus } = context;
-    
-    // Generar resumen específico basado en datos
-    let statusSummary = `"${mainTask.title}" - ${completionStatus.overallProgress}% completado`;
-    
-    if (completionStatus.totalSubtasks > 0) {
-      statusSummary += ` (${completionStatus.completedSubtasks}/${completionStatus.totalSubtasks} subtareas)`;
-    }
-    
-    // Agregar insight más relevante
-    const topInsight = insights.find(i => i.confidence > 0.8);
-    if (topInsight) {
-      statusSummary += `. ${topInsight.description}`;
-    }
-    
-    // Generar próximos pasos específicos
-    let nextSteps = 'Próximos pasos específicos: ';
-    if (actions.length > 0) {
-      nextSteps += actions[0].suggestedData?.content || 'Revisar estado actual y definir acción específica';
-    } else if (insights.length > 0) {
-      nextSteps += insights[0].actionable || 'Continuar con el progreso actual';
-    } else {
-      nextSteps += 'Revisar subtareas pendientes y seleccionar la más crítica';
-    }
-    
-    // Determinar nivel de riesgo basado en insights
-    let riskLevel: 'low' | 'medium' | 'high' = 'low';
-    const highUrgencyInsights = insights.filter(i => i.urgency === 'high');
-    if (highUrgencyInsights.length > 0) {
-      riskLevel = 'high';
-    } else if (insights.filter(i => i.urgency === 'medium').length > 0) {
-      riskLevel = 'medium';
-    }
-    
-    return {
-      statusSummary,
-      nextSteps,
-      riskLevel,
-      insights: insights.length > 0 ? `Detectados ${insights.length} patrones específicos que requieren atención` : undefined,
-      intelligentActions: actions.slice(0, 2) // Top 2 acciones más relevantes
-    };
   }
 };
