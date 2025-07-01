@@ -1,198 +1,149 @@
-
-import React, { memo, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle2, Archive, Edit, ListChecks, UserPlus } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { Project } from '@/hooks/useProjects';
-import CompactSubtaskList from './CompactSubtaskList';
-import TaskActivityLogModal from './TaskActivityLogModal';
-import { useTaskMutations } from '@/hooks/useTaskMutations';
-import { useTasksContext } from './providers/TasksProvider';
-import CompactTaskCardHeader from './compact/CompactTaskCardHeader';
-import CompactTaskCardMetadata from './compact/CompactTaskCardMetadata';
-import CompactTaskCardActions from './compact/CompactTaskCardActions';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useTasksContext } from '@/components/tasks/providers/TasksProvider';
 
 interface CompactTaskCardProps {
   task: Task;
-  subtasks: Task[];
-  project?: Project;
-  onEditTask: (task: Task) => void;
+  onEdit: (task: Task) => void;
+  onComplete: (task: Task) => void;
+  onArchive: (task: Task) => void;
   onManageDependencies: (task: Task) => void;
-  onAssignTask: (task: Task) => void;
-  onCompleteTask: (task: Task) => void;
-  onArchiveTask: (taskId: string) => void;
-  onCreateSubtask: (parentTaskId: string, title: string) => void;
-  getSubtasksForTask: (taskId: string) => Task[];
+  onAssign: (task: Task) => void;
+  onCreateSubtask: (task: Task) => void;
+  projects?: Project[];
+  showProject?: boolean;
 }
 
-const CompactTaskCard = memo(({ 
+const CompactTaskCard = ({ 
   task, 
-  subtasks, 
-  project,
-  onEditTask, 
-  onManageDependencies,
-  onAssignTask,
-  onCompleteTask,
-  onArchiveTask,
+  onEdit, 
+  onComplete, 
+  onArchive, 
+  onManageDependencies, 
+  onAssign,
   onCreateSubtask,
-  getSubtasksForTask
+  projects = [],
+  showProject = true 
 }: CompactTaskCardProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedLogTask, setSelectedLogTask] = useState<Task | null>(null);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editTitle, setEditTitle] = useState(task.title);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { updateTask } = useTaskMutations();
-  
-  // NEW: Get context for task detail modal
-  const { setDetailTask, setIsTaskDetailModalOpen } = useTasksContext();
+  const { 
+    setDetailTask, 
+    setIsTaskDetailModalOpen 
+  } = useTasksContext();
 
-  const completedSubtasks = subtasks.filter(st => st.status === 'completed').length;
-  const totalSubtasks = subtasks.length;
-  const isCompleted = task.status === 'completed';
-  const hasSubtasks = totalSubtasks > 0;
-  const showProgress = totalSubtasks > 0;
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const getPriorityColor = () => {
-    switch (task.priority) {
-      case 'urgent': return 'bg-red-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
-      default: return 'bg-gray-300';
+  const project = projects.find(p => p.id === task.project_id);
+
+  const timeAgo = task.created_at
+    ? formatDistanceToNow(new Date(task.created_at), { addSuffix: true, locale: es })
+    : 'hace un momento';
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'pending': return 'bg-gray-100 text-gray-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleToggleComplete = (checked: boolean) => {
-    if (checked) {
-      onCompleteTask(task);
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-500 text-white';
+      case 'high': return 'bg-orange-500 text-white';
+      case 'medium': return 'bg-yellow-500 text-gray-800';
+      case 'low': return 'bg-green-500 text-white';
+      default: return 'bg-gray-300 text-gray-800';
     }
   };
 
-  const handleToggleExpand = () => {
-    setIsExpanded(!isExpanded);
-  };
-
-  const handleDoubleClickTitle = () => {
-    setIsEditingTitle(true);
-    setEditTitle(task.title);
-  };
-
-  // NEW: Handle title click to open detail modal
-  const handleTitleClick = () => {
+  const handleCardClick = () => {
+    // CORRECCIÓN: Usar los estados correctos del contexto
     setDetailTask(task);
     setIsTaskDetailModalOpen(true);
   };
 
-  const handleSaveTitle = () => {
-    if (editTitle.trim() && editTitle.trim() !== task.title) {
-      updateTask({
-        id: task.id,
-        title: editTitle.trim()
-      });
-    }
-    setIsEditingTitle(false);
-  };
-
-  const handleCancelEdit = () => {
-    setEditTitle(task.title);
-    setIsEditingTitle(false);
-  };
-
-  const handleCreateSubtaskAndKeepOpen = () => {
-    onCreateSubtask(task.id, 'Nueva subtarea');
-    // No cerramos el dropdown aquí
-  };
-
   return (
-    <>
-      <div className="space-y-0">
-        <Card 
-          className={`border-l-4 transition-all duration-200 group hover:shadow-md ${
-            isCompleted ? 'bg-gray-50 opacity-75' : 'bg-white hover:bg-gray-50'
-          }`}
-          style={{ borderLeftColor: project?.color || getPriorityColor().replace('bg-', '#') }}
-        >
-          <div className="py-4 px-6">
-            <CompactTaskCardHeader
-              task={task}
-              isCompleted={isCompleted}
-              isExpanded={isExpanded}
-              isEditingTitle={isEditingTitle}
-              editTitle={editTitle}
-              onToggleComplete={handleToggleComplete}
-              onToggleExpand={handleToggleExpand}
-              onDoubleClickTitle={handleDoubleClickTitle}
-              onTitleClick={handleTitleClick}
-              onEditTitleChange={setEditTitle}
-              onSaveTitle={handleSaveTitle}
-              onCancelEdit={handleCancelEdit}
-            />
-
-            {/* Contenido principal - APROVECHA EL ANCHO COMPLETO */}
-            <div className="flex-1 min-w-0 flex items-center justify-between gap-6 mt-2">
-              {/* Metadata horizontal - APROVECHA EL ESPACIO EXTRA */}
-              <CompactTaskCardMetadata task={task} project={project} />
-
-              {/* Indicadores de estado y acciones */}
-              <CompactTaskCardActions
-                task={task}
-                completedSubtasks={completedSubtasks}
-                totalSubtasks={totalSubtasks}
-                showProgress={showProgress}
-                dropdownOpen={dropdownOpen}
-                onDropdownOpenChange={setDropdownOpen}
-                onLogClick={setSelectedLogTask}
-                onEditTask={() => onEditTask(task)}
-                onCreateSubtask={handleCreateSubtaskAndKeepOpen}
-                onManageDependencies={() => onManageDependencies(task)}
-                onAssignTask={() => onAssignTask(task)}
-                onArchiveTask={() => onArchiveTask(task.id)}
-              />
-            </div>
+    <Card className="bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+      <CardContent className="p-3">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <h3 
+              className="font-semibold text-sm hover:underline cursor-pointer"
+              onClick={handleCardClick}
+            >
+              {task.title}
+            </h3>
+            {showProject && project && (
+              <p className="text-xs text-gray-500 flex items-center gap-2">
+                <span 
+                  className="inline-block w-2 h-2 rounded-full" 
+                  style={{ backgroundColor: project.color }} 
+                />
+                {project.name}
+              </p>
+            )}
           </div>
-        </Card>
 
-        {/* Lista expandible de subtareas */}
-        {isExpanded && (
-          hasSubtasks ? (
-            <CompactSubtaskList
-              parentTask={task}
-              subtasks={subtasks}
-              onCreateSubtask={onCreateSubtask}
-              onEditTask={onEditTask}
-              getSubtasksForTask={getSubtasksForTask}
-            />
-          ) : (
-            <div className="ml-12 border-l-2 border-gray-200 pl-6 py-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onCreateSubtask(task.id, 'Nueva subtarea')}
-                className="h-7 text-xs text-gray-500 hover:text-gray-700 justify-start w-full"
-              >
-                <ChevronRight className="h-3 w-3 mr-1" />
-                Añadir subtarea
-              </Button>
-            </div>
-          )
-        )}
-      </div>
+          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <MoreHorizontal className="h-4 w-4 text-gray-500 cursor-pointer" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => onEdit(task)}>
+                <Edit className="h-4 w-4 mr-2" /> Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onComplete(task)}>
+                <CheckCircle2 className="h-4 w-4 mr-2" /> Completar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onCreateSubtask(task)}>
+                <ListChecks className="h-4 w-4 mr-2" /> Subtarea
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onAssign(task)}>
+                <UserPlus className="h-4 w-4 mr-2" /> Asignar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onManageDependencies(task)}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-git-branch w-4 h-4 mr-2"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg> Dependencias
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onArchive(task)}>
+                <Archive className="h-4 w-4 mr-2" /> Archivar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-      {/* Modal de Log de Actividad */}
-      {selectedLogTask && (
-        <TaskActivityLogModal
-          taskId={selectedLogTask.id}
-          taskTitle={selectedLogTask.title}
-          isOpen={true}
-          onClose={() => setSelectedLogTask(null)}
-        />
-      )}
-    </>
+        <div className="flex items-center justify-between mt-2">
+          <Badge className={`mr-1 text-xs ${getStatusColor(task.status)}`}>
+            {task.status}
+          </Badge>
+          <Badge className={`text-xs ${getPriorityColor(task.priority)}`}>
+            {task.priority}
+          </Badge>
+        </div>
+        <p className="text-xs text-gray-400 mt-1">
+          {timeAgo}
+        </p>
+      </CardContent>
+    </Card>
   );
-});
-
-CompactTaskCard.displayName = 'CompactTaskCard';
+};
 
 export default CompactTaskCard;

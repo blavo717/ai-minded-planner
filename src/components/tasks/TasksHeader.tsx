@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { Project } from '@/hooks/useProjects';
+import { useTasksContext } from '@/hooks/useTasksContext';
 
 interface TasksHeaderProps {
   showInsights: boolean;
@@ -23,10 +23,22 @@ const TasksHeader = ({
   showInsights,
   onToggleInsights,
   onCreateTask,
-  tasks
+  tasks,
+  projects,
+  onTaskSelect,
+  onSearchResults
 }: TasksHeaderProps) => {
+  const { 
+    setShowHistory,
+    setIsCreateTaskOpen
+  } = useTasksContext();
+
+  const handleCreateTask = () => {
+    setIsCreateTaskOpen(true);
+  };
+
   return (
-    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-bold">Tareas</h1>
         <Badge variant="secondary" className="text-xs">
@@ -44,7 +56,10 @@ const TasksHeader = ({
           Insights
         </Button>
 
-        <Button onClick={onCreateTask}>
+        <Button 
+          onClick={handleCreateTask}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Nueva Tarea
         </Button>

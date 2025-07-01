@@ -1,125 +1,164 @@
-
-import React, { memo, useCallback } from 'react';
-import { Card, CardHeader } from '@/components/ui/card';
+import React from 'react';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { 
+  MoreVertical, 
+  Edit, 
+  CheckCircle2, 
+  Archive, 
+  ArrowRight, 
+  UserPlus,
+  ListPlus,
+  Loader2
+} from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { Project } from '@/hooks/useProjects';
-import { useTasksContext } from './providers/TasksProvider';
-import TaskCardActions from './TaskCardActions';
-import TaskCardBadges from './TaskCardBadges';
-import TaskCardHeader from './TaskCardHeader';
-import TaskCardContent from './TaskCardContent';
+import { TaskAssignment } from '@/hooks/useTaskAssignments';
+import { TaskDependency } from '@/hooks/useTaskDependencies';
+import { useTasksContext } from '@/components/tasks/providers/TasksProvider';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface TaskCardProps {
   task: Task;
-  subtasks: Task[];
-  project?: Project;
-  onEditTask: (task: Task) => void;
-  onManageDependencies: (task: Task) => void;
-  onAssignTask: (task: Task) => void;
-  onCompleteTask: (task: Task) => void;
-  onArchiveTask: (taskId: string) => void;
-  onCreateSubtask: (parentTaskId: string, title: string) => void;
+  onEdit?: (task: Task) => void;
+  onComplete?: (task: Task) => void;
+  onArchive?: (task: Task) => void;
+  onManageDependencies?: (task: Task) => void;
+  onAssign?: (task: Task) => void;
+  onCreateSubtask?: (task: Task) => void;
+  projects?: Project[];
+  showProject?: boolean;
+  isSubtask?: boolean;
 }
 
-const TaskCard = memo(({ 
+const TaskCard = ({ 
   task, 
-  subtasks, 
-  project,
-  onEditTask, 
-  onManageDependencies,
-  onAssignTask,
-  onCompleteTask,
-  onArchiveTask,
-  onCreateSubtask 
+  onEdit, 
+  onComplete, 
+  onArchive, 
+  onManageDependencies, 
+  onAssign,
+  onCreateSubtask,
+  projects = [],
+  showProject = true,
+  isSubtask = false 
 }: TaskCardProps) => {
-  // NEW: Get context for task detail modal
-  const { setDetailTask, setIsTaskDetailModalOpen } = useTasksContext();
+  const { 
+    setDetailTask, 
+    setIsTaskDetailModalOpen 
+  } = useTasksContext();
 
-  const handleCreateSubtaskClick = useCallback((title: string) => {
-    onCreateSubtask(task.id, title);
-  }, [onCreateSubtask, task.id]);
+  const project = projects.find(p => p.id === task.project_id);
 
-  // NEW: Handle title click to open detail modal
-  const handleTitleClick = () => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'pending': return 'bg-gray-100 text-gray-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-500 text-white';
+      case 'high': return 'bg-orange-500 text-white';
+      case 'medium': return 'bg-yellow-500 text-gray-800';
+      case 'low': return 'bg-green-500 text-white';
+      default: return 'bg-gray-300 text-gray-800';
+    }
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // CORRECCIÓN: Usar los estados correctos del contexto
     setDetailTask(task);
     setIsTaskDetailModalOpen(true);
   };
 
-  const completedSubtasks = subtasks.filter(st => st.status === 'completed').length;
-  const totalSubtasks = subtasks.length;
-  const isCompleted = task.status === 'completed';
-
-  // Log para debugging
-  console.log('TaskCard rendered for task:', {
-    id: task.id,
-    title: task.title,
-    status: task.status,
-    task_level: task.task_level,
-    subtasks: totalSubtasks
-  });
-
   return (
-    <Card className={`w-full shadow-sm hover:shadow-md transition-all duration-200 border animate-scale-in hover:scale-[1.02] ${
-      isCompleted ? 'border-green-200 bg-green-50' : project ? 'border' : 'border-gray-200'
-    }`} style={project && !isCompleted ? { borderLeftColor: project.color, borderLeftWidth: '4px' } : undefined}>
-      <CardHeader className="pb-3">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <TaskCardHeader 
-              task={task} 
-              isCompleted={isCompleted} 
-              onTitleClick={handleTitleClick}
+    <Card 
+      className={`
+        shadow-md hover:shadow-lg transition-shadow duration-200 
+        ${isSubtask ? 'border-dashed border-gray-300' : ''}
+      `}
+      onClick={handleCardClick}
+    >
+      <CardContent className="p-4">
+        {showProject && project && (
+          <div className="flex items-center gap-2 mb-2">
+            <div 
+              className="w-2 h-2 rounded-full" 
+              style={{ backgroundColor: project.color || '#3B82F6' }} 
             />
-          </div>
-          
-          <div className="flex-shrink-0 self-start">
-            <TaskCardActions
-              task={task}
-              onEditTask={onEditTask}
-              onManageDependencies={onManageDependencies}
-              onAssignTask={onAssignTask}
-              onCompleteTask={onCompleteTask}
-              onArchiveTask={onArchiveTask}
-            />
-          </div>
-        </div>
-
-        <div className="animate-slide-in">
-          <TaskCardBadges
-            task={task}
-            completedSubtasks={completedSubtasks}
-            totalSubtasks={totalSubtasks}
-            project={project}
-          />
-        </div>
-
-        {task.tags && task.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2 animate-fade-in">
-            {task.tags.map((tag, index) => (
-              <Badge 
-                key={index} 
-                variant="secondary" 
-                className="text-xs transition-all duration-200 hover:scale-105"
-              >
-                #{tag}
-              </Badge>
-            ))}
+            <p className="text-sm font-medium text-gray-600">{project.name}</p>
           </div>
         )}
-      </CardHeader>
-
-      <TaskCardContent
-        task={task}
-        subtasks={subtasks}
-        totalSubtasks={totalSubtasks}
-        isCompleted={isCompleted}
-        onCreateSubtask={handleCreateSubtaskClick}
-      />
+        <h3 className="text-lg font-semibold mb-2">{task.title}</h3>
+        <p className="text-sm text-gray-500 line-clamp-3">{task.description || 'Sin descripción'}</p>
+        <div className="flex items-center justify-between mt-4">
+          <Badge className={`text-xs ${getStatusColor(task.status)}`}>
+            {task.status}
+          </Badge>
+          {task.priority && (
+            <Badge className={`text-xs ${getPriorityColor(task.priority)}`}>
+              {task.priority}
+            </Badge>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="flex items-center justify-end p-4 border-t">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Abrir menú</span>
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => onEdit?.(task)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onComplete?.(task)}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Completar
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onArchive?.(task)}>
+              <Archive className="h-4 w-4 mr-2" />
+              Archivar
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onCreateSubtask?.(task)}>
+              <ListPlus className="h-4 w-4 mr-2" />
+              Añadir Subtarea
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onManageDependencies?.(task)}>
+              <ArrowRight className="h-4 w-4 mr-2" />
+              Gestionar Dependencias
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onAssign?.(task)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Asignar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardFooter>
     </Card>
   );
-});
-
-TaskCard.displayName = 'TaskCard';
+};
 
 export default TaskCard;
