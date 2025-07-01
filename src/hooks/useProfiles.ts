@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface Profile {
   id: string;
   email?: string;
-  full_name?: string;
+  full_name: string; // Made required to match CreateTaskModal expectations
   avatar_url?: string;
   timezone?: string;
   role?: 'project_manager' | 'engineer' | 'coordinator' | 'specialist' | 'admin';
@@ -26,7 +26,12 @@ export const useProfiles = () => {
         .order('full_name', { ascending: true });
 
       if (error) throw error;
-      return data as Profile[];
+      
+      // Transform the data to ensure full_name is always present
+      return data.map(profile => ({
+        ...profile,
+        full_name: profile.full_name || profile.email || 'Usuario Sin Nombre'
+      })) as Profile[];
     },
   });
 
