@@ -11,7 +11,7 @@ export async function generateTaskStateAndSteps(
   context: TaskContext,
   makeLLMRequest: ReturnType<typeof useLLMService>['makeLLMRequest']
 ): Promise<TaskAISummary> {
-  console.log('🤖 Iniciando generación IA:', {
+  console.log('🤖 Iniciando generación IA con estructura correcta:', {
     taskTitle: context.mainTask.title,
     taskStatus: context.mainTask.status,
     hasLogs: context.recentLogs.length,
@@ -19,13 +19,21 @@ export async function generateTaskStateAndSteps(
     progress: context.completionStatus.overallProgress
   });
 
-  const systemPrompt = "Eres un asistente experto en gestión de tareas que ayuda a equipos de trabajo a entender el estado actual y definir próximos pasos.";
-  
+  const systemPrompt = `Eres un asistente experto en gestión de tareas que genera resúmenes contextuales.
+
+Responde ÚNICAMENTE en formato JSON válido con esta estructura exacta:
+{"statusSummary":"descripción del estado actual en máximo 24 palabras","nextSteps":"próximas acciones específicas en máximo 20 palabras"}
+
+EJEMPLOS:
+{"statusSummary":"Proyecto moldes CS1-CS6 en progreso, 7 subtareas completadas (29%), pendiente asignación forwarder","nextSteps":"Asignar forwarder para transporte y completar envío plantillas pendientes"}
+
+{"statusSummary":"Documentos completados y enviados al equipo, esperando feedback de stakeholders principales","nextSteps":"Agendar reunión de revisión y consolidar comentarios para segunda versión"}`;
+
   const userPrompt = `INFORMACIÓN DE LA TAREA:
 Tarea Principal: ${context.mainTask.title}
 ${context.mainTask.description ? `Descripción: ${context.mainTask.description}` : ''}
 Estado: ${context.mainTask.status}
-Prioridad: ${context.mainTask.priority}
+Prioridad: ${context.mainTask.priority || 'No definida'}
 Progreso General: ${context.completionStatus.overallProgress}%
 
 PROGRESO DETALLADO:
@@ -40,112 +48,72 @@ ${context.recentLogs.slice(0, 5).map(log =>
   `• ${log.description} (${new Date(log.created_at).toLocaleDateString()})`
 ).join('\n') || 'Sin actividad reciente'}
 
-INSTRUCCIONES:
-Responde en formato JSON válido con exactamente esta estructura:
-{
-  "statusSummary": "resumen del estado actual en máximo 24 palabras",
-  "nextSteps": "próximas acciones específicas a realizar en máximo 20 palabras"
-}
-
-CRITERIOS:
-1. RESUMEN ESTADO: Explica qué se ha hecho recientemente, qué se está esperando, o bloqueos actuales
-2. PRÓXIMOS PASOS: Acciones concretas y específicas que la persona debe hacer para avanzar
-
-EJEMPLOS DE RESPUESTA:
-{
-  "statusSummary": "Email enviado al proveedor hace 3 días, esperando cotización para continuar con el proyecto de moldes",
-  "nextSteps": "Hacer seguimiento telefónico al proveedor y preparar documentación alternativa como backup"
-}
-
-{
-  "statusSummary": "Documentos completados y enviados al equipo, pendiente de revisión y feedback de stakeholders principales",
-  "nextSteps": "Agendar reunión de revisión y consolidar comentarios para segunda versión"
-}
-
-RESPONDE ÚNICAMENTE CON EL JSON VÁLIDO:`;
+Genera resumen del estado actual y próximos pasos específicos en JSON:`;
 
   try {
-    console.log('🚀 Enviando prompt a LLM...');
+    console.log('🚀 Enviando request con estructura de useAIAssistantSimple');
     
+    // ✅ USAR EXACTAMENTE LA MISMA ESTRUCTURA QUE FUNCIONA - SIN maxTokens
     const response = await makeLLMRequest({
       systemPrompt,
       userPrompt,
-      functionName: 'generateTaskStateAndSteps',
-      temperature: 0.7,
-      maxTokens: 200
+      functionName: 'task_summary_generation',
+      temperature: 0.7
     });
 
-    console.log('📥 Respuesta LLM recibida:', {
-      hasContent: !!response.content,
-      contentLength: response.content?.length,
-      modelUsed: response.model_used
-    });
+    console.log('📥 Respuesta completa:', response);
 
-    const content = response.content.trim();
-    console.log('📝 Contenido a parsear:', content);
+    if (!response.content) {
+      console.error('❌ Response sin contenido:', response);
+      throw new Error('No content in LLM response');
+    }
+
+    console.log('📝 Contenido IA recibido:', response.content);
     
-    const parsed = parseAIResponse(content);
-    console.log('✅ Parsed result:', parsed);
+    const parsed = parseAIResponse(response.content);
+    console.log('✅ JSON parseado:', parsed);
     
     return {
-      statusSummary: parsed.statusSummary || "Estado en proceso de análisis por IA",
-      nextSteps: parsed.nextSteps || "Revisar detalles de la tarea y definir acciones"
+      statusSummary: parsed.statusSummary || "Estado analizado por IA",
+      nextSteps: parsed.nextSteps || "Definir próximas acciones"
     };
 
   } catch (error) {
-    console.error('❌ Error generating AI summary:', error);
+    console.error('❌ Error en generateTaskStateAndSteps:', error);
     console.log('🔄 Usando fallback inteligente');
     return generateIntelligentFallback(context);
   }
 }
 
 function parseAIResponse(content: string): Partial<TaskAISummary> {
+  console.log('🔍 Parseando respuesta:', content);
+  
   try {
-    // Intentar parsear JSON directo
-    return JSON.parse(content);
-  } catch {
-    try {
-      // Buscar JSON en markdown
-      const jsonMatch = content.match(/```json\n(.*?)\n```/s) || content.match(/```\n(.*?)\n```/s);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[1]);
+    // Intentar JSON directo primero
+    const result = JSON.parse(content.trim());
+    console.log('✅ JSON parseado exitosamente:', result);
+    return result;
+  } catch (error) {
+    console.log('⚠️ JSON directo falló, intentando extracción...');
+    
+    // Buscar JSON en el contenido
+    const jsonMatch = content.match(/\{[^}]*\}/);
+    if (jsonMatch) {
+      try {
+        const result = JSON.parse(jsonMatch[0]);
+        console.log('✅ JSON extraído exitosamente:', result);
+        return result;
+      } catch (e) {
+        console.log('❌ Extracción JSON falló');
       }
-      
-      // Buscar JSON en el texto
-      const jsonStart = content.indexOf('{');
-      const jsonEnd = content.lastIndexOf('}') + 1;
-      if (jsonStart !== -1 && jsonEnd > jsonStart) {
-        const jsonStr = content.slice(jsonStart, jsonEnd);
-        return JSON.parse(jsonStr);
-      }
-    } catch {
-      // Extraer texto como fallback
-      return extractTextualData(content);
     }
+    
+    // Fallback simple
+    return {
+      statusSummary: content.slice(0, 100) || "Respuesta IA recibida",
+      nextSteps: "Continuar con siguiente tarea"
+    };
   }
-  
-  return {};
-}
-
-function extractTextualData(content: string): Partial<TaskAISummary> {
-  const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  let statusSummary = "";
-  let nextSteps = "";
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].toLowerCase();
-    if (line.includes('status') || line.includes('estado') || line.includes('resumen')) {
-      statusSummary = lines[i + 1] || lines[i];
-    }
-    if (line.includes('next') || line.includes('paso') || line.includes('acción')) {
-      nextSteps = lines[i + 1] || lines[i];
-    }
-  }
-  
-  return {
-    statusSummary: statusSummary.replace(/[^\w\s.,]/g, '').trim().slice(0, 150),
-    nextSteps: nextSteps.replace(/[^\w\s.,]/g, '').trim().slice(0, 120)
-  };
 }
 
 function generateIntelligentFallback(context: TaskContext): TaskAISummary {
@@ -173,4 +141,43 @@ function generateIntelligentFallback(context: TaskContext): TaskAISummary {
   }
   
   return { statusSummary, nextSteps };
+}
+
+// Función de testing para browser console
+declare global {
+  interface Window {
+    testTaskAIWithCorrectStructure: (taskId: string) => Promise<any>;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.testTaskAIWithCorrectStructure = async (taskId: string) => {
+    console.log('🧪 Test con estructura correcta...');
+    
+    try {
+      const { getTaskContext } = await import('@/utils/taskContext');
+      const { useLLMService } = await import('@/hooks/useLLLService');
+      
+      const context = await getTaskContext(taskId);
+      console.log('📊 Contexto obtenido:', context);
+      
+      // Usar exactamente la misma estructura que useAIAssistantSimple
+      const systemPrompt = "Eres un asistente que responde solo en JSON: {\"test\":\"respuesta exitosa\"}";
+      const userPrompt = "Responde con JSON de test confirmando que la estructura funciona";
+      
+      const { makeLLMRequest } = useLLMService();
+      const response = await makeLLMRequest({
+        systemPrompt,
+        userPrompt,
+        functionName: 'test_task_ai',
+        temperature: 0.7
+      });
+      
+      console.log('🎯 Test result:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Test error:', error);
+      return error;
+    }
+  };
 }

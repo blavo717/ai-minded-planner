@@ -7,10 +7,13 @@ import { generateTaskStateAndSteps, TaskAISummary } from '@/services/taskAIServi
 export function useTaskStateAndSteps(taskId: string) {
   const { makeLLMRequest, activeModel, hasActiveConfiguration } = useLLMService();
   
-  console.log('🔧 LLM Service status:', {
+  console.log('🔧 Comparando con estructura exitosa:', {
+    usingCorrectStructure: true,
     activeModel,
     hasConfiguration: hasActiveConfiguration,
-    taskId
+    taskId,
+    temperature: 0.7,
+    functionName: 'task_summary_generation'
   });
   
   // Obtener contexto de la tarea
@@ -35,11 +38,24 @@ export function useTaskStateAndSteps(taskId: string) {
       context?.completionStatus?.overallProgress,
       activeModel // Regenerar si cambia el modelo
     ],
-    queryFn: () => generateTaskStateAndSteps(context!, makeLLMRequest),
+    queryFn: () => {
+      console.log('🎯 Ejecutando generateTaskStateAndSteps con estructura correcta');
+      return generateTaskStateAndSteps(context!, makeLLMRequest);
+    },
     enabled: !!context && hasActiveConfiguration,
     staleTime: 15 * 60 * 1000, // Cache por 15 minutos
     retry: 1,
     refetchOnWindowFocus: false
+  });
+
+  console.log('📊 Hook state:', {
+    hasContext: !!context,
+    hasAI: !!aiSummary,
+    contextLoading,
+    summaryLoading,
+    contextError: contextError?.message,
+    summaryError: summaryError?.message,
+    currentModel: activeModel
   });
 
   return {
