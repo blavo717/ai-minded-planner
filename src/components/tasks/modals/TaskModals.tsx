@@ -72,7 +72,10 @@ const TaskModals = () => {
         isOpen={isCreateTaskOpen}
         onClose={handleCloseCreateModal}
         projects={projects}
-        profiles={profiles}
+        profiles={profiles.map(profile => ({
+          ...profile,
+          full_name: profile.full_name || profile.email || 'Usuario'
+        }))}
       />
     </>
   );

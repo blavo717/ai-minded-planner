@@ -8,10 +8,11 @@ import KanbanBoard from './KanbanBoard';
 import CalendarView from './views/CalendarView';
 import TimelineView from './views/TimelineView';
 import EisenhowerMatrix from './views/EisenhowerMatrix';
+import TreeTaskView from './views/TreeTaskView';
 
 interface TasksViewSectionProps {
-  viewMode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower';
-  setViewMode: (mode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower') => void;
+  viewMode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower' | 'tree';
+  setViewMode: (mode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower' | 'tree') => void;
   filteredTasks: Task[];
   projects: Project[];
   getSubtasksForTask: (taskId: string) => Task[];
@@ -51,6 +52,20 @@ const TasksViewSection = ({
       <div className="flex-1 overflow-auto px-6 py-6">
         {viewMode === 'list' && (
           <CompactTaskList
+            tasks={filteredTasks}
+            projects={projects}
+            getSubtasksForTask={getSubtasksForTask}
+            onEditTask={onEditTask}
+            onManageDependencies={onManageDependencies}
+            onAssignTask={onAssignTask}
+            onCompleteTask={onCompleteTask}
+            onArchiveTask={onArchiveTask}
+            onCreateSubtask={onCreateSubtask}
+          />
+        )}
+
+        {viewMode === 'tree' && (
+          <TreeTaskView
             tasks={filteredTasks}
             projects={projects}
             getSubtasksForTask={getSubtasksForTask}

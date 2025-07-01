@@ -3,10 +3,11 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { List, LayoutGrid, Clock, Calendar, Grid3X3 } from 'lucide-react';
+import { ListTree } from 'lucide-react';
 
 interface TaskViewControlsProps {
-  viewMode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower';
-  onViewModeChange: (mode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower') => void;
+  viewMode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower' | 'tree';
+  onViewModeChange: (mode: 'list' | 'kanban' | 'timeline' | 'calendar' | 'eisenhower' | 'tree') => void;
   taskCount: number;
 }
 
@@ -21,6 +22,14 @@ const TaskViewControls = ({ viewMode, onViewModeChange, taskCount }: TaskViewCon
         >
           <List className="h-4 w-4 mr-2" />
           Lista
+        </Button>
+        <Button
+          variant={viewMode === 'tree' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => onViewModeChange('tree')}
+        >
+          <ListTree className="h-4 w-4 mr-2" />
+          Árbol
         </Button>
         <Button
           variant={viewMode === 'kanban' ? 'default' : 'outline'}
