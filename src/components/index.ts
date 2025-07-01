@@ -1,9 +1,8 @@
-
 // Layout components
 export { default as MainLayout } from './Layout/MainLayout';
 export { default as ProtectedRoute } from './ProtectedRoute';
 
-// Page components
+// Page components - Solo páginas que realmente existen
 export { default as Index } from '../pages/Index';
 export { default as Tasks } from '../pages/Tasks';
 export { default as Projects } from '../pages/Projects';
