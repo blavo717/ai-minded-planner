@@ -9,6 +9,8 @@ import { useTasks } from '@/hooks/useTasks';
 import { useNavigate } from 'react-router-dom';
 import WorkMicrotaskItem from './WorkMicrotaskItem';
 import MicrotaskCreator from './microtasks/MicrotaskCreator';
+import SubtaskWorkField from './SubtaskWorkField';
+import SubtaskTrackRecord from './SubtaskTrackRecord';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -22,6 +24,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
   const { createTask } = useTaskMutations();
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isActiveWork, setIsActiveWork] = useState(false);
 
   // Obtener microtareas de esta subtarea
   const subtaskMicrotasks = microtasks.filter(m => m.parent_task_id === subtask.id);
@@ -33,7 +36,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
     : (subtask.status === 'completed' ? 100 : 0);
 
   const handleWorkOnSubtask = () => {
-    navigate(`/work/${subtask.id}`);
+    setIsActiveWork(!isActiveWork);
   };
 
   const getStatusColor = () => {
@@ -120,10 +123,12 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
                   <Button 
                     size="sm" 
                     onClick={handleWorkOnSubtask}
-                    className="h-7 px-3 text-xs"
+                    className={`h-7 px-3 text-xs ${
+                      isActiveWork ? 'bg-primary/10 text-primary' : 'hover:bg-primary/10'
+                    }`}
                   >
                     <Play className="w-3 h-3 mr-1" />
-                    Trabajar aquí
+                    {isActiveWork ? 'Trabajando' : 'Trabajar aquí'}
                   </Button>
                 )}
               </div>
@@ -169,6 +174,19 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
           </CollapsibleContent>
         </Collapsible>
       </Card>
+      
+      {/* Campo de trabajo específico para subtarea */}
+      {(canWork && isActiveWork) && (
+        <SubtaskWorkField 
+          subtask={subtask}
+          showByDefault={isActiveWork}
+        />
+      )}
+
+      {/* Track records siempre visibles cuando hay trabajo activo */}
+      {isActiveWork && (
+        <SubtaskTrackRecord subtask={subtask} />
+      )}
     </div>
   );
 };
