@@ -6,7 +6,7 @@ import { ListTodo } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { useTasks } from '@/hooks/useTasks';
 import WorkSubtaskCard from './WorkSubtaskCard';
-import QuickWorkField from './QuickWorkField';
+
 import { useNavigate } from 'react-router-dom';
 
 interface HierarchicalWorkViewProps {
@@ -57,13 +57,6 @@ const HierarchicalWorkView: React.FC<HierarchicalWorkViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Campo de trabajo rápido global */}
-      <QuickWorkField 
-        task={task}
-        currentProgress={mainProgress}
-      />
-      
-      <div className="space-y-4">
       {/* Header de la tarea principal */}
       <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
         <CardHeader className="pb-3">
@@ -123,7 +116,6 @@ const HierarchicalWorkView: React.FC<HierarchicalWorkViewProps> = ({
             </CardContent>
           </Card>
         )}
-      </div>
       </div>
     </div>
   );
