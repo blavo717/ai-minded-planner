@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -83,12 +83,55 @@ const CompactTaskCard = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [shouldAutoExpand, setShouldAutoExpand] = useState(false);
+  const [hoverTimer, setHoverTimer] = useState<NodeJS.Timeout | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const project = projects.find(p => p.id === task.project_id);
   
   // Obtener subtareas si la función está disponible
   const subtasks = getSubtasksForTask ? getSubtasksForTask(task.id).filter(t => t.task_level === 2) : [];
   const hasSubtasks = subtasks.length > 0;
+
+  // Smart auto-expand behavior for subtasks
+  useEffect(() => {
+    if (hasSubtasks && isHovered && !isExpanded && !shouldAutoExpand) {
+      const timer = setTimeout(() => {
+        setShouldAutoExpand(true);
+      }, 1200); // Auto-expand after 1.2s of hover
+      setHoverTimer(timer);
+    } else if (!isHovered && hoverTimer) {
+      clearTimeout(hoverTimer);
+      setHoverTimer(null);
+      setShouldAutoExpand(false);
+    }
+
+    return () => {
+      if (hoverTimer) clearTimeout(hoverTimer);
+    };
+  }, [isHovered, hasSubtasks, isExpanded, shouldAutoExpand, hoverTimer]);
+
+  // Memoized calculations for performance
+  const taskMetrics = useMemo(() => {
+    const completedSubtasks = subtasks.filter(st => st.status === 'completed').length;
+    const completionRate = hasSubtasks ? (completedSubtasks / subtasks.length) * 100 : 0;
+    const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+    const urgencyLevel = task.priority === 'urgent' || isOverdue ? 'critical' : task.priority;
+    
+    return {
+      completedSubtasks,
+      completionRate,
+      isOverdue,
+      urgencyLevel,
+      hasHighActivity: task.last_worked_at && 
+        new Date().getTime() - new Date(task.last_worked_at).getTime() < 24 * 60 * 60 * 1000
+    };
+  }, [task, subtasks, hasSubtasks]);
+
+  // Smart expansion logic
+  const shouldShowExpanded = useMemo(() => {
+    return isExpanded || (shouldAutoExpand && hasSubtasks);
+  }, [isExpanded, shouldAutoExpand, hasSubtasks]);
 
   const timeAgo = task.created_at
     ? formatDistanceToNow(new Date(task.created_at), { addSuffix: true, locale: es })
@@ -241,26 +284,28 @@ const CompactTaskCard = ({
     );
   };
 
-  const handleCardClick = (e: React.MouseEvent) => {
+  // Enhanced handlers with improved UX
+  const handleCardClick = useCallback((e: React.MouseEvent) => {
     // Evitar abrir modal si se hace click en el botón de expansión
     if ((e.target as HTMLElement).closest('button')) {
       return;
     }
     setDetailTask(task);
     setIsTaskDetailModalOpen(true);
-  };
+  }, [task, setDetailTask, setIsTaskDetailModalOpen]);
 
-  const toggleExpansion = () => {
+  const toggleExpansion = useCallback(() => {
     setIsExpanded(!isExpanded);
-  };
+    setShouldAutoExpand(false); // Reset auto-expand when manually toggled
+  }, [isExpanded]);
 
-  const handleDragStart = (e: React.DragEvent) => {
+  const handleDragStart = useCallback((e: React.DragEvent) => {
     if (onDragStart) {
       onDragStart(e, task);
     }
-  };
+  }, [onDragStart, task]);
 
-  const handleCompleteTask = async () => {
+  const handleCompleteTask = useCallback(async () => {
     setIsCompleting(true);
     try {
       await onComplete(task);
@@ -269,10 +314,10 @@ const CompactTaskCard = ({
     } catch (error) {
       setIsCompleting(false);
     }
-  };
+  }, [onComplete, task]);
 
-  // Keyboard navigation handler
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  // Enhanced keyboard navigation handler
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       handleCardClick(e as any);
@@ -285,7 +330,24 @@ const CompactTaskCard = ({
       e.preventDefault();
       onEdit(task);
     }
-  };
+    if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      onAssign(task);
+    }
+    if (e.key === 't' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      onCreateSubtask(task);
+    }
+  }, [handleCardClick, handleCompleteTask, onEdit, onAssign, onCreateSubtask, task]);
+
+  // Smart hover management
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+  }, []);
 
   // Show skeleton if loading
   if (isLoading) {
@@ -310,8 +372,8 @@ const CompactTaskCard = ({
         draggable={!!onDragStart}
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         onKeyDown={handleKeyDown}
         tabIndex={0}
         role="button"
@@ -362,8 +424,19 @@ const CompactTaskCard = ({
                     font-semibold text-base leading-tight cursor-pointer truncate 
                     transition-all duration-200 hover:text-primary
                     ${isHovered ? 'transform translate-x-1' : ''}
+                    ${taskMetrics.isOverdue ? 'text-destructive' : ''}
                   `}>
                     {task.title}
+                    {taskMetrics.isOverdue && (
+                      <span className="ml-2 text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-full animate-pulse">
+                        Vencida
+                      </span>
+                    )}
+                    {taskMetrics.hasHighActivity && (
+                      <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
+                        Activa
+                      </span>
+                    )}
                   </h3>
                   {hasSubtasks && (
                     <div className={`
@@ -371,11 +444,14 @@ const CompactTaskCard = ({
                       ${isHovered ? 'scale-110' : ''}
                     `}>
                       <CircularProgress 
-                        completed={subtasks.filter(st => st.status === 'completed').length}
+                        completed={taskMetrics.completedSubtasks}
                         total={subtasks.length}
                       />
                       <span className="text-xs font-medium text-muted-foreground">
-                        {subtasks.filter(st => st.status === 'completed').length}/{subtasks.length} subtareas
+                        {taskMetrics.completedSubtasks}/{subtasks.length} subtareas
+                        {taskMetrics.completionRate === 100 && (
+                          <span className="ml-1 text-emerald-600">✓</span>
+                        )}
                       </span>
                     </div>
                   )}
@@ -415,27 +491,57 @@ const CompactTaskCard = ({
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 shadow-task-lg border-border">
-                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Acciones</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => onEdit(task)} className="text-sm">
-                  <Edit className="h-4 w-4 mr-3" /> Editar
+              <DropdownMenuContent 
+                align="end" 
+                className="w-48 bg-popover/95 backdrop-blur-md border-border shadow-task-xl z-50"
+                sideOffset={5}
+              >
+                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground px-3 py-2">
+                  Acciones • {`Ctrl+E: Editar • Ctrl+C: Completar`}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => onEdit(task)} 
+                  className="text-sm hover:bg-accent/50 focus:bg-accent/50 transition-colors cursor-pointer"
+                >
+                  <Edit className="h-4 w-4 mr-3 text-primary" /> Editar
+                  <span className="ml-auto text-xs text-muted-foreground">Ctrl+E</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleCompleteTask} className="text-sm" disabled={isCompleting}>
-                  <CheckCircle2 className={`h-4 w-4 mr-3 ${isCompleting ? 'animate-spin' : ''}`} /> 
+                <DropdownMenuItem 
+                  onClick={handleCompleteTask} 
+                  className="text-sm hover:bg-accent/50 focus:bg-accent/50 transition-colors cursor-pointer" 
+                  disabled={isCompleting}
+                >
+                  <CheckCircle2 className={`h-4 w-4 mr-3 text-emerald-600 ${isCompleting ? 'animate-spin' : ''}`} /> 
                   {isCompleting ? 'Completando...' : 'Completar'}
+                  <span className="ml-auto text-xs text-muted-foreground">Ctrl+C</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onCreateSubtask(task)} className="text-sm">
-                  <ListChecks className="h-4 w-4 mr-3" /> Subtarea
+                <DropdownMenuItem 
+                  onClick={() => onCreateSubtask(task)} 
+                  className="text-sm hover:bg-accent/50 focus:bg-accent/50 transition-colors cursor-pointer"
+                >
+                  <ListChecks className="h-4 w-4 mr-3 text-blue-600" /> Subtarea
+                  <span className="ml-auto text-xs text-muted-foreground">Ctrl+T</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onAssign(task)} className="text-sm">
-                  <UserPlus className="h-4 w-4 mr-3" /> Asignar
+                <DropdownMenuItem 
+                  onClick={() => onAssign(task)} 
+                  className="text-sm hover:bg-accent/50 focus:bg-accent/50 transition-colors cursor-pointer"
+                >
+                  <UserPlus className="h-4 w-4 mr-3 text-purple-600" /> Asignar
+                  <span className="ml-auto text-xs text-muted-foreground">Ctrl+A</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onManageDependencies(task)} className="text-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-3"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg> 
+                <DropdownMenuItem 
+                  onClick={() => onManageDependencies(task)} 
+                  className="text-sm hover:bg-accent/50 focus:bg-accent/50 transition-colors cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-3 text-orange-600"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg> 
                   Dependencias
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onArchive(task)} className="text-sm text-destructive focus:text-destructive">
+                <DropdownMenuItem 
+                  onClick={() => onArchive(task)} 
+                  className="text-sm text-destructive hover:bg-destructive/10 focus:bg-destructive/10 focus:text-destructive transition-colors cursor-pointer"
+                >
                   <Archive className="h-4 w-4 mr-3" /> Archivar
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -490,7 +596,7 @@ const CompactTaskCard = ({
       {hasSubtasks && getSubtasksForTask && (
         <div className={`
           overflow-hidden transition-all duration-500 ease-out
-          ${isExpanded ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}
+          ${shouldShowExpanded ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}
         `}>
           <div className="ml-6 animate-fade-in">
             <CompactSubtaskList
