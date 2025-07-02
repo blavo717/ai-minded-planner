@@ -7,6 +7,7 @@ import { Task } from '@/hooks/useTasks';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { SmartRecommendationEngine, EnhancedSmartRecommendation } from '@/services/smartRecommendationEngine';
+import { enhancedFactorsService } from '@/services/enhancedFactorsService';
 import { useAuth } from '@/hooks/useAuth';
 import { TaskMetricsDisplay } from './components/TaskMetricsDisplay';
 import { TaskReasoningAlert } from './components/TaskReasoningAlert';
@@ -38,7 +39,7 @@ const SmartWhatToDoNow: React.FC<SmartWhatToDoNowProps> = ({
   const [showAdvancedInfo, setShowAdvancedInfo] = useState(false);
 
   // Generar recomendación inteligente usando EnhancedFactorsService
-  const smartRecommendation = useMemo((): SmartRecommendation | null => {
+  const smartRecommendation = useMemo((): EnhancedSmartRecommendation | null => {
     const availableTasks = tasks.filter(task => 
       task.status !== 'completed' && 
       !task.is_archived && 
@@ -80,13 +81,36 @@ const SmartWhatToDoNow: React.FC<SmartWhatToDoNowProps> = ({
 
     return {
       task: best.task,
+      score: best.finalScore,
       confidence: best.confidence,
       successProbability: best.successProbability,
       factors: best.factors,
       context: best.context,
       reasoning,
       estimatedDuration: enhancedFactorsService.estimateTaskDuration(best.task),
-      energyMatch: best.context.userEnergyLevel
+      energyMatch: best.context.userEnergyLevel,
+      alternatives: taskScores.slice(1, 3).map(ts => ts.task),
+      userProfile: {
+        optimalHours: [9, 10, 11],
+        optimalDays: ['lunes', 'martes'],
+        avgTaskDuration: 60,
+        completionRate: 75,
+        preferredTags: [],
+        procrastinationTriggers: [],
+        energyPeakHours: [9, 14],
+        productivePatterns: []
+      },
+      insights: [],
+      timing: {
+        isOptimalNow: true,
+        reasoning: 'Momento adecuado para trabajar'
+      },
+      energy: {
+        required: 'medium' as const,
+        available: best.context.userEnergyLevel,
+        match: 'good' as const,
+        suggestion: 'Buena coincidencia de energía'
+      }
     };
   }, [tasks, skippedTasks]);
 
