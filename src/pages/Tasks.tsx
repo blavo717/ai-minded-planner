@@ -15,10 +15,8 @@ import TopFiltersBar from '@/components/tasks/filters/TopFiltersBar';
 import TasksViewSection from '@/components/tasks/TasksViewSection';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
-import WhatToDoNowCard from '@/components/tasks/WhatToDoNowCard';
 import { FilterState } from '@/types/filters';
 import { Task } from '@/hooks/useTasks';
-import { getWhatToDoNow } from '@/utils/taskPrioritization';
 
 const TasksContent = () => {
   const { mainTasks, getSubtasksForTask } = useTasks();
@@ -29,9 +27,6 @@ const TasksContent = () => {
   const { dependencies: allTaskDependencies } = useTaskDependencies();
   const { user } = useAuth();
   
-  // Estado para funcionalidad "¿Qué hago ahora?"
-  const [skippedTaskIds, setSkippedTaskIds] = useState<string[]>([]);
-  const [isDismissed, setIsDismissed] = useState(false);
   
   const {
     viewMode,
@@ -117,35 +112,6 @@ const TasksContent = () => {
     return createdDate >= sevenDaysAgo;
   }).length;
 
-  // Función "¿Qué hago ahora?"
-  const nextTaskSuggestion = user && !isDismissed ? 
-    getWhatToDoNow(mainTasks, user.id, skippedTaskIds) : null;
-
-  const handleStartWorking = (task: Task) => {
-    // Abrir la tarea para trabajar
-    setDetailTask(task);
-    setIsTaskDetailModalOpen(true);
-    
-    // Si está pendiente, cambiar a "en progreso"
-    if (task.status === 'pending') {
-      handleCompleteTask({ ...task, status: 'in_progress' });
-    }
-  };
-
-  const handleSkipToNext = () => {
-    if (nextTaskSuggestion) {
-      setSkippedTaskIds(prev => [...prev, nextTaskSuggestion.task.id]);
-    }
-  };
-
-  const handleDismiss = () => {
-    setIsDismissed(true);
-    // Reset después de 1 hora
-    setTimeout(() => {
-      setIsDismissed(false);
-      setSkippedTaskIds([]);
-    }, 60 * 60 * 1000);
-  };
 
   if (showHistory) {
     return (
@@ -199,17 +165,6 @@ const TasksContent = () => {
         recentTasks={recentTasks}
       />
 
-      {/* ✨ FUNCIÓN "¿QUÉ HAGO AHORA?" CON IA INTEGRADA */}
-      {nextTaskSuggestion && (
-        <div className="px-6 py-2">
-          <WhatToDoNowCard
-            taskWithReason={nextTaskSuggestion}
-            onStartWorking={handleStartWorking}
-            onSkipToNext={handleSkipToNext}
-            onDismiss={handleDismiss}
-          />
-        </div>
-      )}
 
       {/* Área principal de tareas - FULL WIDTH */}
       <div className="flex-1 overflow-hidden">
