@@ -10,7 +10,7 @@ import ActiveWorkNotes from '@/components/tasks/ActiveWorkNotes';
 import ActiveWorkActions from '@/components/tasks/ActiveWorkActions';
 import WorkSessionSummary from '@/components/tasks/WorkSessionSummary';
 import NextSteps from '@/components/tasks/NextSteps';
-import WorkLevelRouter from '@/components/tasks/WorkLevelRouter';
+import HierarchicalWorkView from '@/components/tasks/HierarchicalWorkView';
 import WorkBreadcrumb from '@/components/tasks/WorkBreadcrumb';
 
 const ActiveWork = () => {
@@ -76,31 +76,11 @@ const ActiveWork = () => {
           {/* Info de la tarea */}
           <ActiveWorkInfo task={task} />
 
-          {/* Grid principal */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Área principal de trabajo */}
-            <div className="lg:col-span-2 space-y-4">
-              <ActiveWorkNotes taskId={taskId!} />
-              <ActiveWorkProgress 
-                taskProgress={taskProgress}
-                setTaskProgress={setTaskProgress}
-              />
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-4">
-              <NextSteps 
-                taskProgress={taskProgress}
-                elapsedTime={elapsedTime}
-              />
-
-              {/* Router de nivel dinámico */}
-              <WorkLevelRouter 
-                task={task}
-                hierarchyData={hierarchyData}
-              />
-            </div>
-          </div>
+          {/* Área principal jerárquica */}
+          <HierarchicalWorkView 
+            task={task}
+            hierarchyData={hierarchyData}
+          />
 
           {/* Botones de acción */}
           <ActiveWorkActions
