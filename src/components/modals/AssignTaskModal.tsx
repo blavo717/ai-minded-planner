@@ -32,7 +32,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useTaskAssignmentMutations } from '@/hooks/useTaskAssignmentMutations';
 import { CreateTaskAssignmentData } from '@/hooks/useTaskAssignments';
-import { Profile } from '@/hooks/useProfiles';
+import { Profile } from '@/types/profile';
 
 const assignmentSchema = z.object({
   assigned_to: z.string().min(1, 'Debe seleccionar un usuario'),
