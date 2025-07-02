@@ -158,7 +158,8 @@ const SmartWhatToDoNow: React.FC<SmartWhatToDoNowProps> = ({
   const handleWorkOnTask = () => {
     if (!smartRecommendation) return;
     trackAction('accepted');
-    onWorkOnTask(smartRecommendation.task);
+    // Navegar al modo trabajo activo
+    window.location.href = `/work/${smartRecommendation.task.id}`;
   };
 
   const handleSkipTask = () => {

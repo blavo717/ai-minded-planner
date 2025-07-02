@@ -14,6 +14,7 @@ import { useAuth, AuthProvider } from '@/hooks/useAuth';
 import MainLayout from '@/components/Layout/MainLayout';
 import AIAssistantEnhanced from '@/pages/AIAssistantEnhanced';
 import Planner from '@/pages/Planner';
+import ActiveWork from '@/pages/ActiveWork';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -68,6 +69,7 @@ const AppContent = () => {
                   <Route path="/analytics" element={<Analytics />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/planner" element={<Planner />} />
+                  <Route path="/work/:taskId" element={<ActiveWork />} />
                   <Route path="/ai-assistant-enhanced" element={<AIAssistantEnhanced />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
