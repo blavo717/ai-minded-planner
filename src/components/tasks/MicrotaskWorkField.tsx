@@ -2,7 +2,7 @@ import React from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronRight, Loader2, Save, MessageCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2, MessageCircle, Send } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { useMicrotaskWorkField } from '@/hooks/useMicrotaskWorkField';
 
@@ -19,12 +19,18 @@ const MicrotaskWorkField: React.FC<MicrotaskWorkFieldProps> = ({
     workContent,
     isExpanded,
     isSaving,
-    lastSaved,
     handleContentChange,
     handleToggleExpanded,
+    handleSubmit,
     getContextualPlaceholder,
-    formatLastSaved,
   } = useMicrotaskWorkField({ microtask });
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(workContent);
+    }
+  };
 
   const shouldShow = showByDefault || isExpanded || workContent.trim() !== '';
 
@@ -59,30 +65,35 @@ const MicrotaskWorkField: React.FC<MicrotaskWorkFieldProps> = ({
               placeholder={getContextualPlaceholder()}
               value={workContent}
               onChange={(e) => handleContentChange(e.target.value)}
-              className="min-h-16 text-xs border-primary/20 focus:border-primary/40 bg-background/50"
+              onKeyDown={handleKeyDown}
+              className="min-h-16 text-xs border-primary/20 focus:border-primary/40 bg-background/50 pr-10"
               rows={2}
+              disabled={isSaving}
             />
             
-            {/* Indicadores de estado */}
-            <div className="absolute bottom-2 right-2 flex items-center gap-1">
-              {isSaving && (
+            {/* Botón de envío */}
+            <div className="absolute bottom-2 right-2">
+              {isSaving ? (
                 <Badge variant="secondary" className="h-5 px-2 text-xs">
                   <Loader2 className="w-2 h-2 mr-1 animate-spin" />
                   Guardando...
                 </Badge>
-              )}
-              {lastSaved && !isSaving && (
-                <Badge variant="outline" className="h-5 px-2 text-xs">
-                  <Save className="w-2 h-2 mr-1" />
-                  {formatLastSaved()}
-                </Badge>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => handleSubmit(workContent)}
+                  disabled={!workContent.trim()}
+                  className="h-5 px-2 text-xs"
+                >
+                  <Send className="w-2 h-2" />
+                </Button>
               )}
             </div>
           </div>
           
           {/* Información contextual */}
           <div className="text-xs text-muted-foreground">
-            Auto-guardado cada 2 segundos • Específico para esta microtarea
+            Presiona Enter para guardar el avance • Específico para esta microtarea
           </div>
         </div>
       )}

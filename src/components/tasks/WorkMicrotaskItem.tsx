@@ -7,6 +7,7 @@ import { Task } from '@/hooks/useTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useNavigate } from 'react-router-dom';
 import MicrotaskWorkField from './MicrotaskWorkField';
+import MicrotaskTrackRecord from './MicrotaskTrackRecord';
 
 interface WorkMicrotaskItemProps {
   microtask: Task;
@@ -134,6 +135,11 @@ const WorkMicrotaskItem: React.FC<WorkMicrotaskItemProps> = ({ microtask, isLast
           microtask={microtask}
           showByDefault={isActiveWork}
         />
+      )}
+
+      {/* Track records siempre visibles cuando hay trabajo activo */}
+      {isActiveWork && (
+        <MicrotaskTrackRecord microtask={microtask} />
       )}
     </div>
   );
