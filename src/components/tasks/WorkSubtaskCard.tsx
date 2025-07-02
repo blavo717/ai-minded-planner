@@ -45,10 +45,16 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
   };
 
   const getStatusColor = () => {
-    if (subtask.status === 'completed' || subtaskProgress === 100) return 'text-green-600';
-    if (subtask.status === 'in_progress') return 'text-blue-600';
-    if (hasBeenStarted) return 'text-orange-600';
-    return 'text-slate-500'; // Color más distintivo para pendiente
+    const color = subtask.status === 'completed' || subtaskProgress === 100 
+      ? 'text-green-600'
+      : subtask.status === 'in_progress' 
+      ? 'text-blue-600'
+      : hasBeenStarted 
+      ? 'text-orange-600'
+      : 'text-slate-500';
+    
+    console.log('Subtask:', subtask.title, 'hasBeenStarted:', hasBeenStarted, 'trackRecords:', trackRecords.length, 'color:', color);
+    return color;
   };
 
   const getStatusLabel = () => {
