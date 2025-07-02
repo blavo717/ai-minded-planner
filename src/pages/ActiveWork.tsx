@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
 import { useTasks } from '@/hooks/useTasks';
 import { useTaskSessions } from '@/hooks/useTaskSessions';
+import { useTaskMutations } from '@/hooks/useTaskMutations';
 import ActiveWorkSubtasks from '@/components/tasks/ActiveWorkSubtasks';
 
 const ActiveWork = () => {
@@ -15,6 +16,7 @@ const ActiveWork = () => {
   const navigate = useNavigate();
   const { mainTasks } = useTasks();
   const { activeSession, startSession, endSession, isStarting, isEnding } = useTaskSessions();
+  const { completeTask, markInProgress } = useTaskMutations();
   const [elapsedTime, setElapsedTime] = useState(0);
   const [taskProgress, setTaskProgress] = useState(0);
   
@@ -24,8 +26,12 @@ const ActiveWork = () => {
   useEffect(() => {
     if (task && !activeSession) {
       startSession(taskId);
+      // Marcar tarea como en progreso si no lo está
+      if (task.status === 'pending') {
+        markInProgress(taskId);
+      }
     }
-  }, [task, taskId, activeSession, startSession]);
+  }, [task, taskId, activeSession, startSession, markInProgress]);
   
   // Timer para calcular tiempo transcurrido
   useEffect(() => {
@@ -50,21 +56,36 @@ const ActiveWork = () => {
   
   const handlePauseWork = () => {
     if (activeSession) {
-      endSession({ sessionId: activeSession.id });
+      endSession({ 
+        sessionId: activeSession.id,
+        productivityScore: Math.min(5, Math.max(1, Math.round(taskProgress / 20)))
+      });
       navigate('/planner');
     }
   };
   
-  const handleCompleteTask = () => {
+  const handleCompleteTask = async () => {
     if (activeSession) {
-      endSession({ 
+      await endSession({ 
         sessionId: activeSession.id,
         productivityScore: 5,
         notes: 'Tarea completada desde modo trabajo activo'
       });
     }
-    // TODO: Marcar tarea como completada
+    
+    // Completar la tarea
+    await completeTask({
+      taskId: taskId!,
+      completionNotes: `Completada en modo trabajo activo. Progreso: ${taskProgress}%`
+    });
+    
     navigate('/planner');
+  };
+  
+  const handleMarkInProgress = () => {
+    if (task && task.status !== 'in_progress') {
+      markInProgress(taskId!);
+    }
   };
   
   if (!task) {
@@ -254,25 +275,61 @@ const ActiveWork = () => {
             </div>
           </div>
 
-          {/* Botones de acción */}
-          <div className="mt-8 flex justify-center gap-4">
-            <Button 
-              size="lg" 
-              className="px-8"
-              onClick={handleCompleteTask}
-              disabled={isEnding}
-            >
-              {isEnding ? 'Guardando...' : 'Completar Tarea'}
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="px-8"
-              onClick={handlePauseWork}
-              disabled={isEnding}
-            >
-              {isEnding ? 'Guardando...' : 'Pausar Trabajo'}
-            </Button>
+          {/* Botones de acción mejorados */}
+          <div className="mt-8 space-y-4">
+            {/* Botón principal: Completar */}
+            <div className="flex justify-center">
+              <Button 
+                size="lg" 
+                className="px-12 py-3 text-lg font-semibold animate-scale-in"
+                onClick={handleCompleteTask}
+                disabled={isEnding}
+              >
+                {isEnding ? 'Finalizando...' : '✓ Completar Tarea'}
+              </Button>
+            </div>
+            
+            {/* Botones secundarios */}
+            <div className="flex justify-center gap-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handlePauseWork}
+                disabled={isEnding}
+                className="px-6"
+              >
+                {isEnding ? 'Guardando...' : 'Pausar Trabajo'}
+              </Button>
+              
+              {task?.status !== 'in_progress' && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleMarkInProgress}
+                  className="px-6"
+                >
+                  Marcar en Progreso
+                </Button>
+              )}
+              
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/planner')}
+                className="px-6"
+              >
+                Volver sin Guardar
+              </Button>
+            </div>
+            
+            {/* Indicador de progreso para completar */}
+            {taskProgress < 100 && (
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  Progreso: {taskProgress}% • {taskProgress < 90 ? 'Ajusta el progreso antes de completar' : 'Listo para completar'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

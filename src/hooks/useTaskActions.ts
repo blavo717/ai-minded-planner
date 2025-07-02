@@ -117,12 +117,54 @@ export const useTaskActions = () => {
     },
   });
 
+  const markInProgressMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update({
+          status: 'in_progress',
+          last_worked_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      
+      createAutoLog(
+        data.id,
+        'status_change',
+        'Marcada en progreso',
+        'Tarea marcada como en progreso desde modo trabajo activo'
+      );
+      
+      toast({
+        title: "Tarea en progreso",
+        description: "La tarea se ha marcado como en progreso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al actualizar estado",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     completeTask: completeTaskMutation.mutate,
     archiveTask: archiveTaskMutation.mutate,
     unarchiveTask: unarchiveTaskMutation.mutate,
+    markInProgress: markInProgressMutation.mutate,
     isCompletingTask: completeTaskMutation.isPending,
     isArchivingTask: archiveTaskMutation.isPending,
     isUnarchivingTask: unarchiveTaskMutation.isPending,
+    isMarkingInProgress: markInProgressMutation.isPending,
   };
 };
