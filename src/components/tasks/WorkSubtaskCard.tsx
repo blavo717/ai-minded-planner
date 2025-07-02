@@ -40,14 +40,14 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
   };
 
   const getStatusColor = () => {
-    if (subtask.status === 'completed') return 'text-green-600';
+    if (subtask.status === 'completed' || subtaskProgress === 100) return 'text-green-600';
     if (subtask.status === 'in_progress') return 'text-blue-600';
     if (subtaskProgress > 0) return 'text-orange-600';
     return 'text-muted-foreground';
   };
 
   const getStatusLabel = () => {
-    if (subtask.status === 'completed') return 'Completado';
+    if (subtask.status === 'completed' || subtaskProgress === 100) return 'Completado';
     if (subtask.status === 'in_progress') return 'En Progreso';
     if (subtaskProgress > 0) return 'Iniciado';
     return 'Pendiente';
@@ -58,7 +58,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
     console.log('Guardando sesión para subtarea:', subtask.id);
   };
 
-  const canWork = subtask.status !== 'completed';
+  const canWork = subtask.status !== 'completed' && subtaskProgress !== 100;
 
   const handleCreateMicrotask = async (title: string) => {
     try {
@@ -81,7 +81,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
       <div className="absolute -left-6 top-6 w-4 h-px bg-primary/30"></div>
       
       <Card className={`border-l-4 transition-all hover:shadow-md ${
-        subtask.status === 'completed' 
+        subtask.status === 'completed' || subtaskProgress === 100
           ? 'border-l-green-500 bg-green-50/30 dark:bg-green-950/20' 
           : subtask.status === 'in_progress'
           ? 'border-l-blue-500 bg-blue-50/30 dark:bg-blue-950/20'
@@ -103,7 +103,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
                   </Button>
                 </CollapsibleTrigger>
                 
-                {subtask.status === 'completed' ? (
+                {subtask.status === 'completed' || subtaskProgress === 100 ? (
                   <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center">
                     <Check className="w-3 h-3 text-white" />
                   </div>
@@ -125,7 +125,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
               
                <div className="flex items-center gap-2">
                  <Badge variant="outline" className={`text-xs ${
-                   subtask.status === 'completed' ? 'text-green-700 border-green-300' : ''
+                   subtask.status === 'completed' || subtaskProgress === 100 ? 'text-green-700 border-green-300' : ''
                  }`}>
                    {getStatusLabel()}
                  </Badge>
