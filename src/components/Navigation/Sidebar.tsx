@@ -48,6 +48,11 @@ const Sidebar = () => {
       icon: BarChart3,
     },
     {
+      title: 'Planificador',
+      href: '/planner',
+      icon: Brain,
+    },
+    {
       title: 'IA',
       href: '/ai-assistant-enhanced',
       icon: Brain,

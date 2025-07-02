@@ -11,6 +11,7 @@ import { useTaskDependencies } from '@/hooks/useTaskDependencies';
 import TasksHeader from '@/components/tasks/TasksHeader';
 import TaskHistory from '@/components/tasks/TaskHistory';
 import TasksInsightsSection from '@/components/tasks/TasksInsightsSection';
+import SmartWhatToDoNow from '@/components/planner/SmartWhatToDoNow';
 import TopFiltersBar from '@/components/tasks/filters/TopFiltersBar';
 import TasksViewSection from '@/components/tasks/TasksViewSection';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
@@ -146,6 +147,17 @@ const TasksContent = () => {
 
       {/* Insights section */}
       <TasksInsightsSection showInsights={showInsights} />
+
+      {/* Smart Planner MVP - Solo cuando no hay filtros activos */}
+      {getActiveFiltersCount() === 0 && (
+        <div className="px-6 py-4 border-b border-border">
+          <SmartWhatToDoNow 
+            tasks={mainTasks}
+            onWorkOnTask={handleTaskSelect}
+            onShowAllTasks={() => {}} // Ya estamos en "todas las tareas"
+          />
+        </div>
+      )}
 
       {/* Filtros horizontales */}
       <TopFiltersBar
