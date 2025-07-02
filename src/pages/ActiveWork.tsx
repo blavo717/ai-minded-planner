@@ -1,17 +1,67 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Timer, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useTasks } from '@/hooks/useTasks';
+import { useTaskSessions } from '@/hooks/useTaskSessions';
 
 const ActiveWork = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
   const { mainTasks } = useTasks();
+  const { activeSession, startSession, endSession, isStarting, isEnding } = useTaskSessions();
+  const [elapsedTime, setElapsedTime] = useState(0);
   
   const task = mainTasks.find(t => t.id === taskId);
+  
+  // Auto-iniciar sesión al entrar
+  useEffect(() => {
+    if (task && !activeSession) {
+      startSession(taskId);
+    }
+  }, [task, taskId, activeSession, startSession]);
+  
+  // Timer para calcular tiempo transcurrido
+  useEffect(() => {
+    if (!activeSession) return;
+    
+    const startTime = new Date(activeSession.started_at).getTime();
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = Math.floor((now - startTime) / 1000);
+      setElapsedTime(elapsed);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [activeSession]);
+  
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  const handlePauseWork = () => {
+    if (activeSession) {
+      endSession({ sessionId: activeSession.id });
+      navigate('/planner');
+    }
+  };
+  
+  const handleCompleteTask = () => {
+    if (activeSession) {
+      endSession({ 
+        sessionId: activeSession.id,
+        productivityScore: 5,
+        notes: 'Tarea completada desde modo trabajo activo'
+      });
+    }
+    // TODO: Marcar tarea como completada
+    navigate('/planner');
+  };
   
   if (!task) {
     return (
@@ -62,8 +112,15 @@ const ActiveWork = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <Timer className="w-5 h-5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">00:00:00</span>
+              <Timer className="w-5 h-5 text-primary" />
+              <span className="text-lg font-mono text-primary font-semibold">
+                {formatTime(elapsedTime)}
+              </span>
+              {isStarting && (
+                <Badge variant="outline" className="text-xs">
+                  Iniciando...
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -152,11 +209,22 @@ const ActiveWork = () => {
 
           {/* Botones de acción */}
           <div className="mt-8 flex justify-center gap-4">
-            <Button size="lg" className="px-8">
-              Completar Tarea
+            <Button 
+              size="lg" 
+              className="px-8"
+              onClick={handleCompleteTask}
+              disabled={isEnding}
+            >
+              {isEnding ? 'Guardando...' : 'Completar Tarea'}
             </Button>
-            <Button size="lg" variant="outline" className="px-8">
-              Pausar Trabajo
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="px-8"
+              onClick={handlePauseWork}
+              disabled={isEnding}
+            >
+              {isEnding ? 'Guardando...' : 'Pausar Trabajo'}
             </Button>
           </div>
         </div>
