@@ -220,11 +220,12 @@ const TaskGanttModal = ({
     }
   };
 
-  // Phase 1: Central Timeline Event Renderer
+  // Phase 3: Gantt-Centric Timeline Event Renderer with Spatial Organization
   const renderTimelineEvent = (event: any, index: number) => {
     const eventDate = new Date(event.timestamp);
     const isOverdue = event.type === 'task_due' && isAfter(new Date(), eventDate);
     const isFuture = isAfter(eventDate, new Date());
+    const isPast = isBefore(eventDate, new Date());
     const statusConfig = getStatusConfig(event.task?.status || 'pending');
     const priorityConfig = getPriorityConfig(event.task?.priority || 'medium');
     
@@ -245,97 +246,129 @@ const TaskGanttModal = ({
 
     const EventIcon = getEventIcon(event.type);
 
-    return (
-      <div key={event.id} className="mb-6 bg-gradient-card border border-task-card-border rounded-lg p-4 shadow-task-sm hover:shadow-task-md transition-all">
-        {/* Event Header with Timeline Position */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${statusConfig.bgColor}`}>
-              <EventIcon className={`w-4 h-4 ${statusConfig.color}`} />
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground">{event.title}</h4>
-              <p className="text-xs text-muted-foreground">
-                {format(eventDate, 'PPp', { locale: es })}
-                {isOverdue && <span className="ml-2 text-destructive font-medium">VENCIDA</span>}
-                {isFuture && <span className="ml-2 text-primary font-medium">PRÓXIMA</span>}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge className={`${priorityConfig.bgColor} ${priorityConfig.color} text-xs`}>
-              {priorityConfig.label}
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              {event.task?.title || 'Sistema'}
-            </Badge>
-          </div>
-        </div>
+    // Phase 3: Determine temporal section for layout
+    const temporalSection = isPast ? 'past' : isFuture ? 'future' : 'current';
+    const sectionColors = {
+      past: 'bg-muted/50 border-muted',
+      current: 'bg-primary/5 border-primary/20',
+      future: 'bg-gradient-card border-task-card-border'
+    };
 
-        {/* Horizontal Timeline Visualization */}
-        <div className="relative mb-4">
-          <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
-            {/* Timeline Background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-muted via-muted-foreground/20 to-primary/30"></div>
-            {/* Current Event Position */}
+    return (
+      <div key={event.id} className={`mb-4 ${sectionColors[temporalSection]} rounded-lg p-4 shadow-task-sm hover:shadow-task-md transition-all`}>
+        {/* Phase 3: Dominant Horizontal Timeline - Full Width */}
+        <div className="relative mb-6">
+          <div className="w-full h-6 bg-gradient-to-r from-muted via-muted/50 to-muted rounded-full overflow-hidden border border-border">
+            {/* Timeline Zones: Past | Current | Future */}
+            <div className="absolute inset-0 flex">
+              <div className="flex-1 bg-gradient-to-r from-muted-foreground/10 to-muted-foreground/5" />
+              <div className="w-0.5 bg-primary shadow-lg z-10" />
+              <div className="flex-1 bg-gradient-to-r from-primary/10 to-primary/20" />
+            </div>
+            
+            {/* Event Position Marker - Anchored to Timeline */}
             <div 
-              className={`absolute top-0 h-full w-1 ${statusConfig.color === 'text-status-completed' ? 'bg-status-completed' : 'bg-primary'} shadow-sm`}
+              className={`absolute top-1 bottom-1 w-1 rounded-full shadow-lg z-20 ${
+                temporalSection === 'past' ? 'bg-muted-foreground' :
+                temporalSection === 'current' ? 'bg-primary' : 'bg-primary/70'
+              }`}
               style={{ left: `${Math.max(0, Math.min(100, positionPercentage))}%` }}
             />
+            
+            {/* Timeline Navigation Labels */}
+            <div className="absolute -top-5 left-0 text-xs text-muted-foreground">PASADO</div>
+            <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 text-xs text-primary font-medium">AHORA</div>
+            <div className="absolute -top-5 right-0 text-xs text-muted-foreground">FUTURO</div>
           </div>
-          {/* Timeline Labels */}
-          <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-            <span>{format(chronologicalData.startDate, 'dd MMM', { locale: es })}</span>
-            <span className="text-primary font-medium">AHORA</span>
-            <span>{format(chronologicalData.endDate, 'dd MMM', { locale: es })}</span>
+          
+          {/* Timeline Date Anchors */}
+          <div className="flex justify-between mt-2 text-xs">
+            <span className="text-muted-foreground">{format(chronologicalData.startDate, 'dd MMM', { locale: es })}</span>
+            <span className="font-medium text-primary">
+              {format(eventDate, 'dd MMM HH:mm', { locale: es })}
+            </span>
+            <span className="text-muted-foreground">{format(chronologicalData.endDate, 'dd MMM', { locale: es })}</span>
           </div>
         </div>
 
-        {/* Event Details - Always Visible */}
-        {event.type === 'log_entry' && event.data.log && (
-          <div className="bg-status-pending-bg border border-border rounded-md p-3 mb-3">
-            <div className="flex items-start gap-3">
-              <MessageCircle className="w-4 h-4 text-status-pending-fg mt-0.5" />
+        {/* Phase 3: Information Anchored to Timeline Position */}
+        <div className="grid grid-cols-3 gap-6">
+          {/* Left: Context & Task Info */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${statusConfig.bgColor}`}>
+                <EventIcon className={`w-4 h-4 ${statusConfig.color}`} />
+              </div>
               <div className="flex-1">
-                <p className="text-sm text-foreground font-medium">{event.data.log.title}</p>
-                {event.data.log.content && (
-                  <p className="text-xs text-muted-foreground mt-1">{event.data.log.content}</p>
-                )}
+                <h4 className="font-semibold text-sm">{event.title}</h4>
+                <p className="text-xs text-muted-foreground">
+                  {temporalSection === 'past' && '✓ Completado'}
+                  {temporalSection === 'current' && '⚡ Actual'}
+                  {temporalSection === 'future' && '📅 Programado'}
+                  {isOverdue && <span className="text-destructive font-medium"> • VENCIDA</span>}
+                </p>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Task Progress Information */}
-        {event.task && (
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div className="text-center">
-              <p className="text-muted-foreground text-xs">Progreso</p>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="flex-1 bg-muted rounded-full h-2">
+            
+            {event.task && (
+              <div className="text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Progreso:</span>
+                  <span className="font-medium">{calculateProgress(event.task)}%</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-1.5">
                   <div 
                     className={`h-full rounded-full ${getProgressBarColor(event.task.status)}`}
                     style={{ width: `${calculateProgress(event.task)}%` }}
                   />
                 </div>
-                <span className="text-xs font-medium">{calculateProgress(event.task)}%</span>
               </div>
-            </div>
-            <div className="text-center">
-              <p className="text-muted-foreground text-xs">Estado</p>
-              <Badge className={`${statusConfig.bgColor} ${statusConfig.color} text-xs mt-1`}>
+            )}
+          </div>
+
+          {/* Center: Main Event Content */}
+          <div className="space-y-3">
+            {event.type === 'log_entry' && event.data.log && (
+              <div className="bg-background/50 border border-border rounded-md p-3">
+                <div className="flex items-start gap-2">
+                  <MessageCircle className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium leading-tight">{event.data.log.title}</p>
+                    {event.data.log.content && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{event.data.log.content}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {event.task && (
+              <div className="text-xs text-muted-foreground">
+                <span className="inline-block w-2 h-2 rounded-full bg-current mr-2" />
+                {event.task.task_level === 1 ? 'Tarea Principal' : 
+                 event.task.task_level === 2 ? 'Subtarea' : 'Microtarea'}
+              </div>
+            )}
+          </div>
+
+          {/* Right: Status & Actions */}
+          <div className="space-y-2 text-right">
+            <div className="flex flex-col gap-1">
+              <Badge className={`${priorityConfig.bgColor} ${priorityConfig.color} text-xs w-fit ml-auto`}>
+                {priorityConfig.label}
+              </Badge>
+              <Badge className={`${statusConfig.bgColor} ${statusConfig.color} text-xs w-fit ml-auto`}>
                 {statusConfig.label}
               </Badge>
             </div>
-            <div className="text-center">
-              <p className="text-muted-foreground text-xs">Jerarquía</p>
-              <p className="text-xs font-medium mt-1">
-                {event.task.task_level === 1 ? 'Tarea Principal' : 
-                 event.task.task_level === 2 ? 'Subtarea' : 'Microtarea'}
-              </p>
-            </div>
+            
+            {event.task && (
+              <Badge variant="outline" className="text-xs w-fit ml-auto">
+                {event.task.title || 'Sistema'}
+              </Badge>
+            )}
           </div>
-        )}
+        </div>
       </div>
     );
   };
