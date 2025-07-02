@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +35,7 @@ const SmartWhatToDoNow: React.FC<SmartWhatToDoNowProps> = ({
   onShowAllTasks
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [skippedTasks, setSkippedTasks] = useState<string[]>([]);
   const [userActions, setUserActions] = useState<TaskAction[]>([]);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -158,8 +160,8 @@ const SmartWhatToDoNow: React.FC<SmartWhatToDoNowProps> = ({
   const handleWorkOnTask = () => {
     if (!smartRecommendation) return;
     trackAction('accepted');
-    // Navegar al modo trabajo activo
-    window.location.href = `/work/${smartRecommendation.task.id}`;
+    // Navegar al modo trabajo activo usando navigate de React Router
+    navigate(`/work/${smartRecommendation.task.id}`);
   };
 
   const handleSkipTask = () => {

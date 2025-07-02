@@ -10,6 +10,9 @@ import { useTasks } from '@/hooks/useTasks';
 import { useTaskSessions } from '@/hooks/useTaskSessions';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import ActiveWorkSubtasks from '@/components/tasks/ActiveWorkSubtasks';
+import ActiveWorkNotes from '@/components/tasks/ActiveWorkNotes';
+import WorkSessionSummary from '@/components/tasks/WorkSessionSummary';
+import NextSteps from '@/components/tasks/NextSteps';
 
 const ActiveWork = () => {
   const { taskId } = useParams<{ taskId: string }>();
@@ -21,6 +24,23 @@ const ActiveWork = () => {
   const [taskProgress, setTaskProgress] = useState(0);
   
   const task = mainTasks.find(t => t.id === taskId);
+
+  // Inicializar progreso basado en estado de la tarea
+  useEffect(() => {
+    if (task) {
+      if (task.status === 'completed') {
+        setTaskProgress(100);
+      } else if (task.status === 'in_progress') {
+        // Estimar progreso basado en tiempo trabajado vs estimado
+        const estimated = task.estimated_duration || 60;
+        const worked = task.actual_duration || 0;
+        const estimatedProgress = Math.min(90, Math.round((worked / estimated) * 100));
+        setTaskProgress(estimatedProgress);
+      } else {
+        setTaskProgress(0);
+      }
+    }
+  }, [task]);
   
   // Auto-iniciar sesión al entrar
   useEffect(() => {
@@ -154,6 +174,14 @@ const ActiveWork = () => {
       {/* Contenido principal */}
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
+          {/* Resumen de sesión */}
+          <WorkSessionSummary 
+            elapsedTime={elapsedTime}
+            taskProgress={taskProgress}
+            taskTitle={task.title}
+            isActive={!!activeSession && !activeSession.ended_at}
+          />
+          
           {/* Info de la tarea */}
           <Card className="mb-6">
             <CardHeader>
@@ -175,18 +203,7 @@ const ActiveWork = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Área principal de trabajo */}
             <div className="lg:col-span-2 space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Notas de Trabajo</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64 border-2 border-dashed border-border rounded-lg flex items-center justify-center">
-                    <p className="text-muted-foreground">
-                      Campo de notas (próximamente)
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <ActiveWorkNotes taskId={taskId!} />
 
               <Card className="animate-fade-in">
                 <CardHeader>
@@ -258,18 +275,10 @@ const ActiveWork = () => {
 
             {/* Sidebar */}
             <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Próximos Pasos</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-40 border-2 border-dashed border-border rounded-lg flex items-center justify-center">
-                    <p className="text-muted-foreground text-center">
-                      Lista de pasos (próximamente)
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <NextSteps 
+                taskProgress={taskProgress}
+                elapsedTime={elapsedTime}
+              />
 
               <ActiveWorkSubtasks taskId={taskId!} />
             </div>
