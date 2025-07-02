@@ -4,6 +4,8 @@ import { ArrowLeft, Timer, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Slider } from '@/components/ui/slider';
 import { useTasks } from '@/hooks/useTasks';
 import { useTaskSessions } from '@/hooks/useTaskSessions';
 
@@ -13,6 +15,7 @@ const ActiveWork = () => {
   const { mainTasks } = useTasks();
   const { activeSession, startSession, endSession, isStarting, isEnding } = useTaskSessions();
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [taskProgress, setTaskProgress] = useState(0);
   
   const task = mainTasks.find(t => t.id === taskId);
   
@@ -163,15 +166,69 @@ const ActiveWork = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="animate-fade-in">
                 <CardHeader>
-                  <CardTitle className="text-lg">Progreso</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Target className="w-5 h-5 text-primary" />
+                    Progreso de la Tarea
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-32 border-2 border-dashed border-border rounded-lg flex items-center justify-center">
-                    <p className="text-muted-foreground">
-                      Progress bar (próximamente)
-                    </p>
+                <CardContent className="space-y-6">
+                  {/* Progress Bar Visual */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Avance General</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {taskProgress}%
+                      </Badge>
+                    </div>
+                    <Progress 
+                      value={taskProgress} 
+                      className="h-3 animate-scale-in"
+                    />
+                  </div>
+                  
+                  {/* Slider para ajustar progreso */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">
+                      Ajustar progreso manualmente
+                    </label>
+                    <Slider
+                      value={[taskProgress]}
+                      onValueChange={(value) => setTaskProgress(value[0])}
+                      max={100}
+                      step={5}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>0%</span>
+                      <span>25%</span>
+                      <span>50%</span>
+                      <span>75%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+                  
+                  {/* Indicadores visuales */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {[25, 50, 75, 100].map((milestone) => (
+                      <div 
+                        key={milestone}
+                        className={`text-center p-2 rounded-lg border transition-all ${
+                          taskProgress >= milestone 
+                            ? 'bg-primary/10 border-primary text-primary' 
+                            : 'bg-muted border-border text-muted-foreground'
+                        }`}
+                      >
+                        <div className="text-xs font-medium">{milestone}%</div>
+                        <div className="text-xs">
+                          {milestone === 25 && 'Iniciado'}
+                          {milestone === 50 && 'Avanzando'}
+                          {milestone === 75 && 'Casi listo'}
+                          {milestone === 100 && 'Completado'}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
