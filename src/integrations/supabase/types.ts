@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      adaptive_weights: {
+        Row: {
+          confidence: number
+          created_at: string
+          factor_name: string
+          id: string
+          sample_size: number
+          trend: string | null
+          updated_at: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          factor_name: string
+          id?: string
+          sample_size?: number
+          trend?: string | null
+          updated_at?: string
+          user_id: string
+          weight?: number
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          factor_name?: string
+          id?: string
+          sample_size?: number
+          trend?: string | null
+          updated_at?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       ai_chat_messages: {
         Row: {
           content: string
@@ -251,6 +287,45 @@ export type Database = {
           report_data?: Json
           report_type?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learning_rules: {
+        Row: {
+          action: Json
+          condition: Json
+          confidence: number
+          created_at: string
+          id: string
+          rule_type: string
+          success_rate: number
+          updated_at: string
+          usage_count: number
+          user_id: string
+        }
+        Insert: {
+          action: Json
+          condition: Json
+          confidence?: number
+          created_at?: string
+          id?: string
+          rule_type: string
+          success_rate?: number
+          updated_at?: string
+          usage_count?: number
+          user_id: string
+        }
+        Update: {
+          action?: Json
+          condition?: Json
+          confidence?: number
+          created_at?: string
+          id?: string
+          rule_type?: string
+          success_rate?: number
+          updated_at?: string
+          usage_count?: number
           user_id?: string
         }
         Relationships: []
@@ -538,6 +613,39 @@ export type Database = {
           tags?: string[] | null
           template_name?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recommendation_feedback: {
+        Row: {
+          action: string
+          context_data: Json | null
+          created_at: string
+          id: string
+          satisfaction: number | null
+          task_id: string
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          context_data?: Json | null
+          created_at?: string
+          id?: string
+          satisfaction?: number | null
+          task_id: string
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          context_data?: Json | null
+          created_at?: string
+          id?: string
+          satisfaction?: number | null
+          task_id?: string
+          timestamp?: string
           user_id?: string
         }
         Relationships: []

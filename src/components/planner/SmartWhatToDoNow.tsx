@@ -114,8 +114,8 @@ const SmartWhatToDoNow: React.FC<SmartWhatToDoNowProps> = ({
     };
   }, [tasks, skippedTasks]);
 
-  // Tracking de acciones
-  const trackAction = (action: TaskAction['action']) => {
+  // Tracking de acciones con aprendizaje
+  const trackAction = async (action: TaskAction['action']) => {
     if (!smartRecommendation) return;
     
     const newAction: TaskAction = {
@@ -130,6 +130,28 @@ const SmartWhatToDoNow: React.FC<SmartWhatToDoNowProps> = ({
     const savedActions = JSON.parse(localStorage.getItem('planner_mvp_actions') || '[]');
     savedActions.push(newAction);
     localStorage.setItem('planner_mvp_actions', JSON.stringify(savedActions));
+
+    // Enviar feedback al sistema de aprendizaje
+    if (user) {
+      try {
+        const { FeedbackLearningSystem } = await import('@/services/feedbackLearningSystem');
+        const learningSystem = new FeedbackLearningSystem(user.id);
+        
+        await learningSystem.processFeedback({
+          user_id: user.id,
+          task_id: smartRecommendation.task.id,
+          action,
+          context_data: {
+            priority: smartRecommendation.task.priority,
+            tags: smartRecommendation.task.tags,
+            confidence: smartRecommendation.confidence,
+            hour: new Date().getHours()
+          }
+        });
+      } catch (error) {
+        console.error('Error processing feedback:', error);
+      }
+    }
   };
 
   const handleWorkOnTask = () => {
