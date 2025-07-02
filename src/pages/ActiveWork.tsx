@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
 import { useTasks } from '@/hooks/useTasks';
 import { useTaskSessions } from '@/hooks/useTaskSessions';
+import ActiveWorkSubtasks from '@/components/tasks/ActiveWorkSubtasks';
 
 const ActiveWork = () => {
   const { taskId } = useParams<{ taskId: string }>();
@@ -249,18 +250,7 @@ const ActiveWork = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Subtareas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-40 border-2 border-dashed border-border rounded-lg flex items-center justify-center">
-                    <p className="text-muted-foreground text-center">
-                      Gestión de subtareas (próximamente)
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <ActiveWorkSubtasks taskId={taskId!} />
             </div>
           </div>
 
