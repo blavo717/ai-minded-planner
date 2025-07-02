@@ -82,6 +82,7 @@ const CompactTaskCard = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const project = projects.find(p => p.id === task.project_id);
   
@@ -259,6 +260,33 @@ const CompactTaskCard = ({
     }
   };
 
+  const handleCompleteTask = async () => {
+    setIsCompleting(true);
+    try {
+      await onComplete(task);
+      // Add a small delay to show the completion animation
+      setTimeout(() => setIsCompleting(false), 600);
+    } catch (error) {
+      setIsCompleting(false);
+    }
+  };
+
+  // Keyboard navigation handler
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleCardClick(e as any);
+    }
+    if (e.key === 'c' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handleCompleteTask();
+    }
+    if (e.key === 'e' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      onEdit(task);
+    }
+  };
+
   // Show skeleton if loading
   if (isLoading) {
     return <TaskCardSkeleton />;
@@ -272,10 +300,11 @@ const CompactTaskCard = ({
           shadow-task-sm hover:shadow-task-lg hover:bg-task-card-hover
           transition-all duration-300 ease-out
           transform hover:scale-[1.02] hover:-translate-y-1
-          rounded-lg overflow-hidden cursor-pointer group
+          rounded-lg overflow-hidden cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50
           ${isDragging ? 'rotate-2 scale-105 shadow-task-xl z-50' : ''}
           ${task.priority === 'urgent' ? 'animate-pulse-glow' : ''}
-          ${task.status === 'completed' ? 'shadow-glow-completed' : ''}
+          ${task.status === 'completed' ? 'shadow-glow-completed opacity-80' : ''}
+          ${isCompleting ? 'animate-scale-in shadow-glow-completed' : ''}
         `}
         style={getProjectColorStyles(project?.color)}
         draggable={!!onDragStart}
@@ -283,6 +312,11 @@ const CompactTaskCard = ({
         onDragEnd={onDragEnd}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="button"
+        aria-label={`Tarea: ${task.title}. Prioridad: ${task.priority}. Estado: ${task.status}. Presiona Enter para ver detalles, Ctrl+C para completar, Ctrl+E para editar.`}
+        aria-describedby={`task-${task.id}-details`}
       >
         <CardContent className="p-5 relative">
           {/* Drag Handle - visible on hover */}
@@ -386,8 +420,9 @@ const CompactTaskCard = ({
                 <DropdownMenuItem onClick={() => onEdit(task)} className="text-sm">
                   <Edit className="h-4 w-4 mr-3" /> Editar
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onComplete(task)} className="text-sm">
-                  <CheckCircle2 className="h-4 w-4 mr-3" /> Completar
+                <DropdownMenuItem onClick={handleCompleteTask} className="text-sm" disabled={isCompleting}>
+                  <CheckCircle2 className={`h-4 w-4 mr-3 ${isCompleting ? 'animate-spin' : ''}`} /> 
+                  {isCompleting ? 'Completando...' : 'Completar'}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onCreateSubtask(task)} className="text-sm">
                   <ListChecks className="h-4 w-4 mr-3" /> Subtarea

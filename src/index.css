@@ -80,6 +80,10 @@
     --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
     --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
     --shadow-colored: 0 10px 15px -3px hsl(var(--primary) / 0.1), 0 4px 6px -4px hsl(var(--primary) / 0.1);
+    
+    /* Focus & Accessibility */
+    --focus-ring: 0 0 0 2px hsl(var(--primary) / 0.2);
+    --focus-ring-offset: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--primary) / 0.2);
 
     --sidebar-background: 0 0% 98%;
 
