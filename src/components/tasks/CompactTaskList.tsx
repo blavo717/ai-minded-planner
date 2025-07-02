@@ -36,6 +36,15 @@ const CompactTaskList = memo(({
     );
   }
 
+  // Función para crear subtareas inline
+  const handleCreateSubtaskInline = (parentTaskId: string, title: string) => {
+    // Por ahora, usar la función existente
+    const parentTask = tasks.find(t => t.id === parentTaskId);
+    if (parentTask) {
+      onCreateSubtask(parentTask);
+    }
+  };
+
   return (
     <div className="space-y-2 animate-fade-in">
       {tasks.map((task) => {
@@ -53,6 +62,8 @@ const CompactTaskList = memo(({
             onComplete={onCompleteTask}
             onArchive={(task) => onArchiveTask(task.id)}
             onCreateSubtask={onCreateSubtask}
+            getSubtasksForTask={getSubtasksForTask}
+            onCreateSubtaskInline={handleCreateSubtaskInline}
           />
         );
       })}
