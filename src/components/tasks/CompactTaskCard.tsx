@@ -18,7 +18,8 @@ import {
   AlertTriangle,
   Flame,
   ArrowUp,
-  Minus
+  Minus,
+  GripVertical
 } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { Project } from '@/hooks/useProjects';
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import CompactSubtaskList from './CompactSubtaskList';
+import { TaskCardSkeleton } from '@/components/ui/skeleton-loader';
 
 interface CompactTaskCardProps {
   task: Task;
@@ -48,6 +50,11 @@ interface CompactTaskCardProps {
   // Nuevas props para funcionalidad de subtareas
   getSubtasksForTask?: (taskId: string) => Task[];
   onCreateSubtaskInline?: (parentTaskId: string, title: string) => void;
+  // Props para interacciones mejoradas
+  isLoading?: boolean;
+  isDragging?: boolean;
+  onDragStart?: (e: React.DragEvent, task: Task) => void;
+  onDragEnd?: () => void;
 }
 
 const CompactTaskCard = ({ 
@@ -61,7 +68,11 @@ const CompactTaskCard = ({
   projects = [],
   showProject = true,
   getSubtasksForTask,
-  onCreateSubtaskInline 
+  onCreateSubtaskInline,
+  isLoading = false,
+  isDragging = false,
+  onDragStart,
+  onDragEnd
 }: CompactTaskCardProps) => {
   const { 
     setDetailTask, 
@@ -70,6 +81,7 @@ const CompactTaskCard = ({
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const project = projects.find(p => p.id === task.project_id);
   
@@ -221,16 +233,47 @@ const CompactTaskCard = ({
     setIsExpanded(!isExpanded);
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    if (onDragStart) {
+      onDragStart(e, task);
+    }
+  };
+
+  // Show skeleton if loading
+  if (isLoading) {
+    return <TaskCardSkeleton />;
+  }
+
   return (
     <div className="space-y-3">
-      <Card className={`
-        bg-task-card border-task-card-border border-l-4 ${getPriorityBorderColor(task.priority)}
-        shadow-task-sm hover:shadow-task-md hover:bg-task-card-hover
-        transition-all duration-300 ease-out
-        transform hover:scale-[1.01] hover:-translate-y-0.5
-        rounded-lg overflow-hidden
-      `}>
-        <CardContent className="p-5">
+      <Card 
+        className={`
+          bg-task-card border-task-card-border border-l-4 ${getPriorityBorderColor(task.priority)}
+          shadow-task-sm hover:shadow-task-lg hover:bg-task-card-hover
+          transition-all duration-300 ease-out
+          transform hover:scale-[1.02] hover:-translate-y-1
+          rounded-lg overflow-hidden cursor-pointer group
+          ${isDragging ? 'rotate-2 scale-105 shadow-task-xl z-50' : ''}
+          ${task.priority === 'urgent' ? 'animate-pulse-glow' : ''}
+        `}
+        draggable={!!onDragStart}
+        onDragStart={handleDragStart}
+        onDragEnd={onDragEnd}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <CardContent className="p-5 relative">
+          {/* Drag Handle - visible on hover */}
+          {onDragStart && (
+            <div className={`
+              absolute left-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-60 
+              transition-opacity duration-200 cursor-grab active:cursor-grabbing
+              ${isHovered ? 'animate-bounce-subtle' : ''}
+            `}>
+              <GripVertical className="w-4 h-4 text-muted-foreground" />
+            </div>
+          )}
+          
           {/* Header Section */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start gap-3 flex-1">
@@ -239,25 +282,38 @@ const CompactTaskCard = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 flex-shrink-0 mt-0.5 rounded-full hover:bg-accent transition-colors"
+                  className={`
+                    h-7 w-7 p-0 flex-shrink-0 mt-0.5 rounded-full 
+                    hover:bg-accent transition-all duration-200
+                    ${isExpanded ? 'bg-accent/50 rotate-0' : 'hover:rotate-12'}
+                  `}
                   onClick={toggleExpansion}
                 >
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  )}
+                  <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
                 </Button>
               )}
               
               {/* Task Content */}
               <div className="space-y-2 flex-1 min-w-0" onClick={handleCardClick}>
                 <div className="flex items-center gap-3">
-                  <h3 className="font-semibold text-base leading-tight hover:text-primary cursor-pointer truncate transition-colors">
+                  <h3 className={`
+                    font-semibold text-base leading-tight cursor-pointer truncate 
+                    transition-all duration-200 hover:text-primary
+                    ${isHovered ? 'transform translate-x-1' : ''}
+                  `}>
                     {task.title}
                   </h3>
                   {hasSubtasks && (
-                    <div className="flex items-center gap-2">
+                    <div className={`
+                      flex items-center gap-2 transition-all duration-300
+                      ${isHovered ? 'scale-110' : ''}
+                    `}>
                       <CircularProgress 
                         completed={subtasks.filter(st => st.status === 'completed').length}
                         total={subtasks.length}
@@ -288,7 +344,12 @@ const CompactTaskCard = ({
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-8 w-8 p-0 rounded-full hover:bg-accent opacity-60 hover:opacity-100 transition-all"
+                  className={`
+                    h-8 w-8 p-0 rounded-full transition-all duration-200
+                    hover:bg-accent opacity-0 group-hover:opacity-100
+                    ${isDropdownOpen ? 'opacity-100 scale-110 bg-accent' : ''}
+                    ${isHovered ? 'animate-bounce-subtle' : ''}
+                  `}
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
@@ -361,16 +422,21 @@ const CompactTaskCard = ({
         </CardContent>
       </Card>
 
-      {/* Subtasks Section */}
-      {isExpanded && hasSubtasks && getSubtasksForTask && (
-        <div className="ml-6 animate-fade-in">
-          <CompactSubtaskList
-            parentTask={task}
-            subtasks={subtasks}
-            onCreateSubtask={onCreateSubtaskInline || (() => {})}
-            onEditTask={onEdit}
-            getSubtasksForTask={getSubtasksForTask}
-          />
+      {/* Subtasks Section - with smooth animation */}
+      {hasSubtasks && getSubtasksForTask && (
+        <div className={`
+          overflow-hidden transition-all duration-500 ease-out
+          ${isExpanded ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}
+        `}>
+          <div className="ml-6 animate-fade-in">
+            <CompactSubtaskList
+              parentTask={task}
+              subtasks={subtasks}
+              onCreateSubtask={onCreateSubtaskInline || (() => {})}
+              onEditTask={onEdit}
+              getSubtasksForTask={getSubtasksForTask}
+            />
+          </div>
         </div>
       )}
     </div>
