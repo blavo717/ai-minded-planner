@@ -43,7 +43,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
     if (subtask.status === 'completed' || subtaskProgress === 100) return 'text-green-600';
     if (subtask.status === 'in_progress') return 'text-blue-600';
     if (subtaskProgress > 0) return 'text-orange-600';
-    return 'text-muted-foreground';
+    return 'text-slate-500'; // Color más distintivo para pendiente
   };
 
   const getStatusLabel = () => {
@@ -87,7 +87,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
           ? 'border-l-blue-500 bg-blue-50/30 dark:bg-blue-950/20'
           : subtaskProgress > 0
           ? 'border-l-orange-500 bg-orange-50/30 dark:bg-orange-950/20'
-          : 'border-l-muted-foreground bg-background'
+          : 'border-l-slate-400 bg-slate-50/30 dark:bg-slate-950/20'
       }`}>
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
           <CardHeader className="pb-3">
