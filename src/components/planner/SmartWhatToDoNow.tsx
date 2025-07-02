@@ -33,6 +33,7 @@ const SmartWhatToDoNow: React.FC<SmartWhatToDoNowProps> = ({
   onWorkOnTask,
   onShowAllTasks
 }) => {
+  const { user } = useAuth();
   const [skippedTasks, setSkippedTasks] = useState<string[]>([]);
   const [userActions, setUserActions] = useState<TaskAction[]>([]);
   const [showFeedback, setShowFeedback] = useState(false);
