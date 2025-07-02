@@ -72,25 +72,46 @@ export default {
 				'status': {
 					completed: 'hsl(var(--status-completed))',
 					'completed-bg': 'hsl(var(--status-completed-bg))',
+					'completed-glow': 'hsl(var(--status-completed-glow))',
 					'in-progress': 'hsl(var(--status-in-progress))',
 					'in-progress-bg': 'hsl(var(--status-in-progress-bg))',
+					'in-progress-glow': 'hsl(var(--status-in-progress-glow))',
 					pending: 'hsl(var(--status-pending))',
+					'pending-bg': 'hsl(var(--status-pending-bg))',
 					'pending-fg': 'hsl(var(--status-pending-fg))',
 					cancelled: 'hsl(var(--status-cancelled))',
-					'cancelled-bg': 'hsl(var(--status-cancelled-bg))'
+					'cancelled-bg': 'hsl(var(--status-cancelled-bg))',
+					'cancelled-glow': 'hsl(var(--status-cancelled-glow))'
 				},
 				'priority': {
 					urgent: 'hsl(var(--priority-urgent))',
+					'urgent-light': 'hsl(var(--priority-urgent-light))',
 					high: 'hsl(var(--priority-high))',
+					'high-light': 'hsl(var(--priority-high-light))',
 					medium: 'hsl(var(--priority-medium))',
-					low: 'hsl(var(--priority-low))'
+					'medium-light': 'hsl(var(--priority-medium-light))',
+					low: 'hsl(var(--priority-low))',
+					'low-light': 'hsl(var(--priority-low-light))'
 				}
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-card': 'var(--gradient-card)',
+				'gradient-subtle': 'var(--gradient-subtle)',
+				'priority-urgent': 'var(--priority-urgent-gradient)',
+				'priority-high': 'var(--priority-high-gradient)',
+				'priority-medium': 'var(--priority-medium-gradient)',
+				'priority-low': 'var(--priority-low-gradient)'
 			},
 			boxShadow: {
 				'task-sm': 'var(--shadow-sm)',
 				'task-md': 'var(--shadow-md)',
 				'task-lg': 'var(--shadow-lg)',
-				'task-xl': 'var(--shadow-xl)'
+				'task-xl': 'var(--shadow-xl)',
+				'colored': 'var(--shadow-colored)',
+				'glow-urgent': '0 0 20px hsl(var(--status-completed-glow) / 0.3)',
+				'glow-completed': '0 0 20px hsl(var(--status-completed-glow) / 0.3)',
+				'glow-progress': '0 0 20px hsl(var(--status-in-progress-glow) / 0.3)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

@@ -97,33 +97,38 @@ const CompactTaskCard = ({
     switch (status) {
       case 'completed': 
         return {
-          color: 'bg-status-completed-bg text-status-completed border-status-completed/20',
+          color: 'bg-status-completed-bg text-status-completed border-status-completed/30 shadow-glow-completed',
           icon: CheckCircle2,
-          label: 'Completada'
+          label: 'Completada',
+          glow: 'shadow-glow-completed'
         };
       case 'in_progress': 
         return {
-          color: 'bg-status-in-progress-bg text-status-in-progress border-status-in-progress/20',
+          color: 'bg-status-in-progress-bg text-status-in-progress border-status-in-progress/30 shadow-glow-progress',
           icon: Play,
-          label: 'En Progreso'
+          label: 'En Progreso',
+          glow: 'shadow-glow-progress'
         };
       case 'pending': 
         return {
-          color: 'bg-status-pending text-status-pending-fg border-status-pending/20',
+          color: 'bg-status-pending-bg text-status-pending-fg border-status-pending/30',
           icon: Clock,
-          label: 'Pendiente'
+          label: 'Pendiente',
+          glow: ''
         };
       case 'cancelled': 
         return {
-          color: 'bg-status-cancelled-bg text-status-cancelled border-status-cancelled/20',
+          color: 'bg-status-cancelled-bg text-status-cancelled border-status-cancelled/30',
           icon: X,
-          label: 'Cancelada'
+          label: 'Cancelada',
+          glow: ''
         };
       default: 
         return {
           color: 'bg-muted text-muted-foreground border-border',
           icon: Pause,
-          label: status
+          label: status,
+          glow: ''
         };
     }
   };
@@ -132,35 +137,40 @@ const CompactTaskCard = ({
     switch (priority) {
       case 'urgent': 
         return {
-          color: 'bg-priority-urgent text-white shadow-lg shadow-priority-urgent/30',
+          color: 'bg-priority-urgent text-white',
+          gradient: 'bg-gradient-to-br from-priority-urgent to-red-600',
           icon: Flame,
           label: 'Urgente',
-          glow: 'shadow-priority-urgent/50'
+          glow: 'shadow-lg shadow-priority-urgent/40 hover:shadow-xl hover:shadow-priority-urgent/50'
         };
       case 'high': 
         return {
-          color: 'bg-priority-high text-white shadow-md shadow-priority-high/20',
+          color: 'bg-priority-high text-white',
+          gradient: 'bg-gradient-to-br from-priority-high to-orange-600',
           icon: AlertTriangle,
           label: 'Alta',
-          glow: 'shadow-priority-high/30'
+          glow: 'shadow-md shadow-priority-high/30 hover:shadow-lg hover:shadow-priority-high/40'
         };
       case 'medium': 
         return {
-          color: 'bg-priority-medium text-white shadow-sm',
+          color: 'bg-priority-medium text-white',
+          gradient: 'bg-gradient-to-br from-priority-medium to-yellow-600',
           icon: ArrowUp,
           label: 'Media',
-          glow: ''
+          glow: 'shadow-sm hover:shadow-md hover:shadow-priority-medium/20'
         };
       case 'low': 
         return {
-          color: 'bg-priority-low text-white shadow-sm',
+          color: 'bg-priority-low text-white',
+          gradient: 'bg-gradient-to-br from-priority-low to-green-600',
           icon: Minus,
           label: 'Baja',
-          glow: ''
+          glow: 'shadow-sm hover:shadow-md hover:shadow-priority-low/20'
         };
       default: 
         return {
           color: 'bg-muted text-muted-foreground',
+          gradient: 'bg-muted',
           icon: Minus,
           label: priority,
           glow: ''
@@ -170,12 +180,22 @@ const CompactTaskCard = ({
 
   const getPriorityBorderColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'border-l-priority-urgent shadow-lg shadow-priority-urgent/20';
-      case 'high': return 'border-l-priority-high shadow-md shadow-priority-high/10';
-      case 'medium': return 'border-l-priority-medium';
-      case 'low': return 'border-l-priority-low';
-      default: return 'border-l-muted';
+      case 'urgent': return 'border-l-priority-urgent shadow-lg shadow-priority-urgent/20 bg-gradient-subtle';
+      case 'high': return 'border-l-priority-high shadow-md shadow-priority-high/10 bg-gradient-subtle';
+      case 'medium': return 'border-l-priority-medium bg-gradient-subtle';
+      case 'low': return 'border-l-priority-low bg-gradient-subtle';
+      default: return 'border-l-muted bg-gradient-card';
     }
+  };
+
+  // Enhanced project color integration
+  const getProjectColorStyles = (projectColor?: string) => {
+    if (!projectColor) return {};
+    return {
+      '--project-color': projectColor,
+      '--project-color-light': `${projectColor}20`,
+      '--project-color-ring': `${projectColor}40`
+    } as React.CSSProperties;
   };
 
   // Circular progress component for subtasks
@@ -255,7 +275,9 @@ const CompactTaskCard = ({
           rounded-lg overflow-hidden cursor-pointer group
           ${isDragging ? 'rotate-2 scale-105 shadow-task-xl z-50' : ''}
           ${task.priority === 'urgent' ? 'animate-pulse-glow' : ''}
+          ${task.status === 'completed' ? 'shadow-glow-completed' : ''}
         `}
+        style={getProjectColorStyles(project?.color)}
         draggable={!!onDragStart}
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
@@ -329,9 +351,14 @@ const CompactTaskCard = ({
                 {showProject && project && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <div 
-                      className="w-3 h-3 rounded-full ring-1 ring-white shadow-sm" 
-                      style={{ backgroundColor: project.color }} 
-                    />
+                      className="w-3 h-3 rounded-full ring-2 ring-white shadow-sm relative overflow-hidden" 
+                      style={{ backgroundColor: project.color }}
+                    >
+                      <div 
+                        className="absolute inset-0 opacity-20"
+                        style={{ background: `radial-gradient(circle at center, ${project.color}, transparent)` }}
+                      />
+                    </div>
                     <span className="font-medium">{project.name}</span>
                   </div>
                 )}
@@ -389,7 +416,8 @@ const CompactTaskCard = ({
                 <Badge className={`
                   text-xs font-medium px-3 py-2 rounded-full border flex items-center gap-2
                   ${statusConfig.color}
-                  transition-all duration-200 hover:scale-105
+                  transition-all duration-300 hover:scale-105 ${statusConfig.glow}
+                  backdrop-blur-sm
                 `}>
                   <StatusIcon className="w-3 h-3" />
                   {statusConfig.label}
@@ -403,8 +431,9 @@ const CompactTaskCard = ({
               return (
                 <Badge className={`
                   text-xs font-medium px-3 py-2 rounded-full flex items-center gap-2
-                  ${priorityConfig.color}
-                  transition-all duration-200 hover:scale-105 hover:${priorityConfig.glow}
+                  ${priorityConfig.gradient} ${priorityConfig.glow}
+                  transition-all duration-300 hover:scale-105
+                  backdrop-blur-sm border-0
                 `}>
                   <PriorityIcon className="w-3 h-3" />
                   {priorityConfig.label}
