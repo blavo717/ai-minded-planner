@@ -45,10 +45,10 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
   };
 
   const getStatusColor = () => {
-    if (subtask.status === 'completed' || subtaskProgress === 100) return 'stroke-green-600';
-    if (subtask.status === 'in_progress') return 'stroke-blue-600';
-    if (hasBeenStarted) return 'stroke-orange-600';
-    return 'stroke-slate-500';
+    if (subtask.status === 'completed' || subtaskProgress === 100) return 'text-green-600';
+    if (subtask.status === 'in_progress') return 'text-blue-600'; 
+    if (hasBeenStarted) return 'text-orange-600';
+    return 'text-slate-500';
   };
 
   const getStatusLabel = () => {
@@ -113,7 +113,13 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
                     <Check className="w-3 h-3 text-white" />
                   </div>
                 ) : (
-                  <Circle className={`w-5 h-5 ${getStatusColor()}`} />
+                  <Circle 
+                    className={`w-5 h-5 ${getStatusColor()}`}
+                    style={{ 
+                      color: hasBeenStarted ? '#ea580c' : 
+                             subtask.status === 'in_progress' ? '#2563eb' : '#64748b'
+                    }}
+                  />
                 )}
                 
                 <div className="flex-1">
