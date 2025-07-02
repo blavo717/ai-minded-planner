@@ -11,6 +11,7 @@ import WorkMicrotaskItem from './WorkMicrotaskItem';
 import MicrotaskCreator from './microtasks/MicrotaskCreator';
 import SubtaskWorkField from './SubtaskWorkField';
 import SubtaskTrackRecord from './SubtaskTrackRecord';
+import { useSubtaskTrackRecords } from '@/hooks/useSubtaskTrackRecords';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -22,6 +23,7 @@ interface WorkSubtaskCardProps {
 const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) => {
   const { microtasks } = useTasks();
   const { createTask } = useTaskMutations();
+  const { trackRecords } = useSubtaskTrackRecords({ subtaskId: subtask.id });
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(true);
   const [isActiveWork, setIsActiveWork] = useState(false);
@@ -35,6 +37,9 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
     ? Math.round((completedMicrotasks / subtaskMicrotasks.length) * 100)
     : (subtask.status === 'completed' ? 100 : 0);
 
+  // Verificar si la subtarea ha sido iniciada (tiene microtareas en progreso o track records)
+  const hasBeenStarted = subtaskProgress > 0 || trackRecords.length > 0;
+
   const handleWorkOnSubtask = () => {
     setIsActiveWork(!isActiveWork);
   };
@@ -42,14 +47,14 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
   const getStatusColor = () => {
     if (subtask.status === 'completed' || subtaskProgress === 100) return 'text-green-600';
     if (subtask.status === 'in_progress') return 'text-blue-600';
-    if (subtaskProgress > 0) return 'text-orange-600';
+    if (hasBeenStarted) return 'text-orange-600';
     return 'text-slate-500'; // Color más distintivo para pendiente
   };
 
   const getStatusLabel = () => {
     if (subtask.status === 'completed' || subtaskProgress === 100) return 'Completado';
     if (subtask.status === 'in_progress') return 'En Progreso';
-    if (subtaskProgress > 0) return 'Iniciado';
+    if (hasBeenStarted) return 'Iniciado';
     return 'Pendiente';
   };
 
@@ -85,7 +90,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
           ? 'border-l-green-500 bg-green-50/30 dark:bg-green-950/20' 
           : subtask.status === 'in_progress'
           ? 'border-l-blue-500 bg-blue-50/30 dark:bg-blue-950/20'
-          : subtaskProgress > 0
+          : hasBeenStarted
           ? 'border-l-orange-500 bg-orange-50/30 dark:bg-orange-950/20'
           : 'border-l-slate-400 bg-slate-50/30 dark:bg-slate-950/20'
       }`}>
