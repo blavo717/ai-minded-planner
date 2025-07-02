@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Timer, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,20 +10,51 @@ import { useTasks } from '@/hooks/useTasks';
 import { useTaskSessions } from '@/hooks/useTaskSessions';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import ActiveWorkSubtasks from '@/components/tasks/ActiveWorkSubtasks';
+import ActiveWorkMicrotasks from '@/components/tasks/ActiveWorkMicrotasks';
 import ActiveWorkNotes from '@/components/tasks/ActiveWorkNotes';
 import WorkSessionSummary from '@/components/tasks/WorkSessionSummary';
 import NextSteps from '@/components/tasks/NextSteps';
+import WorkLevelRouter from '@/components/tasks/WorkLevelRouter';
+import WorkBreadcrumb from '@/components/tasks/WorkBreadcrumb';
 
 const ActiveWork = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
-  const { mainTasks } = useTasks();
+  const { tasks, mainTasks, subtasks, microtasks, getTaskHierarchy } = useTasks();
   const { activeSession, startSession, endSession, isStarting, isEnding } = useTaskSessions();
   const { completeTask, markInProgress } = useTaskMutations();
   const [elapsedTime, setElapsedTime] = useState(0);
   const [taskProgress, setTaskProgress] = useState(0);
   
-  const task = mainTasks.find(t => t.id === taskId);
+  // Buscar la tarea en todos los niveles
+  const task = useMemo(() => {
+    return tasks.find(t => t.id === taskId);
+  }, [tasks, taskId]);
+
+  // Generar datos de jerarquía completa
+  const hierarchyData = useMemo(() => {
+    if (!task) return { parentTask: undefined, children: [], siblings: [], totalHierarchy: [] };
+
+    // Tarea padre
+    const parentTask = task.parent_task_id 
+      ? tasks.find(t => t.id === task.parent_task_id)
+      : undefined;
+
+    // Tareas hijas (nivel inmediatamente inferior)
+    const children = tasks.filter(t => t.parent_task_id === task.id);
+
+    // Tareas hermanas (mismo nivel y mismo padre)
+    const siblings = task.parent_task_id
+      ? tasks.filter(t => t.parent_task_id === task.parent_task_id && t.task_level === task.task_level)
+      : tasks.filter(t => t.task_level === task.task_level && !t.parent_task_id);
+
+    return {
+      parentTask,
+      children,
+      siblings,
+      totalHierarchy: tasks
+    };
+  }, [task, tasks]);
 
   // Inicializar progreso basado en estado de la tarea
   useEffect(() => {
@@ -171,9 +202,16 @@ const ActiveWork = () => {
         </div>
       </div>
 
-      {/* Contenido principal */}
+          {/* Contenido principal */}
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
+          {/* Breadcrumb jerárquico */}
+          <WorkBreadcrumb 
+            task={task}
+            hierarchyData={hierarchyData}
+            projectName={task.project_id ? 'Proyecto' : undefined}
+          />
+
           {/* Resumen de sesión */}
           <WorkSessionSummary 
             elapsedTime={elapsedTime}
@@ -187,7 +225,12 @@ const ActiveWork = () => {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-xl mb-2">{task.title}</CardTitle>
+                  <div className="flex items-center gap-2 mb-2">
+                    <CardTitle className="text-xl">{task.title}</CardTitle>
+                    <Badge variant="outline" className="text-xs">
+                      Nivel {task.task_level}
+                    </Badge>
+                  </div>
                   {task.description && (
                     <p className="text-muted-foreground">{task.description}</p>
                   )}
@@ -280,7 +323,11 @@ const ActiveWork = () => {
                 elapsedTime={elapsedTime}
               />
 
-              <ActiveWorkSubtasks taskId={taskId!} />
+              {/* Router de nivel dinámico */}
+              <WorkLevelRouter 
+                task={task}
+                hierarchyData={hierarchyData}
+              />
             </div>
           </div>
 
