@@ -31,6 +31,7 @@ const GanttChart = ({ tasks, projects, selectedProjectId }: GanttChartProps) => 
   const svgRef = useRef<SVGSVGElement>(null);
   const [timeScale, setTimeScale] = useState<'day' | 'week' | 'month'>('week');
   const [ganttTasks, setGanttTasks] = useState<GanttTask[]>([]);
+  const [hoveredTask, setHoveredTask] = useState<string | null>(null);
 
   const processTasksForGantt = (): GanttTask[] => {
     Logger.debug(LogCategory.GANTT_RENDER, 'Processing tasks for Gantt', {
@@ -95,161 +96,50 @@ const GanttChart = ({ tasks, projects, selectedProjectId }: GanttChartProps) => 
     setGanttTasks(processTasksForGantt());
   }, [tasks, projects, selectedProjectId]);
 
-  useEffect(() => {
-    if (!svgRef.current || ganttTasks.length === 0) {
-      Logger.warn(LogCategory.GANTT_RENDER, 'Gantt render skipped', {
-        hasSvgRef: !!svgRef.current,
-        taskCount: ganttTasks.length
-      });
-      return;
+  // Helper functions for minimalistic status indicators
+  const getStatusIcon = (progress: number, priority: string) => {
+    if (progress === 100) return '●'; // Completed
+    if (progress > 0) return '◐'; // In progress
+    return priority === 'urgent' ? '○' : '○'; // Pending
+  };
+
+  const getStatusColor = (progress: number, priority: string) => {
+    if (progress === 100) return 'text-status-completed';
+    if (progress > 0) return 'text-status-in-progress';
+    if (priority === 'urgent') return 'text-priority-urgent';
+    return 'text-muted-foreground';
+  };
+
+  const getPriorityDotColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'bg-priority-urgent';
+      case 'high': return 'bg-priority-high';
+      case 'medium': return 'bg-priority-medium';
+      case 'low': return 'bg-priority-low';
+      default: return 'bg-muted';
     }
+  };
 
-    Logger.info(LogCategory.GANTT_RENDER, 'Starting Gantt render', {
-      taskCount: ganttTasks.length,
-      timeScale
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('es-ES', { 
+      month: 'short', 
+      day: 'numeric' 
     });
+  };
 
-    PerformanceMonitor.measure('gantt-d3-render', () => {
-      const svg = d3.select(svgRef.current);
-      svg.selectAll("*").remove();
+  const getDateRange = () => {
+    if (ganttTasks.length === 0) return { start: new Date(), end: new Date() };
+    
+    const startDates = ganttTasks.map(t => t.startDate);
+    const endDates = ganttTasks.map(t => t.endDate);
+    
+    return {
+      start: new Date(Math.min(...startDates.map(d => d.getTime()))),
+      end: new Date(Math.max(...endDates.map(d => d.getTime())))
+    };
+  };
 
-      const margin = { top: 60, right: 30, bottom: 60, left: 200 };
-      const width = 1000 - margin.left - margin.right;
-      const height = ganttTasks.length * 40 + margin.top + margin.bottom;
-
-      svg.attr("width", width + margin.left + margin.right)
-         .attr("height", height);
-
-      const g = svg.append("g")
-                   .attr("transform", `translate(${margin.left},${margin.top})`);
-
-      // Time scale
-      const minDate = d3.min(ganttTasks, d => d.startDate) || new Date();
-      const maxDate = d3.max(ganttTasks, d => d.endDate) || new Date();
-      
-      // Add padding to dates
-      const timePadding = (maxDate.getTime() - minDate.getTime()) * 0.1;
-      const paddedMinDate = new Date(minDate.getTime() - timePadding);
-      const paddedMaxDate = new Date(maxDate.getTime() + timePadding);
-
-      const xScale = d3.scaleTime()
-                       .domain([paddedMinDate, paddedMaxDate])
-                       .range([0, width]);
-
-      const yScale = d3.scaleBand()
-                       .domain(ganttTasks.map(d => d.id))
-                       .range([0, ganttTasks.length * 40])
-                       .padding(0.1);
-
-      // Create time axis
-      let timeFormat;
-      let tickInterval;
-      
-      switch (timeScale) {
-        case 'day':
-          timeFormat = d3.timeFormat("%d/%m");
-          tickInterval = d3.timeDay.every(1);
-          break;
-        case 'week':
-          timeFormat = d3.timeFormat("%d/%m");
-          tickInterval = d3.timeWeek.every(1);
-          break;
-        case 'month':
-          timeFormat = d3.timeFormat("%m/%Y");
-          tickInterval = d3.timeMonth.every(1);
-          break;
-      }
-
-      const xAxis = d3.axisTop(xScale)
-                      .tickFormat(timeFormat)
-                      .ticks(tickInterval);
-
-      g.append("g")
-       .attr("class", "x-axis")
-       .call(xAxis)
-       .selectAll("text")
-       .style("text-anchor", "middle")
-       .style("font-size", "12px");
-
-      // Add grid lines
-      g.selectAll(".grid-line")
-       .data(xScale.ticks(tickInterval))
-       .enter()
-       .append("line")
-       .attr("class", "grid-line")
-       .attr("x1", d => xScale(d))
-       .attr("x2", d => xScale(d))
-       .attr("y1", 0)
-       .attr("y2", ganttTasks.length * 40)
-       .attr("stroke", "#e2e8f0")
-       .attr("stroke-width", 1)
-       .attr("opacity", 0.5);
-
-      // Create task bars
-      const taskGroups = g.selectAll(".task-group")
-                          .data(ganttTasks)
-                          .enter()
-                          .append("g")
-                          .attr("class", "task-group")
-                          .attr("transform", d => `translate(0, ${yScale(d.id)})`);
-
-      // Background bars
-      taskGroups.append("rect")
-                .attr("class", "task-background")
-                .attr("x", d => xScale(d.startDate))
-                .attr("width", d => xScale(d.endDate) - xScale(d.startDate))
-                .attr("height", yScale.bandwidth())
-                .attr("fill", d => d.projectColor)
-                .attr("opacity", 0.2)
-                .attr("rx", 4);
-
-      // Progress bars
-      taskGroups.append("rect")
-                .attr("class", "task-progress")
-                .attr("x", d => xScale(d.startDate))
-                .attr("width", d => (xScale(d.endDate) - xScale(d.startDate)) * (d.progress / 100))
-                .attr("height", yScale.bandwidth())
-                .attr("fill", d => d.projectColor)
-                .attr("rx", 4);
-
-      // Task labels
-      taskGroups.append("text")
-                .attr("class", "task-label")
-                .attr("x", -10)
-                .attr("y", yScale.bandwidth() / 2)
-                .attr("dy", "0.35em")
-                .attr("text-anchor", "end")
-                .attr("font-size", "12px")
-                .attr("font-weight", "500")
-                .text(d => d.title.length > 25 ? d.title.substring(0, 25) + "..." : d.title);
-
-      // Priority indicators
-      taskGroups.append("circle")
-                .attr("class", "priority-indicator")
-                .attr("cx", d => xScale(d.startDate) - 8)
-                .attr("cy", yScale.bandwidth() / 2)
-                .attr("r", 4)
-                .attr("fill", d => {
-                  switch (d.priority) {
-                    case 'urgent': return '#ef4444';
-                    case 'high': return '#f97316';
-                    case 'medium': return '#eab308';
-                    case 'low': return '#22c55e';
-                    default: return '#6b7280';
-                  }
-                });
-
-      // Add tooltips
-      taskGroups.append("title")
-                .text(d => `${d.title}\nInicio: ${d.startDate.toLocaleDateString()}\nFin: ${d.endDate.toLocaleDateString()}\nProgreso: ${d.progress}%`);
-
-      Logger.info(LogCategory.GANTT_RENDER, 'Gantt render completed', {
-        elementsCreated: ganttTasks.length,
-        svgDimensions: { width: width + margin.left + margin.right, height }
-      });
-    }, { taskCount: ganttTasks.length, timeScale });
-
-  }, [ganttTasks, timeScale]);
+  const dateRange = getDateRange();
 
   const handleZoomIn = () => {
     const currentIndex = ['month', 'week', 'day'].indexOf(timeScale);
@@ -308,9 +198,105 @@ const GanttChart = ({ tasks, projects, selectedProjectId }: GanttChartProps) => 
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <svg ref={svgRef} className="w-full"></svg>
+      <CardContent className="p-0">
+        {/* Minimalistic Timeline Header */}
+        <div className="px-6 py-4 border-b border-border bg-muted/20">
+          <div className="flex items-center justify-between text-sm text-muted-foreground font-medium">
+            <span className="w-80">Tarea</span>
+            <div className="flex-1 flex justify-between px-8">
+              <span>{formatDate(dateRange.start)}</span>
+              <span>{formatDate(dateRange.end)}</span>
+            </div>
+            <span className="w-20 text-center">Estado</span>
+          </div>
+        </div>
+
+        {/* Minimalistic Task Rows */}
+        <div className="divide-y divide-border">
+          {ganttTasks.map((task) => (
+            <div
+              key={task.id}
+              className={`
+                flex items-center py-4 px-6 transition-all duration-200 group
+                hover:bg-muted/30 cursor-pointer
+                ${hoveredTask === task.id ? 'bg-muted/40' : ''}
+              `}
+              onMouseEnter={() => setHoveredTask(task.id)}
+              onMouseLeave={() => setHoveredTask(null)}
+            >
+              {/* Task Info Column */}
+              <div className="w-80 flex items-center gap-3">
+                {/* Priority Dot */}
+                <div className={`
+                  w-2 h-2 rounded-full flex-shrink-0
+                  ${getPriorityDotColor(task.priority)}
+                `} />
+                
+                {/* Project Color Accent */}
+                <div
+                  className="w-1 h-8 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: task.projectColor }}
+                />
+                
+                {/* Task Title */}
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-medium text-foreground truncate text-sm">
+                    {task.title}
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatDate(task.endDate)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Timeline Visual */}
+              <div className="flex-1 px-8 py-2">
+                <div className="relative h-6 bg-muted/40 rounded-sm overflow-hidden">
+                  {/* Timeline Bar */}
+                  <div
+                    className="absolute left-0 top-0 h-full rounded-sm transition-all duration-300"
+                    style={{
+                      backgroundColor: task.projectColor,
+                      width: `${Math.max(task.progress, 8)}%`,
+                      opacity: task.progress === 100 ? 0.9 : 0.6
+                    }}
+                  />
+                  
+                  {/* Progress Text */}
+                  {task.progress > 30 && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs font-medium text-white/90">
+                        {task.progress}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Column */}
+              <div className="w-20 flex items-center justify-center">
+                <span className={`
+                  text-lg font-medium transition-all duration-200
+                  ${getStatusColor(task.progress, task.priority)}
+                  ${hoveredTask === task.id ? 'scale-125' : ''}
+                `}>
+                  {getStatusIcon(task.progress, task.priority)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Minimalistic Footer Stats */}
+        <div className="px-6 py-4 border-t border-border bg-muted/10">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {ganttTasks.filter(t => t.progress === 100).length} de {ganttTasks.length} completadas
+            </span>
+            <span>
+              Progreso general: {Math.round(ganttTasks.reduce((acc, t) => acc + t.progress, 0) / ganttTasks.length)}%
+            </span>
+          </div>
         </div>
       </CardContent>
     </Card>
