@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Star, ListChecks } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
@@ -14,7 +14,7 @@ interface TaskHierarchyDisplayProps {
   getMicrotasksForSubtask: (subtaskId: string) => Task[];
 }
 
-export const TaskHierarchyDisplay: React.FC<TaskHierarchyDisplayProps> = ({
+export const TaskHierarchyDisplay: React.FC<TaskHierarchyDisplayProps> = memo(({
   task,
   subtasks,
   project,
@@ -263,4 +263,4 @@ export const TaskHierarchyDisplay: React.FC<TaskHierarchyDisplayProps> = ({
       )}
     </div>
   );
-};
+});

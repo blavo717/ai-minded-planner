@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -10,9 +10,25 @@ interface NextActionsPlannerProps {
   tasks: Task[];
 }
 
-export const NextActionsPlanner: React.FC<NextActionsPlannerProps> = ({ tasks }) => {
+export const NextActionsPlanner: React.FC<NextActionsPlannerProps> = memo(({ tasks }) => {
   const [editingNextStep, setEditingNextStep] = useState<string | null>(null);
   const [newNextStep, setNewNextStep] = useState('');
+
+  const handlePlanTask = useCallback((taskId: string) => {
+    setEditingNextStep(taskId);
+    setNewNextStep('');
+  }, []);
+
+  const handleSaveStep = useCallback(() => {
+    setEditingNextStep(null);
+    setNewNextStep('');
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === 'Escape') {
+      handleSaveStep();
+    }
+  }, [handleSaveStep]);
 
   return (
     <div className="bg-gradient-subtle border border-task-card-border rounded-lg p-4">
@@ -45,19 +61,10 @@ export const NextActionsPlanner: React.FC<NextActionsPlannerProps> = ({ tasks })
                     onChange={(e) => setNewNextStep(e.target.value)}
                     placeholder="Describe el próximo paso..."
                     className="flex-1 h-8 text-sm"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        setEditingNextStep(null);
-                        setNewNextStep('');
-                      }
-                      if (e.key === 'Escape') {
-                        setEditingNextStep(null);
-                        setNewNextStep('');
-                      }
-                    }}
+                    onKeyDown={handleKeyDown}
                     autoFocus
                   />
-                  <Button size="sm" className="h-8 text-xs">Guardar</Button>
+                  <Button size="sm" className="h-8 text-xs" onClick={handleSaveStep}>Guardar</Button>
                 </div>
               ) : (
                 <div className="flex items-center justify-between">
@@ -74,10 +81,7 @@ export const NextActionsPlanner: React.FC<NextActionsPlannerProps> = ({ tasks })
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {
-                      setEditingNextStep(taskItem.id);
-                      setNewNextStep('');
-                    }}
+                    onClick={() => handlePlanTask(taskItem.id)}
                     className="h-7 text-xs text-primary"
                   >
                     <Edit className="h-3 w-3 mr-1" />
@@ -91,4 +95,4 @@ export const NextActionsPlanner: React.FC<NextActionsPlannerProps> = ({ tasks })
       </div>
     </div>
   );
-};
+});

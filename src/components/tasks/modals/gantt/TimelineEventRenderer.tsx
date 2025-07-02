@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Star, Calendar, Activity, Clock, MessageCircle } from 'lucide-react';
 import { format, isAfter, isBefore } from 'date-fns';
@@ -37,7 +37,7 @@ const getEventIcon = (type: string) => {
   }
 };
 
-export const TimelineEventRenderer: React.FC<TimelineEventRendererProps> = ({
+export const TimelineEventRenderer: React.FC<TimelineEventRendererProps> = memo(({
   event,
   chronologicalData
 }) => {
@@ -181,4 +181,4 @@ export const TimelineEventRenderer: React.FC<TimelineEventRendererProps> = ({
       </div>
     </div>
   );
-};
+});
