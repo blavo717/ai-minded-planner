@@ -28,7 +28,7 @@ const SubtaskTrackRecord: React.FC<SubtaskTrackRecordProps> = ({ subtask }) => {
   }
 
   return (
-    <div className="ml-6 mt-3 space-y-2">
+    <div className="mt-3 space-y-2">
       <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
         <Clock className="w-3 h-3" />
         <span>Historial de avances ({trackRecords.length})</span>

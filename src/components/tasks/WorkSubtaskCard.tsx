@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Circle, Play, ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { Circle, Play, ChevronDown, ChevronRight, Plus, Check, Save } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { useTasks } from '@/hooks/useTasks';
 import { useNavigate } from 'react-router-dom';
@@ -42,7 +42,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
   const getStatusColor = () => {
     if (subtask.status === 'completed') return 'text-green-600';
     if (subtask.status === 'in_progress') return 'text-blue-600';
-    if (subtaskProgress > 0) return 'text-yellow-600';
+    if (subtaskProgress > 0) return 'text-orange-600';
     return 'text-muted-foreground';
   };
 
@@ -51,6 +51,11 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
     if (subtask.status === 'in_progress') return 'En Progreso';
     if (subtaskProgress > 0) return 'Iniciado';
     return 'Pendiente';
+  };
+
+  const handleSaveSession = () => {
+    // Función para guardar sesión sin completar la tarea
+    console.log('Guardando sesión para subtarea:', subtask.id);
   };
 
   const canWork = subtask.status !== 'completed';
@@ -81,7 +86,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
           : subtask.status === 'in_progress'
           ? 'border-l-blue-500 bg-blue-50/30 dark:bg-blue-950/20'
           : subtaskProgress > 0
-          ? 'border-l-yellow-500 bg-yellow-50/30 dark:bg-yellow-950/20'
+          ? 'border-l-orange-500 bg-orange-50/30 dark:bg-orange-950/20'
           : 'border-l-muted-foreground bg-background'
       }`}>
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
@@ -98,7 +103,13 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
                   </Button>
                 </CollapsibleTrigger>
                 
-                <Circle className={`w-5 h-5 ${getStatusColor()}`} />
+                {subtask.status === 'completed' ? (
+                  <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                ) : (
+                  <Circle className={`w-5 h-5 ${getStatusColor()}`} />
+                )}
                 
                 <div className="flex-1">
                   <CardTitle className="text-base flex items-center gap-2">
@@ -112,26 +123,41 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">
-                  {getStatusLabel()}
-                </Badge>
-                <Badge variant="secondary" className="text-xs">
-                  {subtaskProgress}%
-                </Badge>
-                {canWork && (
-                  <Button 
-                    size="sm" 
-                    onClick={handleWorkOnSubtask}
-                    className={`h-7 px-3 text-xs ${
-                      isActiveWork ? 'bg-primary/10 text-primary' : 'hover:bg-primary/10'
-                    }`}
-                  >
-                    <Play className="w-3 h-3 mr-1" />
-                    {isActiveWork ? 'Trabajando' : 'Trabajar aquí'}
-                  </Button>
-                )}
-              </div>
+               <div className="flex items-center gap-2">
+                 <Badge variant="outline" className={`text-xs ${
+                   subtask.status === 'completed' ? 'text-green-700 border-green-300' : ''
+                 }`}>
+                   {getStatusLabel()}
+                 </Badge>
+                 <Badge variant="secondary" className="text-xs">
+                   {subtaskProgress}%
+                 </Badge>
+                 {canWork && (
+                   <>
+                     <Button 
+                       size="sm" 
+                       onClick={handleWorkOnSubtask}
+                       className={`h-7 px-3 text-xs ${
+                         isActiveWork ? 'bg-primary/10 text-primary' : 'hover:bg-primary/10'
+                       }`}
+                     >
+                       <Play className="w-3 h-3 mr-1" />
+                       {isActiveWork ? 'Trabajando' : 'Trabajar aquí'}
+                     </Button>
+                     {isActiveWork && (
+                       <Button 
+                         size="sm" 
+                         variant="outline"
+                         onClick={handleSaveSession}
+                         className="h-7 px-3 text-xs text-green-700 border-green-300 hover:bg-green-50"
+                       >
+                         <Save className="w-3 h-3 mr-1" />
+                         Guardar Sesión
+                       </Button>
+                     )}
+                   </>
+                 )}
+               </div>
             </div>
           </CardHeader>
           
@@ -144,7 +170,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
                     <span>Progreso de microtareas</span>
                     <span>{completedMicrotasks}/{subtaskMicrotasks.length}</span>
                   </div>
-                  <Progress value={subtaskProgress} className="h-1.5" />
+                  <Progress value={subtaskProgress} className="h-1.5 [&>div]:bg-green-600" />
                 </div>
               )}
 
@@ -177,15 +203,17 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
       
       {/* Campo de trabajo específico para subtarea */}
       {(canWork && isActiveWork) && (
-        <SubtaskWorkField 
-          subtask={subtask}
-          showByDefault={isActiveWork}
-        />
-      )}
-
-      {/* Track records siempre visibles cuando hay trabajo activo */}
-      {isActiveWork && (
-        <SubtaskTrackRecord subtask={subtask} />
+        <div className="mt-4 pl-6">
+          <div className="border border-border/40 rounded-md p-4 bg-background/50">
+            <SubtaskWorkField 
+              subtask={subtask}
+              showByDefault={isActiveWork}
+            />
+            
+            {/* Track records dentro del contenedor */}
+            <SubtaskTrackRecord subtask={subtask} />
+          </div>
+        </div>
       )}
     </div>
   );
