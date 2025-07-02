@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -6,6 +6,7 @@ import { Zap, Play, CheckCircle, Circle } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useNavigate } from 'react-router-dom';
+import MicrotaskWorkField from './MicrotaskWorkField';
 
 interface WorkMicrotaskItemProps {
   microtask: Task;
@@ -15,6 +16,7 @@ interface WorkMicrotaskItemProps {
 const WorkMicrotaskItem: React.FC<WorkMicrotaskItemProps> = ({ microtask, isLast }) => {
   const { updateTask } = useTaskMutations();
   const navigate = useNavigate();
+  const [isActiveWork, setIsActiveWork] = useState(false);
 
   const handleToggleMicrotask = (completed: boolean) => {
     updateTask({
@@ -89,15 +91,27 @@ const WorkMicrotaskItem: React.FC<WorkMicrotaskItemProps> = ({ microtask, isLast
           
           {/* Botón para trabajar */}
           {canWork && (
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={handleWorkOnMicrotask}
-              className="h-6 px-2 text-xs hover:bg-primary/10"
-            >
-              <Play className="w-2 h-2 mr-1" />
-              Trabajar
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setIsActiveWork(!isActiveWork)}
+                className={`h-6 px-2 text-xs ${
+                  isActiveWork ? 'bg-primary/10 text-primary' : 'hover:bg-primary/10'
+                }`}
+              >
+                <Play className="w-2 h-2 mr-1" />
+                {isActiveWork ? 'Trabajando' : 'Trabajar aquí'}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleWorkOnMicrotask}
+                className="h-6 px-2 text-xs"
+              >
+                Vista completa
+              </Button>
+            </div>
           )}
           
           {/* Badge de estado */}
@@ -113,6 +127,14 @@ const WorkMicrotaskItem: React.FC<WorkMicrotaskItemProps> = ({ microtask, isLast
           )}
         </div>
       </div>
+      
+      {/* Campo de trabajo específico */}
+      {(canWork && isActiveWork) && (
+        <MicrotaskWorkField 
+          microtask={microtask}
+          showByDefault={isActiveWork}
+        />
+      )}
     </div>
   );
 };
