@@ -1,6 +1,6 @@
 import React from 'react';
 import { Task } from '@/hooks/useTasks';
-import ActiveWorkSubtasks from './ActiveWorkSubtasks';
+import HierarchicalWorkView from './HierarchicalWorkView';
 import ActiveWorkMicrotasks from './ActiveWorkMicrotasks';
 
 interface WorkLevelRouterProps {
@@ -14,37 +14,17 @@ interface WorkLevelRouterProps {
 }
 
 const WorkLevelRouter: React.FC<WorkLevelRouterProps> = ({ task, hierarchyData }) => {
-  const { children, siblings } = hierarchyData;
+  const { siblings } = hierarchyData;
 
   // Función para renderizar contenido específico por nivel
   const renderLevelSpecificContent = () => {
     switch (task.task_level) {
-      case 1: // Tarea principal
+      case 1: // Tarea principal - Mostrar vista jerárquica completa
         return (
-          <div className="space-y-4">
-            {/* Mostrar subtareas */}
-            <ActiveWorkSubtasks taskId={task.id} />
-            
-            {/* Si hay subtareas, mostrar sus microtareas */}
-            {children.filter(c => c.task_level === 2).length > 0 && (
-              <div className="space-y-3">
-                {children
-                  .filter(c => c.task_level === 2)
-                  .slice(0, 2) // Mostrar solo las primeras 2 subtareas
-                  .map(subtask => (
-                  <div key={subtask.id} className="border-l-2 border-primary/20 pl-4">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                      Microtareas de: {subtask.title}
-                    </h4>
-                    <ActiveWorkMicrotasks taskId={subtask.id} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <HierarchicalWorkView task={task} hierarchyData={hierarchyData} />
         );
         
-      case 2: // Subtarea
+      case 2: // Subtarea - Mostrar contexto de hermanas + microtareas propias
         return (
           <div className="space-y-4">
             {/* Mostrar subtareas hermanas */}
@@ -72,7 +52,7 @@ const WorkLevelRouter: React.FC<WorkLevelRouterProps> = ({ task, hierarchyData }
           </div>
         );
         
-      case 3: // Microtarea
+      case 3: // Microtarea - Mostrar hermanas + enfoque específico
         return (
           <div className="space-y-4">
             {/* Mostrar microtareas hermanas */}
