@@ -104,14 +104,6 @@ const WorkMicrotaskItem: React.FC<WorkMicrotaskItemProps> = ({ microtask, isLast
                 <Play className="w-2 h-2 mr-1" />
                 {isActiveWork ? 'Trabajando' : 'Trabajar aquí'}
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleWorkOnMicrotask}
-                className="h-6 px-2 text-xs"
-              >
-                Vista completa
-              </Button>
             </div>
           )}
           

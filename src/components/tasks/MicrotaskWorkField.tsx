@@ -83,7 +83,7 @@ const MicrotaskWorkField: React.FC<MicrotaskWorkFieldProps> = ({
                   size="sm"
                   onClick={() => handleSubmit(workContent)}
                   disabled={!workContent.trim()}
-                  className="h-5 px-2 text-xs"
+                  className="h-5 px-2 text-xs bg-green-600 hover:bg-green-700 text-white"
                 >
                   <Send className="w-2 h-2" />
                 </Button>

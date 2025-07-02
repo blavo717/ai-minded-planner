@@ -99,7 +99,7 @@ const MicrotaskTrackRecord: React.FC<MicrotaskTrackRecordProps> = ({ microtask }
                     variant="ghost"
                     size="sm"
                     onClick={() => handleStartEdit(record)}
-                    className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                    className="h-5 w-5 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                   >
                     <Edit2 className="w-2 h-2" />
                   </Button>
@@ -107,7 +107,7 @@ const MicrotaskTrackRecord: React.FC<MicrotaskTrackRecordProps> = ({ microtask }
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDeleteRecord(record.id)}
-                    className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                    className="h-5 w-5 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
                   >
                     <Trash2 className="w-2 h-2" />
                   </Button>

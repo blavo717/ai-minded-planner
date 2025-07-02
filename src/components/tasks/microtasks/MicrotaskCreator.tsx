@@ -64,10 +64,10 @@ const MicrotaskCreator = ({ onCreateMicrotask }: MicrotaskCreatorProps) => {
       variant="ghost"
       size="sm"
       onClick={() => setIsCreating(true)}
-      className="h-5 text-xs text-gray-400 hover:text-gray-600 justify-start w-full px-2"
+      className="h-5 text-xs text-primary/70 hover:text-primary justify-start w-full px-2 hover:bg-primary/10"
     >
       <Plus className="h-2 w-2 mr-1" />
-      Añadir microtarea
+      ⚡ Añadir microtarea
     </Button>
   );
 };
