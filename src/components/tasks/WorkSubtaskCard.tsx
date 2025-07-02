@@ -8,6 +8,8 @@ import { Task } from '@/hooks/useTasks';
 import { useTasks } from '@/hooks/useTasks';
 import { useNavigate } from 'react-router-dom';
 import WorkMicrotaskItem from './WorkMicrotaskItem';
+import MicrotaskCreator from './microtasks/MicrotaskCreator';
+import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface WorkSubtaskCardProps {
@@ -17,6 +19,7 @@ interface WorkSubtaskCardProps {
 
 const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) => {
   const { microtasks } = useTasks();
+  const { createTask } = useTaskMutations();
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -48,6 +51,21 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
   };
 
   const canWork = subtask.status !== 'completed';
+
+  const handleCreateMicrotask = async (title: string) => {
+    try {
+      await createTask({
+        title,
+        parent_task_id: subtask.id,
+        project_id: subtask.project_id,
+        status: 'pending',
+        priority: 'medium',
+        task_level: 3 as 1 | 2 | 3
+      });
+    } catch (error) {
+      console.error('Error creating microtask:', error);
+    }
+  };
 
   return (
     <div className="relative">
@@ -145,15 +163,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
 
               {/* Crear nueva microtarea */}
               <div className="mt-3 pl-4">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => {/* TODO: Implementar creación de microtarea */}}
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  Agregar microtarea
-                </Button>
+                <MicrotaskCreator onCreateMicrotask={handleCreateMicrotask} />
               </div>
             </CardContent>
           </CollapsibleContent>
