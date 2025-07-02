@@ -2,17 +2,19 @@
 import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { X, ChevronLeft, ChevronRight, Edit, Plus, Clock, Star, TrendingUp, MessageCircle, AlertTriangle, Calendar, Activity, CheckCircle2, PlayCircle, PauseCircle, ListChecks } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Plus, Calendar, Activity } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { Project } from '@/hooks/useProjects';
 import { useTaskLogs } from '@/hooks/useTaskLogs';
 import { useTasks } from '@/hooks/useTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
-import { format, parseISO, differenceInDays, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
+import { format, differenceInDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { TimelineEventRenderer } from './gantt/TimelineEventRenderer';
+import { TaskHierarchyDisplay } from './gantt/TaskHierarchyDisplay';
+import { NextActionsPlanner } from './gantt/NextActionsPlanner';
+import { getStatusConfig } from './gantt/TaskStatusUtils';
 
 interface TaskGanttModalProps {
   isOpen: boolean;
@@ -35,18 +37,13 @@ const TaskGanttModal = ({
   hasPrevious = false,
   hasNext = false
 }: TaskGanttModalProps) => {
-  const [editingTitle, setEditingTitle] = useState<string | null>(null);
-  const [editingNextStep, setEditingNextStep] = useState<string | null>(null);
-  const [newNextStep, setNewNextStep] = useState('');
-
   const { logs } = useTaskLogs(task.id);
   const { getSubtasksForTask, getMicrotasksForSubtask } = useTasks();
-  const { updateTask } = useTaskMutations();
 
   const subtasks = getSubtasksForTask(task.id);
   const project = projects.find(p => p.id === task.project_id);
 
-  // Phase 1: Integrated chronological timeline data processing
+  // Integrated chronological timeline data processing
   const chronologicalData = useMemo(() => {
     const allTasks = [task, ...subtasks];
     const allEvents = [];
@@ -118,507 +115,8 @@ const TaskGanttModal = ({
     };
   }, [task, subtasks, logs]);
 
-  // Enhanced status components with semantic design system
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'completed': 
-        return {
-          icon: CheckCircle2,
-          color: 'text-status-completed',
-          bgColor: 'bg-status-completed-bg',
-          label: 'Completado'
-        };
-      case 'in_progress': 
-        return {
-          icon: PlayCircle,
-          color: 'text-status-in-progress',
-          bgColor: 'bg-status-in-progress-bg',
-          label: 'En Progreso'
-        };
-      case 'cancelled': 
-        return {
-          icon: X,
-          color: 'text-status-cancelled',
-          bgColor: 'bg-status-cancelled-bg',
-          label: 'Cancelado'
-        };
-      default: 
-        return {
-          icon: PauseCircle,
-          color: 'text-status-pending-fg',
-          bgColor: 'bg-status-pending-bg',
-          label: 'Pendiente'
-        };
-    }
-  };
 
-  const getPriorityConfig = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return { color: 'text-priority-urgent', bgColor: 'bg-priority-urgent', label: 'Urgente' };
-      case 'high': return { color: 'text-priority-high', bgColor: 'bg-priority-high', label: 'Alta' };
-      case 'medium': return { color: 'text-priority-medium', bgColor: 'bg-priority-medium', label: 'Media' };
-      case 'low': return { color: 'text-priority-low', bgColor: 'bg-priority-low', label: 'Baja' };
-      default: return { color: 'text-muted-foreground', bgColor: 'bg-muted', label: 'Sin prioridad' };
-    }
-  };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'completed': return 'Completado';
-      case 'in_progress': return 'En Progreso';
-      case 'cancelled': return 'Cancelado';
-      case 'pending': return 'Pendiente';
-      default: return 'Sin estado';
-    }
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'Urgente';
-      case 'high': return 'Alta';
-      case 'medium': return 'Media';
-      case 'low': return 'Baja';
-      default: return 'Sin prioridad';
-    }
-  };
-
-  const calculateProgress = (taskItem: Task): number => {
-    if (taskItem.status === 'completed') return 100;
-    if (taskItem.status === 'in_progress') return 50;
-    return 0;
-  };
-
-  const getLogIcon = (logType: string) => {
-    switch (logType) {
-      case 'created': return '⭐';
-      case 'status_change': return '📈';
-      case 'comment': return '💬';
-      case 'communication': return '📞';
-      case 'time_tracking': return '⏱️';
-      default: return '📝';
-    }
-  };
-
-  const formatLogTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return format(date, 'dd MMM HH:mm', { locale: es });
-  };
-
-  const handleTitleEdit = (taskId: string, newTitle: string) => {
-    if (newTitle.trim()) {
-      updateTask({ id: taskId, title: newTitle.trim() });
-    }
-    setEditingTitle(null);
-  };
-
-  const getProgressBarColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-500';
-      case 'in_progress': return 'bg-blue-500';
-      case 'cancelled': return 'bg-red-500';
-      default: return 'bg-gray-300';
-    }
-  };
-
-  // Phase 3: Gantt-Centric Timeline Event Renderer with Spatial Organization
-  const renderTimelineEvent = (event: any, index: number) => {
-    const eventDate = new Date(event.timestamp);
-    const isOverdue = event.type === 'task_due' && isAfter(new Date(), eventDate);
-    const isFuture = isAfter(eventDate, new Date());
-    const isPast = isBefore(eventDate, new Date());
-    const statusConfig = getStatusConfig(event.task?.status || 'pending');
-    const priorityConfig = getPriorityConfig(event.task?.priority || 'medium');
-    
-    // Calculate position on timeline (0-100%)
-    const positionPercentage = chronologicalData.timelineSpan > 0 
-      ? ((eventDate.getTime() - chronologicalData.startDate.getTime()) / 
-         (chronologicalData.endDate.getTime() - chronologicalData.startDate.getTime())) * 100
-      : 50;
-
-    const getEventIcon = (type: string) => {
-      switch (type) {
-        case 'task_created': return Star;
-        case 'task_due': return Calendar;
-        case 'log_entry': return Activity;
-        default: return Clock;
-      }
-    };
-
-    const EventIcon = getEventIcon(event.type);
-
-    // Phase 3: Determine temporal section for layout
-    const temporalSection = isPast ? 'past' : isFuture ? 'future' : 'current';
-    const sectionColors = {
-      past: 'bg-muted/50 border-muted',
-      current: 'bg-primary/5 border-primary/20',
-      future: 'bg-gradient-card border-task-card-border'
-    };
-
-    return (
-      <div key={event.id} className={`mb-4 ${sectionColors[temporalSection]} rounded-lg p-4 shadow-task-sm hover:shadow-task-md transition-all`}>
-        {/* Phase 3: Dominant Horizontal Timeline - Full Width */}
-        <div className="relative mb-6">
-          <div className="w-full h-6 bg-gradient-to-r from-muted via-muted/50 to-muted rounded-full overflow-hidden border border-border">
-            {/* Timeline Zones: Past | Current | Future */}
-            <div className="absolute inset-0 flex">
-              <div className="flex-1 bg-gradient-to-r from-muted-foreground/10 to-muted-foreground/5" />
-              <div className="w-0.5 bg-primary shadow-lg z-10" />
-              <div className="flex-1 bg-gradient-to-r from-primary/10 to-primary/20" />
-            </div>
-            
-            {/* Event Position Marker - Anchored to Timeline */}
-            <div 
-              className={`absolute top-1 bottom-1 w-1 rounded-full shadow-lg z-20 ${
-                temporalSection === 'past' ? 'bg-muted-foreground' :
-                temporalSection === 'current' ? 'bg-primary' : 'bg-primary/70'
-              }`}
-              style={{ left: `${Math.max(0, Math.min(100, positionPercentage))}%` }}
-            />
-            
-            {/* Timeline Navigation Labels */}
-            <div className="absolute -top-5 left-0 text-xs text-muted-foreground">PASADO</div>
-            <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 text-xs text-primary font-medium">AHORA</div>
-            <div className="absolute -top-5 right-0 text-xs text-muted-foreground">FUTURO</div>
-          </div>
-          
-          {/* Timeline Date Anchors */}
-          <div className="flex justify-between mt-2 text-xs">
-            <span className="text-muted-foreground">{format(chronologicalData.startDate, 'dd MMM', { locale: es })}</span>
-            <span className="font-medium text-primary">
-              {format(eventDate, 'dd MMM HH:mm', { locale: es })}
-            </span>
-            <span className="text-muted-foreground">{format(chronologicalData.endDate, 'dd MMM', { locale: es })}</span>
-          </div>
-        </div>
-
-        {/* Phase 3: Information Anchored to Timeline Position */}
-        <div className="grid grid-cols-3 gap-6">
-          {/* Left: Context & Task Info */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-full ${statusConfig.bgColor}`}>
-                <EventIcon className={`w-4 h-4 ${statusConfig.color}`} />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-sm">{event.title}</h4>
-                <p className="text-xs text-muted-foreground">
-                  {temporalSection === 'past' && '✓ Completado'}
-                  {temporalSection === 'current' && '⚡ Actual'}
-                  {temporalSection === 'future' && '📅 Programado'}
-                  {isOverdue && <span className="text-destructive font-medium"> • VENCIDA</span>}
-                </p>
-              </div>
-            </div>
-            
-            {event.task && (
-              <div className="text-xs space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Progreso:</span>
-                  <span className="font-medium">{calculateProgress(event.task)}%</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-1.5">
-                  <div 
-                    className={`h-full rounded-full ${getProgressBarColor(event.task.status)}`}
-                    style={{ width: `${calculateProgress(event.task)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Center: Main Event Content */}
-          <div className="space-y-3">
-            {event.type === 'log_entry' && event.data.log && (
-              <div className="bg-background/50 border border-border rounded-md p-3">
-                <div className="flex items-start gap-2">
-                  <MessageCircle className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-tight">{event.data.log.title}</p>
-                    {event.data.log.content && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{event.data.log.content}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {event.task && (
-              <div className="text-xs text-muted-foreground">
-                <span className="inline-block w-2 h-2 rounded-full bg-current mr-2" />
-                {event.task.task_level === 1 ? 'Tarea Principal' : 
-                 event.task.task_level === 2 ? 'Subtarea' : 'Microtarea'}
-              </div>
-            )}
-          </div>
-
-          {/* Right: Status & Actions */}
-          <div className="space-y-2 text-right">
-            <div className="flex flex-col gap-1">
-              <Badge className={`${priorityConfig.bgColor} ${priorityConfig.color} text-xs w-fit ml-auto`}>
-                {priorityConfig.label}
-              </Badge>
-              <Badge className={`${statusConfig.bgColor} ${statusConfig.color} text-xs w-fit ml-auto`}>
-                {statusConfig.label}
-              </Badge>
-            </div>
-            
-            {event.task && (
-              <Badge variant="outline" className="text-xs w-fit ml-auto">
-                {event.task.title || 'Sistema'}
-              </Badge>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Phase 2: Continuous Dense Information Renderer (No Tabs)
-  const renderTaskHierarchy = () => {
-    const allTasks = [task, ...subtasks];
-    
-    // Get microtasks for each subtask for complete hierarchy
-    const tasksWithMicrotasks = allTasks.map(t => ({
-      ...t,
-      microtasks: t.task_level === 2 ? getMicrotasksForSubtask(t.id) : []
-    }));
-
-    const tasksByLevel = tasksWithMicrotasks.reduce((acc, t) => {
-      const level = t.task_level || 1;
-      if (!acc[level]) acc[level] = [];
-      acc[level].push(t);
-      return acc;
-    }, {} as Record<number, any[]>);
-
-    return (
-      <div className="space-y-8">
-        {/* Phase 2: Main Task Section - Always Expanded */}
-        <div className="bg-gradient-card border border-task-card-border rounded-lg p-6 shadow-task-md">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-3 rounded-full bg-primary/10 border border-primary/20">
-              <Star className="w-6 h-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-foreground">Tarea Principal</h3>
-              <p className="text-muted-foreground text-sm">Información completa y estado actual</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {(() => {
-                const statusConfig = getStatusConfig(task.status);
-                const priorityConfig = getPriorityConfig(task.priority);
-                const StatusIcon = statusConfig.icon;
-                
-                return (
-                  <>
-                    <Badge className={`${priorityConfig.bgColor} ${priorityConfig.color} px-3 py-1`}>
-                      {priorityConfig.label}
-                    </Badge>
-                    <Badge className={`${statusConfig.bgColor} ${statusConfig.color} px-3 py-1 flex items-center gap-2`}>
-                      <StatusIcon className="w-4 h-4" />
-                      {statusConfig.label}
-                    </Badge>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-
-          {/* Main Task Details - All Visible */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div className="lg:col-span-2 space-y-4">
-              {/* Task Title and Description */}
-              <div className="bg-task-card border border-task-card-border rounded-md p-4">
-                <h4 className="font-semibold text-base mb-2">{task.title}</h4>
-                {task.description && (
-                  <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
-                )}
-                {task.due_date && (
-                  <div className="flex items-center gap-2 mt-3 text-xs">
-                    <Calendar className="w-3 h-3 text-muted-foreground" />
-                    <span className="text-muted-foreground">
-                      Vence: {format(new Date(task.due_date), 'PPp', { locale: es })}
-                    </span>
-                    {isAfter(new Date(), new Date(task.due_date)) && (
-                      <Badge variant="destructive" className="text-xs">VENCIDA</Badge>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Project Information - Always Visible */}
-              {project && (
-                <div className="bg-task-card border border-task-card-border rounded-md p-4">
-                  <div className="flex items-center gap-3">
-                    <div 
-                      className="w-4 h-4 rounded-full border border-white shadow-sm" 
-                      style={{ backgroundColor: project.color }}
-                    />
-                    <div>
-                      <h5 className="font-medium text-sm">{project.name}</h5>
-                      <p className="text-xs text-muted-foreground">
-                        {project.description || 'Sin descripción del proyecto'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Stats - Always Visible */}
-            <div className="space-y-4">
-              <div className="bg-task-card border border-task-card-border rounded-md p-4 text-center">
-                <div className="text-2xl font-bold text-foreground mb-1">
-                  {calculateProgress(task)}%
-                </div>
-                <div className="text-xs text-muted-foreground mb-2">Progreso</div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-500 ${getProgressBarColor(task.status)}`}
-                    style={{ width: `${calculateProgress(task)}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="bg-task-card border border-task-card-border rounded-md p-4 text-center">
-                <div className="text-lg font-bold text-foreground mb-1">
-                  {subtasks.length}
-                </div>
-                <div className="text-xs text-muted-foreground">Subtareas</div>
-              </div>
-
-              <div className="bg-task-card border border-task-card-border rounded-md p-4 text-center">
-                <div className="text-lg font-bold text-foreground mb-1">
-                  {subtasks.reduce((acc, st) => acc + getMicrotasksForSubtask(st.id).length, 0)}
-                </div>
-                <div className="text-xs text-muted-foreground">Microtareas</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Phase 2: Subtasks Section - Always Expanded */}
-        {tasksByLevel[2] && tasksByLevel[2].length > 0 && (
-          <div className="bg-gradient-card border border-task-card-border rounded-lg p-6 shadow-task-md">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="p-3 rounded-full bg-status-in-progress-bg border border-status-in-progress/20">
-                <ListChecks className="w-6 h-6 text-status-in-progress" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-foreground">Subtareas</h3>
-                <p className="text-muted-foreground text-sm">
-                  {tasksByLevel[2].length} subtareas • {tasksByLevel[2].filter(st => st.status === 'completed').length} completadas
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {tasksByLevel[2].map((subtask: any) => {
-                const statusConfig = getStatusConfig(subtask.status);
-                const priorityConfig = getPriorityConfig(subtask.priority);
-                const StatusIcon = statusConfig.icon;
-                const microtasks = subtask.microtasks || [];
-                
-                return (
-                  <div key={subtask.id} className="bg-task-card border border-task-card-border rounded-lg p-5">
-                    {/* Subtask Header */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3 flex-1">
-                        <StatusIcon className={`w-5 h-5 ${statusConfig.color}`} />
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-base">{subtask.title}</h4>
-                          {subtask.description && (
-                            <p className="text-sm text-muted-foreground mt-1">{subtask.description}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={`${priorityConfig.bgColor} ${priorityConfig.color} text-xs`}>
-                          {priorityConfig.label}
-                        </Badge>
-                        <Badge className={`${statusConfig.bgColor} ${statusConfig.color} text-xs`}>
-                          {statusConfig.label}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    {/* Subtask Progress */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-muted-foreground">PROGRESO</span>
-                        <span className="text-xs font-bold">{calculateProgress(subtask)}%</span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-3">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-500 ${getProgressBarColor(subtask.status)}`}
-                          style={{ width: `${calculateProgress(subtask)}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Phase 2: Microtasks - Always Visible if they exist */}
-                    {microtasks.length > 0 && (
-                      <div className="border-t border-border pt-4">
-                        <h5 className="font-medium text-sm text-muted-foreground mb-3 flex items-center gap-2">
-                          <div className="w-2 h-2 bg-primary rounded-full" />
-                          MICROTAREAS ({microtasks.length})
-                        </h5>
-                        <div className="grid gap-2">
-                          {microtasks.map((microtask: Task) => {
-                            const microStatusConfig = getStatusConfig(microtask.status);
-                            const MicroStatusIcon = microStatusConfig.icon;
-                            
-                            return (
-                              <div key={microtask.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-md border border-border">
-                                <div className="flex items-center gap-3 flex-1">
-                                  <MicroStatusIcon className={`w-4 h-4 ${microStatusConfig.color}`} />
-                                  <span className="text-sm font-medium truncate">{microtask.title}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-12 bg-muted rounded-full h-2">
-                                    <div 
-                                      className={`h-full rounded-full ${getProgressBarColor(microtask.status)}`}
-                                      style={{ width: `${calculateProgress(microtask)}%` }}
-                                    />
-                                  </div>
-                                  <Badge className={`${microStatusConfig.bgColor} ${microStatusConfig.color} text-xs`}>
-                                    {microStatusConfig.label}
-                                  </Badge>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Subtask Metadata - Always Visible */}
-                    <div className="border-t border-border pt-4 mt-4">
-                      <div className="grid grid-cols-2 gap-4 text-xs">
-                        <div>
-                          <span className="text-muted-foreground">Creada:</span>
-                          <p className="font-medium mt-1">
-                            {format(new Date(subtask.created_at), 'PPp', { locale: es })}
-                          </p>
-                        </div>
-                        {subtask.due_date && (
-                          <div>
-                            <span className="text-muted-foreground">Vence:</span>
-                            <p className="font-medium mt-1">
-                              {format(new Date(subtask.due_date), 'PPp', { locale: es })}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -681,10 +179,15 @@ const TaskGanttModal = ({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Phase 1: Dense Task Hierarchy - Always Visible */}
-          {renderTaskHierarchy()}
+          {/* Dense Task Hierarchy - Always Visible */}
+          <TaskHierarchyDisplay
+            task={task}
+            subtasks={subtasks}
+            project={project}
+            getMicrotasksForSubtask={getMicrotasksForSubtask}
+          />
 
-          {/* Phase 1: Central Chronological Timeline */}
+          {/* Central Chronological Timeline */}
           <div className="bg-gradient-card border border-task-card-border rounded-lg p-4">
             <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
               <Activity className="w-5 h-5 text-primary" />
@@ -740,7 +243,13 @@ const TaskGanttModal = ({
             {/* Integrated Event Flow */}
             {chronologicalData.events.length > 0 ? (
               <div className="space-y-4">
-                {chronologicalData.events.map((event, index) => renderTimelineEvent(event, index))}
+                {chronologicalData.events.map((event, index) => (
+                  <TimelineEventRenderer
+                    key={event.id}
+                    event={event}
+                    chronologicalData={chronologicalData}
+                  />
+                ))}
               </div>
             ) : (
               <div className="text-center py-12 text-muted-foreground">
@@ -758,81 +267,7 @@ const TaskGanttModal = ({
           </div>
 
           {/* Next Actions Section - Always Visible */}
-          <div className="bg-gradient-subtle border border-task-card-border rounded-lg p-4">
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              Próximos Pasos y Planificación
-            </h3>
-            
-            <div className="grid gap-4">
-              {[task, ...subtasks].map(taskItem => {
-                const statusConfig = getStatusConfig(taskItem.status);
-                const priorityConfig = getPriorityConfig(taskItem.priority);
-                
-                return (
-                  <div key={taskItem.id} className="bg-task-card border border-task-card-border rounded-md p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${priorityConfig.bgColor}`} />
-                        <span className="font-medium text-sm">{taskItem.title}</span>
-                      </div>
-                      <Badge className={`${statusConfig.bgColor} ${statusConfig.color} text-xs`}>
-                        {statusConfig.label}
-                      </Badge>
-                    </div>
-                    
-                    {editingNextStep === taskItem.id ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={newNextStep}
-                          onChange={(e) => setNewNextStep(e.target.value)}
-                          placeholder="Describe el próximo paso..."
-                          className="flex-1 h-8 text-sm"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              setEditingNextStep(null);
-                              setNewNextStep('');
-                            }
-                            if (e.key === 'Escape') {
-                              setEditingNextStep(null);
-                              setNewNextStep('');
-                            }
-                          }}
-                          autoFocus
-                        />
-                        <Button size="sm" className="h-8 text-xs">Guardar</Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          {taskItem.status === 'completed' 
-                            ? '✅ Tarea completada exitosamente' 
-                            : taskItem.status === 'pending'
-                            ? '🚀 Listo para iniciar trabajo'
-                            : taskItem.status === 'in_progress'
-                            ? '⚡ En progreso activo'
-                            : '⏸️ Esperando reanudación'
-                          }
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingNextStep(taskItem.id);
-                            setNewNextStep('');
-                          }}
-                          className="h-7 text-xs text-primary"
-                        >
-                          <Edit className="h-3 w-3 mr-1" />
-                          Planificar
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <NextActionsPlanner tasks={[task, ...subtasks]} />
         </div>
       </DialogContent>
     </Dialog>
