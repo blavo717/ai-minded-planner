@@ -112,14 +112,16 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
                   <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center">
                     <Check className="w-3 h-3 text-white" />
                   </div>
+                ) : hasBeenStarted ? (
+                  <div className="w-5 h-5 rounded-full bg-orange-600 flex items-center justify-center">
+                    <Circle className="w-3 h-3 text-white" />
+                  </div>
+                ) : subtask.status === 'in_progress' ? (
+                  <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
+                    <Circle className="w-3 h-3 text-white" />
+                  </div>
                 ) : (
-                  <Circle 
-                    className={`w-5 h-5 ${getStatusColor()}`}
-                    style={{ 
-                      color: hasBeenStarted ? '#ea580c' : 
-                             subtask.status === 'in_progress' ? '#2563eb' : '#64748b'
-                    }}
-                  />
+                  <Circle className="w-5 h-5 text-slate-500" />
                 )}
                 
                 <div className="flex-1">
