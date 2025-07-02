@@ -3,7 +3,7 @@ export interface TaskLog {
   id: string;
   task_id: string;
   user_id: string;
-  log_type: 'manual' | 'status_change' | 'creation' | 'completion' | 'assignment' | 'communication' | 'update' | 'deletion';
+  log_type: 'manual' | 'status_change' | 'creation' | 'completion' | 'assignment' | 'communication' | 'update' | 'deletion' | 'quick_update';
   title: string;
   content?: string;
   metadata: Record<string, any>;
@@ -34,5 +34,6 @@ export const LOG_TYPES = {
   assignment: 'Asignación',
   communication: 'Comunicación',
   update: 'Actualización',
-  deletion: 'Eliminación'
+  deletion: 'Eliminación',
+  quick_update: 'Actualización Rápida'
 } as const;
