@@ -10,7 +10,15 @@ import {
   UserPlus, 
   ChevronDown, 
   ChevronRight,
-  MoreHorizontal 
+  MoreHorizontal,
+  Clock,
+  Play,
+  Pause,
+  X,
+  AlertTriangle,
+  Flame,
+  ArrowUp,
+  Minus
 } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { Project } from '@/hooks/useProjects';
@@ -73,34 +81,131 @@ const CompactTaskCard = ({
     ? formatDistanceToNow(new Date(task.created_at), { addSuffix: true, locale: es })
     : 'hace un momento';
 
-  const getStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-status-completed-bg text-status-completed border-status-completed/20';
-      case 'in_progress': return 'bg-status-in-progress-bg text-status-in-progress border-status-in-progress/20';
-      case 'pending': return 'bg-status-pending text-status-pending-fg border-status-pending/20';
-      case 'cancelled': return 'bg-status-cancelled-bg text-status-cancelled border-status-cancelled/20';
-      default: return 'bg-muted text-muted-foreground border-border';
+      case 'completed': 
+        return {
+          color: 'bg-status-completed-bg text-status-completed border-status-completed/20',
+          icon: CheckCircle2,
+          label: 'Completada'
+        };
+      case 'in_progress': 
+        return {
+          color: 'bg-status-in-progress-bg text-status-in-progress border-status-in-progress/20',
+          icon: Play,
+          label: 'En Progreso'
+        };
+      case 'pending': 
+        return {
+          color: 'bg-status-pending text-status-pending-fg border-status-pending/20',
+          icon: Clock,
+          label: 'Pendiente'
+        };
+      case 'cancelled': 
+        return {
+          color: 'bg-status-cancelled-bg text-status-cancelled border-status-cancelled/20',
+          icon: X,
+          label: 'Cancelada'
+        };
+      default: 
+        return {
+          color: 'bg-muted text-muted-foreground border-border',
+          icon: Pause,
+          label: status
+        };
     }
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityConfig = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-priority-urgent text-white shadow-sm';
-      case 'high': return 'bg-priority-high text-white shadow-sm';
-      case 'medium': return 'bg-priority-medium text-white shadow-sm';
-      case 'low': return 'bg-priority-low text-white shadow-sm';
-      default: return 'bg-muted text-muted-foreground';
+      case 'urgent': 
+        return {
+          color: 'bg-priority-urgent text-white shadow-lg shadow-priority-urgent/30',
+          icon: Flame,
+          label: 'Urgente',
+          glow: 'shadow-priority-urgent/50'
+        };
+      case 'high': 
+        return {
+          color: 'bg-priority-high text-white shadow-md shadow-priority-high/20',
+          icon: AlertTriangle,
+          label: 'Alta',
+          glow: 'shadow-priority-high/30'
+        };
+      case 'medium': 
+        return {
+          color: 'bg-priority-medium text-white shadow-sm',
+          icon: ArrowUp,
+          label: 'Media',
+          glow: ''
+        };
+      case 'low': 
+        return {
+          color: 'bg-priority-low text-white shadow-sm',
+          icon: Minus,
+          label: 'Baja',
+          glow: ''
+        };
+      default: 
+        return {
+          color: 'bg-muted text-muted-foreground',
+          icon: Minus,
+          label: priority,
+          glow: ''
+        };
     }
   };
 
   const getPriorityBorderColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'border-l-priority-urgent';
-      case 'high': return 'border-l-priority-high';
+      case 'urgent': return 'border-l-priority-urgent shadow-lg shadow-priority-urgent/20';
+      case 'high': return 'border-l-priority-high shadow-md shadow-priority-high/10';
       case 'medium': return 'border-l-priority-medium';
       case 'low': return 'border-l-priority-low';
       default: return 'border-l-muted';
     }
+  };
+
+  // Circular progress component for subtasks
+  const CircularProgress = ({ completed, total }: { completed: number; total: number }) => {
+    const percentage = total > 0 ? (completed / total) * 100 : 0;
+    const circumference = 2 * Math.PI * 8; // radius = 8
+    const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+    return (
+      <div className="relative w-6 h-6">
+        <svg className="w-6 h-6 transform -rotate-90" viewBox="0 0 20 20">
+          {/* Background circle */}
+          <circle
+            cx="10"
+            cy="10"
+            r="8"
+            stroke="currentColor"
+            strokeWidth="2"
+            fill="none"
+            className="text-muted/20"
+          />
+          {/* Progress circle */}
+          <circle
+            cx="10"
+            cy="10"
+            r="8"
+            stroke="currentColor"
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            className="text-primary transition-all duration-500 ease-out"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-xs font-medium text-muted-foreground">
+            {completed}
+          </span>
+        </div>
+      </div>
+    );
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -152,9 +257,15 @@ const CompactTaskCard = ({
                     {task.title}
                   </h3>
                   {hasSubtasks && (
-                    <Badge variant="secondary" className="text-xs font-medium px-2 py-1 rounded-full bg-accent/50">
-                      {subtasks.filter(st => st.status === 'completed').length}/{subtasks.length}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <CircularProgress 
+                        completed={subtasks.filter(st => st.status === 'completed').length}
+                        total={subtasks.length}
+                      />
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {subtasks.filter(st => st.status === 'completed').length}/{subtasks.length} subtareas
+                      </span>
+                    </div>
                   )}
                 </div>
                 
@@ -210,12 +321,35 @@ const CompactTaskCard = ({
 
           {/* Status and Priority Section */}
           <div className="flex items-center justify-between">
-            <Badge className={`text-xs font-medium px-3 py-1 rounded-full border ${getStatusColor(task.status)}`}>
-              {task.status}
-            </Badge>
-            <Badge className={`text-xs font-medium px-3 py-1 rounded-full ${getPriorityColor(task.priority)}`}>
-              {task.priority}
-            </Badge>
+            {(() => {
+              const statusConfig = getStatusConfig(task.status);
+              const StatusIcon = statusConfig.icon;
+              return (
+                <Badge className={`
+                  text-xs font-medium px-3 py-2 rounded-full border flex items-center gap-2
+                  ${statusConfig.color}
+                  transition-all duration-200 hover:scale-105
+                `}>
+                  <StatusIcon className="w-3 h-3" />
+                  {statusConfig.label}
+                </Badge>
+              );
+            })()}
+            
+            {(() => {
+              const priorityConfig = getPriorityConfig(task.priority);
+              const PriorityIcon = priorityConfig.icon;
+              return (
+                <Badge className={`
+                  text-xs font-medium px-3 py-2 rounded-full flex items-center gap-2
+                  ${priorityConfig.color}
+                  transition-all duration-200 hover:scale-105 hover:${priorityConfig.glow}
+                `}>
+                  <PriorityIcon className="w-3 h-3" />
+                  {priorityConfig.label}
+                </Badge>
+              );
+            })()}
           </div>
 
           {/* Timestamp */}
