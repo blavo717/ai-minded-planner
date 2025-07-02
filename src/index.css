@@ -36,6 +36,33 @@
 
     --radius: 0.5rem;
 
+    /* Modern Task Design Tokens */
+    --task-card-bg: 0 0% 100%;
+    --task-card-hover: 0 0% 98%;
+    --task-card-border: 220 13% 91%;
+    
+    /* Status Colors - Semantic */
+    --status-completed: 142 76% 36%;
+    --status-completed-bg: 142 76% 96%;
+    --status-in-progress: 221 83% 53%;
+    --status-in-progress-bg: 221 83% 96%;
+    --status-pending: 213 27% 84%;
+    --status-pending-fg: 215 25% 27%;
+    --status-cancelled: 0 84% 60%;
+    --status-cancelled-bg: 0 84% 96%;
+    
+    /* Priority Colors - Semantic */
+    --priority-urgent: 0 84% 60%;
+    --priority-high: 25 95% 53%;
+    --priority-medium: 48 96% 53%;
+    --priority-low: 142 76% 36%;
+    
+    /* Shadows for depth */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
+
     --sidebar-background: 0 0% 98%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -81,6 +108,21 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
+    /* Dark mode task tokens */
+    --task-card-bg: 222.2 84% 4.9%;
+    --task-card-hover: 217.2 32.6% 17.5%;
+    --task-card-border: 217.2 32.6% 17.5%;
+    
+    /* Dark mode status colors */
+    --status-completed: 142 76% 46%;
+    --status-completed-bg: 142 76% 10%;
+    --status-in-progress: 221 83% 63%;
+    --status-in-progress-bg: 221 83% 10%;
+    --status-pending: 213 27% 54%;
+    --status-pending-fg: 213 27% 84%;
+    --status-cancelled: 0 84% 70%;
+    --status-cancelled-bg: 0 84% 10%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;

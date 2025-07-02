@@ -75,21 +75,31 @@ const CompactTaskCard = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'pending': return 'bg-gray-100 text-gray-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'completed': return 'bg-status-completed-bg text-status-completed border-status-completed/20';
+      case 'in_progress': return 'bg-status-in-progress-bg text-status-in-progress border-status-in-progress/20';
+      case 'pending': return 'bg-status-pending text-status-pending-fg border-status-pending/20';
+      case 'cancelled': return 'bg-status-cancelled-bg text-status-cancelled border-status-cancelled/20';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-500 text-white';
-      case 'high': return 'bg-orange-500 text-white';
-      case 'medium': return 'bg-yellow-500 text-gray-800';
-      case 'low': return 'bg-green-500 text-white';
-      default: return 'bg-gray-300 text-gray-800';
+      case 'urgent': return 'bg-priority-urgent text-white shadow-sm';
+      case 'high': return 'bg-priority-high text-white shadow-sm';
+      case 'medium': return 'bg-priority-medium text-white shadow-sm';
+      case 'low': return 'bg-priority-low text-white shadow-sm';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const getPriorityBorderColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'border-l-priority-urgent';
+      case 'high': return 'border-l-priority-high';
+      case 'medium': return 'border-l-priority-medium';
+      case 'low': return 'border-l-priority-low';
+      default: return 'border-l-muted';
     }
   };
 
@@ -107,98 +117,119 @@ const CompactTaskCard = ({
   };
 
   return (
-    <div className="space-y-2">
-      <Card className="bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
-        <CardContent className="p-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-2 flex-1">
-              {/* Botón de expansión para subtareas */}
+    <div className="space-y-3">
+      <Card className={`
+        bg-task-card border-task-card-border border-l-4 ${getPriorityBorderColor(task.priority)}
+        shadow-task-sm hover:shadow-task-md hover:bg-task-card-hover
+        transition-all duration-300 ease-out
+        transform hover:scale-[1.01] hover:-translate-y-0.5
+        rounded-lg overflow-hidden
+      `}>
+        <CardContent className="p-5">
+          {/* Header Section */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start gap-3 flex-1">
+              {/* Expansion Button */}
               {hasSubtasks && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 flex-shrink-0 mt-0.5"
+                  className="h-7 w-7 p-0 flex-shrink-0 mt-0.5 rounded-full hover:bg-accent transition-colors"
                   onClick={toggleExpansion}
                 >
                   {isExpanded ? (
-                    <ChevronDown className="h-4 w-4" />
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   ) : (
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   )}
                 </Button>
               )}
               
-              <div className="space-y-1 flex-1 min-w-0" onClick={handleCardClick}>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-sm hover:underline cursor-pointer truncate">
+              {/* Task Content */}
+              <div className="space-y-2 flex-1 min-w-0" onClick={handleCardClick}>
+                <div className="flex items-center gap-3">
+                  <h3 className="font-semibold text-base leading-tight hover:text-primary cursor-pointer truncate transition-colors">
                     {task.title}
                   </h3>
                   {hasSubtasks && (
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="secondary" className="text-xs font-medium px-2 py-1 rounded-full bg-accent/50">
                       {subtasks.filter(st => st.status === 'completed').length}/{subtasks.length}
                     </Badge>
                   )}
                 </div>
+                
+                {/* Project Info */}
                 {showProject && project && (
-                  <p className="text-xs text-gray-500 flex items-center gap-2">
-                    <span 
-                      className="inline-block w-2 h-2 rounded-full" 
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div 
+                      className="w-3 h-3 rounded-full ring-1 ring-white shadow-sm" 
                       style={{ backgroundColor: project.color }} 
                     />
-                    {project.name}
-                  </p>
+                    <span className="font-medium">{project.name}</span>
+                  </div>
                 )}
               </div>
             </div>
 
+            {/* Actions Menu */}
             <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <MoreHorizontal className="h-4 w-4 text-gray-500" />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0 rounded-full hover:bg-accent opacity-60 hover:opacity-100 transition-all"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => onEdit(task)}>
-                  <Edit className="h-4 w-4 mr-2" /> Editar
+              <DropdownMenuContent align="end" className="w-48 shadow-task-lg border-border">
+                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Acciones</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => onEdit(task)} className="text-sm">
+                  <Edit className="h-4 w-4 mr-3" /> Editar
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onComplete(task)}>
-                  <CheckCircle2 className="h-4 w-4 mr-2" /> Completar
+                <DropdownMenuItem onClick={() => onComplete(task)} className="text-sm">
+                  <CheckCircle2 className="h-4 w-4 mr-3" /> Completar
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onCreateSubtask(task)}>
-                  <ListChecks className="h-4 w-4 mr-2" /> Subtarea
+                <DropdownMenuItem onClick={() => onCreateSubtask(task)} className="text-sm">
+                  <ListChecks className="h-4 w-4 mr-3" /> Subtarea
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onAssign(task)}>
-                  <UserPlus className="h-4 w-4 mr-2" /> Asignar
+                <DropdownMenuItem onClick={() => onAssign(task)} className="text-sm">
+                  <UserPlus className="h-4 w-4 mr-3" /> Asignar
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onManageDependencies(task)}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-git-branch w-4 h-4 mr-2"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg> Dependencias
+                <DropdownMenuItem onClick={() => onManageDependencies(task)} className="text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-3"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg> 
+                  Dependencias
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onArchive(task)}>
-                  <Archive className="h-4 w-4 mr-2" /> Archivar
+                <DropdownMenuItem onClick={() => onArchive(task)} className="text-sm text-destructive focus:text-destructive">
+                  <Archive className="h-4 w-4 mr-3" /> Archivar
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
 
-          <div className="flex items-center justify-between mt-2">
-            <Badge className={`mr-1 text-xs ${getStatusColor(task.status)}`}>
+          {/* Status and Priority Section */}
+          <div className="flex items-center justify-between">
+            <Badge className={`text-xs font-medium px-3 py-1 rounded-full border ${getStatusColor(task.status)}`}>
               {task.status}
             </Badge>
-            <Badge className={`text-xs ${getPriorityColor(task.priority)}`}>
+            <Badge className={`text-xs font-medium px-3 py-1 rounded-full ${getPriorityColor(task.priority)}`}>
               {task.priority}
             </Badge>
           </div>
-          <p className="text-xs text-gray-400 mt-1">
-            {timeAgo}
-          </p>
+
+          {/* Timestamp */}
+          <div className="mt-3 pt-3 border-t border-border/50">
+            <p className="text-xs text-muted-foreground font-medium">
+              {timeAgo}
+            </p>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Lista de subtareas expandible */}
+      {/* Subtasks Section */}
       {isExpanded && hasSubtasks && getSubtasksForTask && (
-        <div className="ml-4">
+        <div className="ml-6 animate-fade-in">
           <CompactSubtaskList
             parentTask={task}
             subtasks={subtasks}

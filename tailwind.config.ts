@@ -62,7 +62,35 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Modern task design tokens
+				'task-card': {
+					DEFAULT: 'hsl(var(--task-card-bg))',
+					hover: 'hsl(var(--task-card-hover))',
+					border: 'hsl(var(--task-card-border))'
+				},
+				'status': {
+					completed: 'hsl(var(--status-completed))',
+					'completed-bg': 'hsl(var(--status-completed-bg))',
+					'in-progress': 'hsl(var(--status-in-progress))',
+					'in-progress-bg': 'hsl(var(--status-in-progress-bg))',
+					pending: 'hsl(var(--status-pending))',
+					'pending-fg': 'hsl(var(--status-pending-fg))',
+					cancelled: 'hsl(var(--status-cancelled))',
+					'cancelled-bg': 'hsl(var(--status-cancelled-bg))'
+				},
+				'priority': {
+					urgent: 'hsl(var(--priority-urgent))',
+					high: 'hsl(var(--priority-high))',
+					medium: 'hsl(var(--priority-medium))',
+					low: 'hsl(var(--priority-low))'
 				}
+			},
+			boxShadow: {
+				'task-sm': 'var(--shadow-sm)',
+				'task-md': 'var(--shadow-md)',
+				'task-lg': 'var(--shadow-lg)',
+				'task-xl': 'var(--shadow-xl)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
