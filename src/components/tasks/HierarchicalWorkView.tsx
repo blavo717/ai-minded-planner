@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ListTodo } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { useTasks } from '@/hooks/useTasks';
+import { useTaskMutations } from '@/hooks/useTaskMutations';
 import WorkSubtaskCard from './WorkSubtaskCard';
-
+import CompactSubtaskCreator from './compact/CompactSubtaskCreator';
+import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 interface HierarchicalWorkViewProps {
@@ -24,8 +26,13 @@ const HierarchicalWorkView: React.FC<HierarchicalWorkViewProps> = ({
   hierarchyData
 }) => {
   const { microtasks } = useTasks();
+  const { createTask } = useTaskMutations();
   const navigate = useNavigate();
   const { children } = hierarchyData;
+  
+  // Estado para la creación de subtareas
+  const [isCreatingSubtask, setIsCreatingSubtask] = useState(false);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
 
   // Obtener subtareas (nivel 2)
   const subtasks = children.filter(child => child.task_level === 2);
@@ -53,6 +60,41 @@ const HierarchicalWorkView: React.FC<HierarchicalWorkViewProps> = ({
 
   const handleWorkOnTask = () => {
     navigate(`/work/${task.id}`);
+  };
+
+  // Función para crear nueva subtarea
+  const handleCreateSubtask = async () => {
+    if (!newSubtaskTitle.trim()) return;
+
+    try {
+      await createTask({
+        title: newSubtaskTitle,
+        parent_task_id: task.id,
+        project_id: task.project_id,
+        status: 'pending',
+        priority: 'medium',
+        task_level: 2 as 1 | 2 | 3
+      });
+      
+      setNewSubtaskTitle('');
+      setIsCreatingSubtask(false);
+      
+      toast({
+        title: "Subtarea creada",
+        description: "La subtarea se ha creado exitosamente.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo crear la subtarea",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCancelSubtask = () => {
+    setNewSubtaskTitle('');
+    setIsCreatingSubtask(false);
   };
 
   return (
@@ -116,6 +158,18 @@ const HierarchicalWorkView: React.FC<HierarchicalWorkViewProps> = ({
             </CardContent>
           </Card>
         )}
+        
+        {/* Creador de subtareas */}
+        <div className="mt-3">
+          <CompactSubtaskCreator
+            isCreating={isCreatingSubtask}
+            newSubtaskTitle={newSubtaskTitle}
+            onTitleChange={setNewSubtaskTitle}
+            onCreate={handleCreateSubtask}
+            onCancel={handleCancelSubtask}
+            onStartCreating={() => setIsCreatingSubtask(true)}
+          />
+        </div>
       </div>
     </div>
   );
