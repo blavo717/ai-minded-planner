@@ -252,7 +252,9 @@ export const generateTaskStateAndSteps = async (
 
   try {
     // ✨ Construir prompt ultra-conciso
-    const { systemPrompt, userPrompt } = IntelligentPromptBuilder.buildContextualAnalysisPrompt(context);
+    // Temporary simple prompt until full integration
+    const systemPrompt = 'Analyze task concisely';
+    const userPrompt = `Task: ${context.mainTask.title}, Progress: ${context.completionStatus.overallProgress}%`;
     
     console.log('📤 Enviando prompt conciso al LLM...');
     

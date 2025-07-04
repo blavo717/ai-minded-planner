@@ -1,4 +1,3 @@
-
 export interface SmartPromptContext {
   userInfo: {
     id: string;
@@ -42,4 +41,83 @@ export interface GeneratedPrompt {
   options: SmartPromptOptions;
   timestamp: Date;
   tokens?: number;
+}
+
+export interface AIAnalysisResult {
+  type: 'productivity' | 'planning' | 'project' | 'task' | 'general';
+  confidence: number;
+  insights: string[];
+  recommendations: string[];
+  nextActions: string[];
+  warnings?: string[];
+  estimatedTime?: number;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+}
+
+export interface ProductivityAnalysis extends AIAnalysisResult {
+  type: 'productivity';
+  metrics: {
+    dailyScore: number;
+    weeklyTrend: 'improving' | 'stable' | 'declining';
+    blockers: string[];
+    opportunities: string[];
+    workPattern: 'productive' | 'moderate' | 'low' | 'inactive';
+  };
+  timeRecommendations: {
+    bestHours: number[];
+    breakSuggestions: string[];
+    focusBlocks: string[];
+  };
+}
+
+export interface PlanningAnalysis extends AIAnalysisResult {
+  type: 'planning';
+  primaryRecommendation: {
+    action: string;
+    reason: string;
+    estimatedTime: number;
+    priority: 'urgent' | 'high' | 'medium' | 'low';
+  };
+  alternatives: Array<{
+    action: string;
+    reason: string;
+    estimatedTime: number;
+  }>;
+  contextFactors: {
+    energyLevel: 'high' | 'medium' | 'low';
+    availableTime: number;
+    currentMomentum: boolean;
+  };
+}
+
+export interface ProjectAnalysis extends AIAnalysisResult {
+  type: 'project';
+  projectHealth: Array<{
+    projectId: string;
+    name: string;
+    status: 'healthy' | 'at_risk' | 'stalled' | 'critical';
+    riskFactors: string[];
+    recommendations: string[];
+  }>;
+  portfolioMetrics: {
+    overallHealth: number;
+    distributionBalance: number;
+    urgentProjects: number;
+  };
+}
+
+export interface TaskAnalysis extends AIAnalysisResult {
+  type: 'task';
+  taskStatus: {
+    currentState: string;
+    progressPercentage: number;
+    blockers: string[];
+    dependencies: string[];
+  };
+  workEstimation: {
+    remainingTime: number;
+    complexity: 'low' | 'medium' | 'high';
+    requiredResources: string[];
+  };
+  optimizationSuggestions: string[];
 }

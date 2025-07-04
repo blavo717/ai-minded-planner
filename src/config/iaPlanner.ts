@@ -1,5 +1,4 @@
-
-import { TaskContext } from '@/utils/taskContext';
+import { EnhancedContextualData } from '@/hooks/ai/useEnhancedContextualData';
 
 export interface IAPlannerConfig {
   role: string;
@@ -122,32 +121,32 @@ export const PRIORITY_CONTEXTS = {
 };
 
 export function generateContextualSystemPrompt(
-  context: TaskContext,
+  userData: EnhancedContextualData,
   promptType: 'task_analysis' | 'action_generation' | 'general_chat' | 'crisis_management' = 'task_analysis'
 ): string {
   const basePrompt = IA_PLANNER_IDENTITY.systemPrompt;
   const contextualPrompt = IA_PLANNER_IDENTITY.contextualPrompts[promptType];
   
-  // Analyze task state context
-  const taskState = context.mainTask.status;
-  const taskPriority = context.mainTask.priority;
-  const stateContext = TASK_STATE_CONTEXTS[taskState as keyof typeof TASK_STATE_CONTEXTS] || '';
-  const priorityContext = PRIORITY_CONTEXTS[taskPriority as keyof typeof PRIORITY_CONTEXTS] || '';
+  // Analyze user work pattern context
+  const workPattern = userData.insights.workPattern;
+  const hasActiveSession = !!userData.currentWork.activeSession;
+  const urgentTasksCount = userData.taskHierarchy.urgentTasks.length;
+  const blockedTasksCount = userData.taskHierarchy.blockedTasks.length;
   
-  // Calculate hierarchy activity
-  const totalSubtasks = context.subtasks.length;
-  const completedSubtasks = context.completionStatus.completedSubtasks;
-  const hasRecentActivity = context.recentLogs.length > 0;
+  const workPatternContext = getWorkPatternContext(workPattern);
+  const urgencyContext = urgentTasksCount > 0 ? 'Modo de urgencia activado' : 'Flujo de trabajo normal';
+  const sessionContext = hasActiveSession ? 'Usuario trabajando activamente' : 'Usuario disponible para nueva tarea';
   
   const hierarchyContext = `
-CONTEXTO DE LA TAREA ACTUAL:
-- Tarea principal: "${context.mainTask.title}"
-- Estado: ${taskState} (${stateContext})
-- Prioridad: ${taskPriority} (${priorityContext})
-- Progreso: ${context.completionStatus.overallProgress}%
-- Subtareas: ${completedSubtasks}/${totalSubtasks} completadas
-- Actividad reciente: ${hasRecentActivity ? 'Sí' : 'No'}
-- Dependencias: ${context.dependencies.blocking.length} bloqueantes, ${context.dependencies.dependent.length} dependientes
+CONTEXTO ACTUAL DEL USUARIO:
+- Patrón de trabajo: ${workPattern} (${workPatternContext})
+- Estado de sesión: ${sessionContext}
+- Nivel de urgencia: ${urgencyContext}
+- Tareas urgentes: ${urgentTasksCount}
+- Tareas bloqueadas: ${blockedTasksCount}
+- Productividad hoy: ${userData.productivity.todayScore}/100
+- Completadas hoy: ${userData.user.completedToday}
+- Horas trabajadas: ${userData.user.workingHours.toFixed(1)}h
 `;
 
   return `${basePrompt}
@@ -159,46 +158,39 @@ ${hierarchyContext}
 INSTRUCCIONES ESPECÍFICAS:
 - Usa datos REALES del contexto, no suposiciones
 - Genera recomendaciones ESPECÍFICAS y ACCIONABLES
-- Prioriza basándote en el estado actual y dependencias
+- Prioriza basándote en el estado actual y urgencias
 - Mantén un tono ${IA_PLANNER_IDENTITY.personality.tone}
 - Enfócate en ${IA_PLANNER_IDENTITY.personality.approach}`;
 }
 
-export function selectOptimalMethodology(context: TaskContext): string {
-  const { mainTask, completionStatus, dependencies } = context;
-  
-  // Crisis management for overdue tasks
-  if (mainTask.due_date && new Date(mainTask.due_date) < new Date() && mainTask.status !== 'completed') {
-    return IA_PLANNER_IDENTITY.methodologies.eisenhower;
+function getWorkPatternContext(pattern: 'productive' | 'moderate' | 'low' | 'inactive'): string {
+  switch (pattern) {
+    case 'productive': return 'Alto rendimiento - aprovecha el momentum';
+    case 'moderate': return 'Ritmo constante - mantén la consistencia';
+    case 'low': return 'Ritmo lento - necesita motivación';
+    case 'inactive': return 'Sin actividad - requiere activación';
+    default: return 'Patrón desconocido';
   }
-  
-  // Dependency analysis for complex tasks
-  if (dependencies.blocking.length > 0 || dependencies.dependent.length > 0) {
-    return IA_PLANNER_IDENTITY.methodologies.dependency_analysis;
-  }
-  
-  // Time blocking for large tasks with many subtasks
-  if (completionStatus.totalSubtasks > 5) {
-    return IA_PLANNER_IDENTITY.methodologies.time_blocking;
-  }
-  
-  // GTD for general task management
-  return IA_PLANNER_IDENTITY.methodologies.gtd;
 }
 
-export function enhanceExistingPrompts(
-  currentPrompt: string,
-  context: TaskContext,
-  promptType: 'task_analysis' | 'action_generation' | 'general_chat' | 'crisis_management' = 'task_analysis'
-): string {
-  const plannerPrompt = generateContextualSystemPrompt(context, promptType);
-  const methodology = selectOptimalMethodology(context);
+export function selectOptimalMethodology(userData: EnhancedContextualData): string {
+  const { insights, currentWork, taskHierarchy } = userData;
   
-  return `${plannerPrompt}
-
-METODOLOGÍA APLICABLE:
-${methodology}
-
-PROMPT ORIGINAL:
-${currentPrompt}`;
+  // Si hay crisis (muchas tareas urgentes o bloqueadas)
+  if (taskHierarchy.urgentTasks.length > 3 || taskHierarchy.blockedTasks.length > 2) {
+    return 'crisis_management';
+  }
+  
+  // Si está trabajando activamente
+  if (currentWork.activeSession) {
+    return 'task_analysis';
+  }
+  
+  // Si tiene baja productividad
+  if (insights.workPattern === 'low' || insights.workPattern === 'inactive') {
+    return 'action_generation';
+  }
+  
+  // Por defecto, análisis general
+  return 'general_chat';
 }

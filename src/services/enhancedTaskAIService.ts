@@ -377,10 +377,10 @@ function analyzeProjectHealth(globalContext: any) {
   }));
 }
 
-function buildEnhancedTaskPrompt(context: CompleteTaskContext): string {
+function buildEnhancedTaskPrompt(context: CompleteTaskContext): { systemPrompt: string; userPrompt: string } {
   const { mainTask, fullHierarchy, activityData, progressAnalysis } = context;
   
-  return `Analiza esta tarea con su contexto completo:
+  const userPrompt = `Analiza esta tarea con su contexto completo:
 
 TAREA: "${mainTask.title}"
 PROGRESO: ${progressAnalysis.overallProgress}% (${fullHierarchy.allTasks.filter(t => t.status === 'completed').length}/${fullHierarchy.allTasks.length} tareas)
@@ -396,6 +396,11 @@ CONTEXTO:
 - Bloqueos: ${context.dependencies.isBlocked ? 'SÍ' : 'NO'}
 
 Proporciona análisis CONCISO del estado actual y próximos pasos específicos.`;
+
+  return {
+    systemPrompt: ENHANCED_SYSTEM_PROMPT,
+    userPrompt
+  };
 }
 
 function parseEnhancedResponse(rawResponse: string, context: CompleteTaskContext): EnhancedAISummary {
