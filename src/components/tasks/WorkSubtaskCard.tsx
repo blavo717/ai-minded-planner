@@ -3,10 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Circle, Play, ChevronDown, ChevronRight, Plus, Check, Save } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Circle, Play, ChevronDown, ChevronRight, Plus, Check, Save, MoreHorizontal, X } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Task } from '@/hooks/useTasks';
 import { useTasks } from '@/hooks/useTasks';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 import WorkMicrotaskItem from './WorkMicrotaskItem';
 import MicrotaskCreator from './microtasks/MicrotaskCreator';
 import SubtaskWorkField from './SubtaskWorkField';
@@ -14,6 +21,7 @@ import SubtaskTrackRecord from './SubtaskTrackRecord';
 import { useSubtaskTrackRecords } from '@/hooks/useSubtaskTrackRecords';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import TaskLogIcon from './TaskLogIcon';
 
 interface WorkSubtaskCardProps {
   subtask: Task;
@@ -22,11 +30,14 @@ interface WorkSubtaskCardProps {
 
 const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) => {
   const { microtasks } = useTasks();
-  const { createTask } = useTaskMutations();
+  const { createTask, updateTask, deleteTask } = useTaskMutations();
   const { trackRecords } = useSubtaskTrackRecords({ subtaskId: subtask.id });
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(true);
   const [isActiveWork, setIsActiveWork] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Obtener microtareas de esta subtarea
   const subtaskMicrotasks = microtasks.filter(m => m.parent_task_id === subtask.id);
@@ -80,12 +91,71 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
     }
   };
 
+  const handleDoubleClick = () => {
+    if (!isEditing) {
+      setIsEditing(true);
+      setEditTitle(subtask.title);
+    }
+  };
+
+  const handleSaveTitle = () => {
+    if (editTitle.trim() && editTitle.trim() !== subtask.title) {
+      updateTask({
+        id: subtask.id,
+        title: editTitle.trim()
+      });
+    }
+    setIsEditing(false);
+    setEditTitle('');
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditTitle('');
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditTitle(subtask.title);
+  };
+
+  const handleDelete = async () => {
+    // Check if subtask has microtasks
+    if (subtaskMicrotasks.length > 0) {
+      toast({
+        title: "No se puede eliminar",
+        description: "Esta subtarea tiene microtareas. Elimínelas primero.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await deleteTask(subtask.id);
+      toast({
+        title: "Subtarea eliminada",
+        description: "La subtarea se ha eliminado exitosamente.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la subtarea",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleActionAndClose = (action: () => void) => {
+    action();
+    setDropdownOpen(false);
+  };
+
   return (
     <div className="relative">
       {/* Línea conectora */}
       <div className="absolute -left-6 top-6 w-4 h-px bg-primary/30"></div>
       
-      <Card className={`border-l-4 transition-all hover:shadow-md ${
+      <Card className={`border-l-4 transition-all hover:shadow-md group ${
         subtask.status === 'completed' || subtaskProgress === 100
           ? 'border-l-green-500 bg-green-50/30 dark:bg-green-950/20' 
           : subtask.status === 'in_progress'
@@ -124,53 +194,133 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
                   <Circle className="w-5 h-5 text-slate-500" />
                 )}
                 
-                <div className="flex-1">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    {subtask.title}
-                  </CardTitle>
-                  {subtask.description && isExpanded && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {subtask.description}
-                    </p>
+                 <div className="flex-1">
+                   {isEditing ? (
+                     <div className="flex items-center gap-1">
+                       <Input
+                         value={editTitle}
+                         onChange={(e) => setEditTitle(e.target.value)}
+                         className="h-6 text-sm"
+                         autoFocus
+                         onKeyDown={(e) => {
+                           if (e.key === 'Enter') handleSaveTitle();
+                           if (e.key === 'Escape') handleCancelEdit();
+                         }}
+                         onBlur={handleSaveTitle}
+                       />
+                       <Button
+                         size="sm"
+                         onClick={handleSaveTitle}
+                         className="h-6 w-6 p-0"
+                       >
+                         <Check className="h-3 w-3" />
+                       </Button>
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={handleCancelEdit}
+                         className="h-6 w-6 p-0"
+                       >
+                         <X className="h-3 w-3" />
+                       </Button>
+                     </div>
+                   ) : (
+                     <>
+                       <CardTitle 
+                         className="text-base flex items-center gap-2 cursor-pointer hover:text-blue-600"
+                         onDoubleClick={handleDoubleClick}
+                         title="Doble clic para editar"
+                       >
+                         {subtask.title}
+                       </CardTitle>
+                       {subtask.description && isExpanded && (
+                         <p className="text-xs text-muted-foreground mt-1">
+                           {subtask.description}
+                         </p>
+                       )}
+                     </>
+                   )}
+                 </div>
+              </div>
+               
+                <div className="flex items-center gap-2">
+                  <TaskLogIcon 
+                    taskId={subtask.id} 
+                    className="h-4 w-4"
+                  />
+                  
+                  {!isEditing && (
+                    <>
+                      <Badge variant="outline" className={`text-xs ${
+                        subtask.status === 'completed' || subtaskProgress === 100 ? 'text-green-700 border-green-300' : ''
+                      }`}>
+                        {getStatusLabel()}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        {subtaskProgress}%
+                      </Badge>
+                    </>
+                  )}
+                  
+                  {canWork && !isEditing && (
+                    <>
+                      <Button 
+                        size="sm" 
+                        onClick={handleWorkOnSubtask}
+                        className={`h-7 px-3 text-xs ${
+                          isActiveWork ? 'bg-primary/10 text-primary' : 'hover:bg-primary/10'
+                        }`}
+                      >
+                        <Play className="w-3 h-3 mr-1" />
+                        {isActiveWork ? 'Trabajando' : 'Trabajar aquí'}
+                      </Button>
+                      {isActiveWork && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={handleSaveSession}
+                          className="h-7 px-3 text-xs text-green-700 border-green-300 hover:bg-green-50"
+                        >
+                          <Save className="w-3 h-3 mr-1" />
+                          Guardar Sesión
+                        </Button>
+                      )}
+                    </>
+                  )}
+
+                  {/* Dropdown menu */}
+                  {!isEditing && (
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40 bg-white shadow-lg border z-50">
+                          <div className="flex flex-col">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleActionAndClose(handleEdit)}
+                              className="justify-start h-7 px-2 rounded-none hover:bg-gray-100 text-left text-xs"
+                            >
+                              Editar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleActionAndClose(handleDelete)}
+                              className="justify-start h-7 px-2 rounded-none hover:bg-gray-100 text-left text-xs text-red-600 hover:text-red-700"
+                            >
+                              Eliminar
+                            </Button>
+                          </div>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   )}
                 </div>
-              </div>
-              
-               <div className="flex items-center gap-2">
-                 <Badge variant="outline" className={`text-xs ${
-                   subtask.status === 'completed' || subtaskProgress === 100 ? 'text-green-700 border-green-300' : ''
-                 }`}>
-                   {getStatusLabel()}
-                 </Badge>
-                 <Badge variant="secondary" className="text-xs">
-                   {subtaskProgress}%
-                 </Badge>
-                 {canWork && (
-                   <>
-                     <Button 
-                       size="sm" 
-                       onClick={handleWorkOnSubtask}
-                       className={`h-7 px-3 text-xs ${
-                         isActiveWork ? 'bg-primary/10 text-primary' : 'hover:bg-primary/10'
-                       }`}
-                     >
-                       <Play className="w-3 h-3 mr-1" />
-                       {isActiveWork ? 'Trabajando' : 'Trabajar aquí'}
-                     </Button>
-                     {isActiveWork && (
-                       <Button 
-                         size="sm" 
-                         variant="outline"
-                         onClick={handleSaveSession}
-                         className="h-7 px-3 text-xs text-green-700 border-green-300 hover:bg-green-50"
-                       >
-                         <Save className="w-3 h-3 mr-1" />
-                         Guardar Sesión
-                       </Button>
-                     )}
-                   </>
-                 )}
-               </div>
             </div>
           </CardHeader>
           
