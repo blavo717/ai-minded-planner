@@ -91,10 +91,9 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
     }
   };
 
-  const handleDoubleClick = () => {
+  const handleTitleClick = () => {
     if (!isEditing) {
-      setIsEditing(true);
-      setEditTitle(subtask.title);
+      setIsActiveWork(!isActiveWork);
     }
   };
 
@@ -226,13 +225,15 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
                      </div>
                    ) : (
                      <>
-                       <CardTitle 
-                         className="text-base flex items-center gap-2 cursor-pointer hover:text-blue-600"
-                         onDoubleClick={handleDoubleClick}
-                         title="Doble clic para editar"
-                       >
-                         {subtask.title}
-                       </CardTitle>
+                        <CardTitle 
+                          className={`text-base flex items-center gap-2 cursor-pointer hover:text-blue-600 ${
+                            isActiveWork ? 'text-primary' : ''
+                          }`}
+                          onClick={handleTitleClick}
+                          title="Clic para trabajar"
+                        >
+                          {subtask.title}
+                        </CardTitle>
                        {subtask.description && isExpanded && (
                          <p className="text-xs text-muted-foreground mt-1">
                            {subtask.description}
@@ -262,31 +263,6 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
                     </>
                   )}
                   
-                  {canWork && !isEditing && (
-                    <>
-                      <Button 
-                        size="sm" 
-                        onClick={handleWorkOnSubtask}
-                        className={`h-7 px-3 text-xs ${
-                          isActiveWork ? 'bg-primary/10 text-primary' : 'hover:bg-primary/10'
-                        }`}
-                      >
-                        <Play className="w-3 h-3 mr-1" />
-                        {isActiveWork ? 'Trabajando' : 'Trabajar aquí'}
-                      </Button>
-                      {isActiveWork && (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={handleSaveSession}
-                          className="h-7 px-3 text-xs text-green-700 border-green-300 hover:bg-green-50"
-                        >
-                          <Save className="w-3 h-3 mr-1" />
-                          Guardar Sesión
-                        </Button>
-                      )}
-                    </>
-                  )}
 
                   {/* Dropdown menu */}
                   {!isEditing && (

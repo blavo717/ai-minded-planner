@@ -57,10 +57,9 @@ const WorkMicrotaskItem: React.FC<WorkMicrotaskItemProps> = ({ microtask, isLast
 
   const canWork = microtask.status !== 'completed';
 
-  const handleDoubleClick = () => {
+  const handleTitleClick = () => {
     if (!isEditing) {
-      setIsEditing(true);
-      setEditTitle(microtask.title);
+      setIsActiveWork(!isActiveWork);
     }
   };
 
@@ -166,10 +165,12 @@ const WorkMicrotaskItem: React.FC<WorkMicrotaskItemProps> = ({ microtask, isLast
                 className={`text-xs font-medium truncate cursor-pointer hover:text-blue-600 ${
                   microtask.status === 'completed' 
                     ? 'text-muted-foreground line-through' 
+                    : isActiveWork 
+                    ? 'text-primary font-semibold'
                     : 'text-foreground'
                 }`}
-                onDoubleClick={handleDoubleClick}
-                title="Doble clic para editar"
+                onClick={handleTitleClick}
+                title="Clic para trabajar"
               >
                 {microtask.title}
               </p>
@@ -192,22 +193,6 @@ const WorkMicrotaskItem: React.FC<WorkMicrotaskItemProps> = ({ microtask, isLast
             className="h-3 w-3"
           />
           
-          {/* Botón para trabajar */}
-          {canWork && !isEditing && (
-            <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setIsActiveWork(!isActiveWork)}
-                className={`h-6 px-2 text-xs ${
-                  isActiveWork ? 'bg-primary/10 text-primary' : 'hover:bg-primary/10'
-                }`}
-              >
-                <Play className="w-2 h-2 mr-1" />
-                {isActiveWork ? 'Trabajando' : 'Trabajar aquí'}
-              </Button>
-            </div>
-          )}
           
           {/* Badge de estado */}
           {!isEditing && microtask.status === 'completed' && (
