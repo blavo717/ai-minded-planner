@@ -1,6 +1,5 @@
-
-import { EnhancedTaskContext, getEnhancedTaskContext } from '@/utils/taskContextEnhanced';
-import { generateContextualSystemPrompt, selectOptimalMethodology, IA_PLANNER_IDENTITY } from '@/config/iaPlanner';
+import { getCompleteTaskContext, CompleteTaskContext } from '@/utils/enhancedTaskContext';
+import { IA_PLANNER_IDENTITY } from '@/config/iaPlanner';
 import { TaskAISummary } from '@/services/taskAIService';
 
 export interface EnhancedTaskAISummary extends TaskAISummary {
@@ -18,13 +17,13 @@ export const generateEnhancedTaskAnalysis = async (
   
   try {
     // Get enhanced context with hierarchical analysis
-    const context = await getEnhancedTaskContext(taskId);
+    const context = await getCompleteTaskContext(taskId);
     
-    // Generate contextual system prompt
-    const systemPrompt = generateContextualSystemPrompt(context, 'task_analysis');
+    // Generate task-specific system prompt
+    const systemPrompt = generateTaskSpecificSystemPrompt(context);
     
-    // Select optimal methodology
-    const methodology = selectOptimalMethodology(context);
+    // Select optimal methodology for task
+    const methodology = selectTaskMethodology(context);
     
     // Create SIMPLIFIED user prompt focused on essentials
     const userPrompt = buildSimplifiedAnalysisPrompt(context);
@@ -45,43 +44,37 @@ export const generateEnhancedTaskAnalysis = async (
       hasStatusSummary: !!analysis.statusSummary,
       hasNextSteps: !!analysis.nextSteps,
       actionsCount: analysis.specificActions.length,
-      methodology: methodology.split(':')[0],
+      methodology: methodology,
       riskLevel: analysis.riskLevel
     });
     
     return {
       ...analysis,
-      methodology: methodology.split(':')[0],
+      methodology: methodology,
     };
 
   } catch (error) {
     console.error('🚨 Error en análisis específico del IA Planner:', error);
-    return generateSpecificFallback(taskId);
+    return generateBasicFallback(taskId);
   }
 };
 
-function buildSimplifiedAnalysisPrompt(context: EnhancedTaskContext): string {
-  const { mainTask, subtasks, daysSinceLastActivity, completionStatus } = context;
+function buildSimplifiedAnalysisPrompt(context: CompleteTaskContext): string {
+  const { mainTask, fullHierarchy, progressAnalysis, activityData } = context;
   
   return `ANÁLISIS ESPECÍFICO para: "${mainTask.title}"
 
 DATOS CLAVE:
-- Estado: ${mainTask.status} | Progreso: ${completionStatus.overallProgress}%
-- Días sin actividad: ${daysSinceLastActivity}
-- Subtareas: ${completionStatus.completedSubtasks}/${completionStatus.totalSubtasks}
+- Estado: ${mainTask.status} | Progreso: ${progressAnalysis.overallProgress}%
+- Días sin actividad: ${activityData.daysSinceLastActivity}
+- Subtareas: ${fullHierarchy.subtasks.length} | Microtareas: ${fullHierarchy.microtasks.length}
+- Progreso subtareas: ${progressAnalysis.subtaskProgress.length} analizadas
+- Riesgo estancamiento: ${progressAnalysis.stagnationRisk}
 
-SUBTAREAS PENDIENTES:
-${subtasks.filter(s => s.status === 'pending').slice(0, 3).map((s, i) => `${i+1}. ${s.title}`).join('\n')}
-
-Proporciona:
-1. ESTADO ESPECÍFICO: Una línea sobre la situación real actual
-2. PRÓXIMOS PASOS: 2-3 acciones concretas y específicas para avanzar HOY
-3. RIESGO: Nivel y razón específica
-
-Sé ESPECÍFICO con nombres de subtareas reales. NO uses frases genéricas.`;
+Proporciona análisis ESPECÍFICO del estado y próximos pasos MÁS IMPORTANTES para avanzar.`;
 }
 
-function parseSimplifiedResponse(content: string, context: EnhancedTaskContext): EnhancedTaskAISummary {
+function parseSimplifiedResponse(content: string, context: CompleteTaskContext): EnhancedTaskAISummary {
   const lines = content.split('\n').filter(line => line.trim());
   
   // Extract status summary
@@ -109,8 +102,7 @@ function parseSimplifiedResponse(content: string, context: EnhancedTaskContext):
     alerts: riskLevel === 'high' ? riskAssessment : undefined,
     specificActions,
     riskAssessment,
-    methodology: 'IA Planner', // Add methodology here
-    insights: undefined // Eliminado - no aporta valor
+    methodology: 'IA Planner'
   };
 }
 
@@ -141,9 +133,9 @@ function extractActionsList(content: string): string[] {
   return actions.slice(0, 3); // Limit to 3 actions
 }
 
-function generateSmartStatusSummary(context: EnhancedTaskContext): string {
-  const { mainTask, completionStatus, daysSinceLastActivity } = context;
-  const progress = completionStatus.overallProgress;
+function generateSmartStatusSummary(context: CompleteTaskContext): string {
+  const { mainTask, progressAnalysis, activityData } = context;
+  const progress = progressAnalysis.overallProgress;
   
   let status = `"${mainTask.title}" `;
   
@@ -157,15 +149,15 @@ function generateSmartStatusSummary(context: EnhancedTaskContext): string {
     status += `en etapa inicial (${progress}%)`;
   }
   
-  if (daysSinceLastActivity > 5) {
-    status += `. ⚠️ ${daysSinceLastActivity} días sin actividad`;
+  if (activityData.daysSinceLastActivity > 5) {
+    status += `. ⚠️ ${activityData.daysSinceLastActivity} días sin actividad`;
   }
   
   return status;
 }
 
-function generateSmartNextSteps(context: EnhancedTaskContext): string {
-  const { subtasks, dependencies } = context;
+function generateSmartNextSteps(context: CompleteTaskContext): string {
+  const { fullHierarchy, dependencies } = context;
   
   // Priority 1: Unblock dependencies
   if (dependencies.blocking.length > 0) {
@@ -174,7 +166,7 @@ function generateSmartNextSteps(context: EnhancedTaskContext): string {
   }
   
   // Priority 2: Continue with pending subtasks
-  const pendingSubtasks = subtasks.filter(s => s.status === 'pending');
+  const pendingSubtasks = fullHierarchy.subtasks.filter(s => s.status === 'pending');
   if (pendingSubtasks.length > 0) {
     return `Continuar con "${pendingSubtasks[0].title}" como próximo paso específico`;
   }
@@ -182,8 +174,8 @@ function generateSmartNextSteps(context: EnhancedTaskContext): string {
   return `Revisar estado y definir próximos pasos específicos`;
 }
 
-function generateSpecificActions(context: EnhancedTaskContext): string[] {
-  const { subtasks, dependencies } = context;
+function generateSpecificActions(context: CompleteTaskContext): string[] {
+  const { fullHierarchy, dependencies } = context;
   const actions: string[] = [];
   
   // Add dependency-based actions
@@ -192,7 +184,7 @@ function generateSpecificActions(context: EnhancedTaskContext): string[] {
   }
   
   // Add subtask-specific actions
-  const pendingSubtasks = subtasks.filter(s => s.status === 'pending');
+  const pendingSubtasks = fullHierarchy.subtasks.filter(s => s.status === 'pending');
   if (pendingSubtasks.length > 0) {
     actions.push(`Trabajar en "${pendingSubtasks[0].title}"`);
   }
@@ -204,11 +196,11 @@ function generateSpecificActions(context: EnhancedTaskContext): string[] {
   return actions.slice(0, 2);
 }
 
-function generateRiskAssessment(context: EnhancedTaskContext): string {
-  const { daysSinceLastActivity, mainTask } = context;
+function generateRiskAssessment(context: CompleteTaskContext): string {
+  const { activityData, mainTask } = context;
   
-  if (daysSinceLastActivity > 7) {
-    return `Riesgo ALTO: ${daysSinceLastActivity} días sin actividad`;
+  if (activityData.daysSinceLastActivity > 7) {
+    return `Riesgo ALTO: ${activityData.daysSinceLastActivity} días sin actividad`;
   }
   
   if (mainTask.due_date && new Date(mainTask.due_date) < new Date()) {
@@ -218,40 +210,81 @@ function generateRiskAssessment(context: EnhancedTaskContext): string {
   return `Riesgo bajo: Progreso normal`;
 }
 
-function determineRiskLevel(context: EnhancedTaskContext): 'low' | 'medium' | 'high' {
-  const { daysSinceLastActivity, mainTask } = context;
+function determineRiskLevel(context: CompleteTaskContext): 'low' | 'medium' | 'high' {
+  const { activityData, mainTask } = context;
   
-  if (daysSinceLastActivity > 7) return 'high';
+  if (activityData.daysSinceLastActivity > 7) return 'high';
   if (mainTask.due_date && new Date(mainTask.due_date) < new Date()) return 'high';
-  if (daysSinceLastActivity > 3) return 'medium';
+  if (activityData.daysSinceLastActivity > 3) return 'medium';
   
   return 'low';
 }
 
-async function generateSpecificFallback(taskId: string): Promise<EnhancedTaskAISummary> {
-  console.log('🔄 Generando fallback específico para:', taskId);
+function generateSpecificFallback(context: CompleteTaskContext): EnhancedTaskAISummary {
+  const { mainTask, progressAnalysis, activityData } = context;
   
-  try {
-    const context = await getEnhancedTaskContext(taskId);
-    
-    return {
-      statusSummary: generateSmartStatusSummary(context),
-      nextSteps: generateSmartNextSteps(context),
-      riskLevel: determineRiskLevel(context),
-      methodology: 'IA Planner (Fallback)',
-      specificActions: generateSpecificActions(context),
-      riskAssessment: generateRiskAssessment(context)
-    };
-  } catch (error) {
-    console.error('❌ Error en fallback específico:', error);
-    
-    return {
-      statusSummary: 'Error en análisis - verificar conectividad',
-      nextSteps: 'Verificar configuración del IA Planner',
-      riskLevel: 'high',
-      methodology: 'IA Planner (Error)',
-      specificActions: ['Verificar acceso', 'Contactar soporte'],
-      riskAssessment: 'Sistema no disponible'
-    };
+  return {
+    statusSummary: `"${mainTask.title}" en progreso (${progressAnalysis.overallProgress}%)`,
+    nextSteps: 'Revisar subtareas pendientes y continuar con el trabajo',
+    riskLevel: activityData.daysSinceLastActivity > 7 ? 'high' : 'medium',
+    methodology: 'task_analysis',
+    specificActions: [
+      'Revisar estado de subtareas',
+      'Identificar próxima acción específica',
+      'Actualizar progreso'
+    ],
+    riskAssessment: `Riesgo de estancamiento: ${progressAnalysis.stagnationRisk}`
+  };
+}
+
+function generateBasicFallback(taskId: string): EnhancedTaskAISummary {
+  return {
+    statusSummary: 'Error al analizar la tarea específica',
+    nextSteps: 'Revisar manualmente el estado de la tarea',
+    riskLevel: 'medium',
+    methodology: 'fallback',
+    specificActions: [
+      'Revisar estado actual',
+      'Identificar próximos pasos',
+      'Continuar con el trabajo'
+    ],
+    riskAssessment: 'Análisis detallado no disponible'
+  };
+}
+
+function generateTaskSpecificSystemPrompt(context: CompleteTaskContext): string {
+  const { mainTask, progressAnalysis, activityData } = context;
+  
+  return `${IA_PLANNER_IDENTITY.systemPrompt}
+
+CONTEXTO ESPECÍFICO DE LA TAREA:
+- Tarea: "${mainTask.title}"
+- Progreso: ${progressAnalysis.overallProgress}%
+- Última actividad: hace ${activityData.daysSinceLastActivity} días
+- Riesgo de estancamiento: ${progressAnalysis.stagnationRisk}
+- Jerarquía: ${context.fullHierarchy.allTasks.length} tareas totales
+
+ENFOQUE ESPECÍFICO:
+- Analiza el estado actual de esta tarea específica
+- Identifica bloqueos concretos en la jerarquía
+- Proporciona próximos pasos específicos y accionables
+- Considera dependencias y contexto de proyecto`;
+}
+
+function selectTaskMethodology(context: CompleteTaskContext): string {
+  const { progressAnalysis, activityData } = context;
+  
+  if (activityData.daysSinceLastActivity > 7) {
+    return 'crisis_management';
   }
+  
+  if (progressAnalysis.stagnationRisk === 'high') {
+    return 'dependency_analysis';
+  }
+  
+  if (progressAnalysis.overallProgress < 30) {
+    return 'gtd';
+  }
+  
+  return 'task_analysis';
 }
