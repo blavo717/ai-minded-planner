@@ -33,6 +33,9 @@ const HierarchicalWorkView: React.FC<HierarchicalWorkViewProps> = ({
   // Estado para la creación de subtareas
   const [isCreatingSubtask, setIsCreatingSubtask] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  
+  // Estado para manejar expansión de subtareas
+  const [expandedSubtasks, setExpandedSubtasks] = useState<Record<string, boolean>>({});
 
   // Obtener subtareas (nivel 2)
   const subtasks = children.filter(child => child.task_level === 2);
@@ -97,6 +100,14 @@ const HierarchicalWorkView: React.FC<HierarchicalWorkViewProps> = ({
     setIsCreatingSubtask(false);
   };
 
+  // Función para toggle expansión de subtareas
+  const handleToggleSubtaskExpansion = (subtaskId: string) => {
+    setExpandedSubtasks(prev => ({
+      ...prev,
+      [subtaskId]: !prev[subtaskId]
+    }));
+  };
+
   return (
     <div className="space-y-6">
       {/* Header de la tarea principal */}
@@ -145,6 +156,8 @@ const HierarchicalWorkView: React.FC<HierarchicalWorkViewProps> = ({
               key={subtask.id}
               subtask={subtask}
               isLast={index === subtasks.length - 1}
+              isExpanded={expandedSubtasks[subtask.id] ?? true}
+              onToggleExpanded={() => handleToggleSubtaskExpansion(subtask.id)}
             />
           ))
         ) : (

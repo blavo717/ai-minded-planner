@@ -26,14 +26,15 @@ import TaskLogIcon from './TaskLogIcon';
 interface WorkSubtaskCardProps {
   subtask: Task;
   isLast?: boolean;
+  isExpanded: boolean;
+  onToggleExpanded: () => void;
 }
 
-const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) => {
+const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast, isExpanded, onToggleExpanded }) => {
   const { microtasks } = useTasks();
   const { createTask, updateTask, deleteTask } = useTaskMutations();
   const { trackRecords } = useSubtaskTrackRecords({ subtaskId: subtask.id });
   const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(true);
   const [isActiveWork, setIsActiveWork] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -163,7 +164,7 @@ const WorkSubtaskCard: React.FC<WorkSubtaskCardProps> = ({ subtask, isLast }) =>
           ? 'border-l-orange-500 bg-orange-50/30 dark:bg-orange-950/20'
           : 'border-l-slate-400 bg-slate-50/30 dark:bg-slate-950/20'
       }`}>
-        <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+        <Collapsible open={isExpanded} onOpenChange={onToggleExpanded}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
