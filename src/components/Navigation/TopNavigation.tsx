@@ -18,7 +18,7 @@ import {
   Calendar
 } from 'lucide-react';
 import ThemeToggle from '@/components/ui/theme-toggle';
-import EnhancedAIAssistantPanel from '@/components/ai/EnhancedAIAssistantPanel';
+import IntelligentAIAssistantPanel from '@/components/ai/IntelligentAIAssistantPanel';
 
 const TopNavigation = () => {
   const { user, signOut } = useAuth();
@@ -212,7 +212,7 @@ const TopNavigation = () => {
               </Button>
             </div>
             <div className="p-4">
-              <EnhancedAIAssistantPanel />
+              <IntelligentAIAssistantPanel />
             </div>
           </div>
         </div>
