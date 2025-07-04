@@ -148,16 +148,6 @@ const TasksContent = () => {
       {/* Insights section */}
       <TasksInsightsSection showInsights={showInsights} />
 
-      {/* Smart Planner MVP - Solo cuando no hay filtros activos */}
-      {getActiveFiltersCount() === 0 && (
-        <div className="px-6 py-4 border-b border-border">
-          <SmartWhatToDoNow 
-            tasks={mainTasks}
-            onWorkOnTask={handleTaskSelect}
-            onShowAllTasks={() => {}} // Ya estamos en "todas las tareas"
-          />
-        </div>
-      )}
 
       {/* Filtros horizontales */}
       <TopFiltersBar
