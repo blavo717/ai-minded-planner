@@ -261,7 +261,7 @@ const IntelligentAIAssistantPanel = memo(() => {
   }
 
   return (
-    <Card className="w-full h-full flex flex-col shadow-lg border-2 border-purple-100">
+    <Card className="w-full min-h-[600px] max-h-[80vh] flex flex-col shadow-lg border-2 border-purple-100">
       <CardHeader className="pb-3 bg-gradient-to-r from-purple-50 to-blue-50">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
