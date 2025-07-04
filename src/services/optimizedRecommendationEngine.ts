@@ -29,6 +29,15 @@ export class OptimizedRecommendationEngine {
     this.userBehaviorAnalyzer = new UserBehaviorAnalyzer(userId);
   }
 
+  async preloadUserBehavior(): Promise<void> {
+    try {
+      // Preload behavior analysis to improve performance
+      await this.getCachedBehaviorAnalysis();
+    } catch (error) {
+      console.error('Error preloading user behavior:', error);
+    }
+  }
+
   async generateOptimizedRecommendation(tasks: Task[]): Promise<any | null> {
     try {
       const availableTasks = this.filterAvailableTasks(tasks);

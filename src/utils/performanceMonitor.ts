@@ -1,8 +1,16 @@
 
 import Logger, { LogCategory } from './logger';
 
+interface PerformanceMetric {
+  name: string;
+  duration: number;
+  timestamp: number;
+  metadata?: any;
+}
+
 export class PerformanceMonitor {
   private static timers = new Map<string, number>();
+  private static metrics: PerformanceMetric[] = [];
 
   static startTimer(name: string): void {
     this.timers.set(name, performance.now());
@@ -17,6 +25,19 @@ export class PerformanceMonitor {
 
     const duration = performance.now() - startTime;
     this.timers.delete(name);
+
+    // Store metric for dashboard
+    this.metrics.push({
+      name,
+      duration,
+      timestamp: Date.now(),
+      metadata: data
+    });
+
+    // Keep only last 100 metrics
+    if (this.metrics.length > 100) {
+      this.metrics = this.metrics.slice(-100);
+    }
 
     Logger.performance(LogCategory.PERFORMANCE, name, { duration, ...data });
     return duration;
@@ -65,4 +86,27 @@ export class PerformanceMonitor {
       totalMB: Math.round(memory.total / 1024 / 1024)
     });
   }
+
+  static getMetrics(): PerformanceMetric[] {
+    return [...this.metrics];
+  }
+
+  static clearMetrics(): void {
+    this.metrics = [];
+  }
+}
+
+// Export instance for easy access
+export const performanceMonitor = PerformanceMonitor;
+
+// Debounce utility function
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let timeoutId: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
 }
