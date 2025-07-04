@@ -14,7 +14,8 @@ import {
   Brain,
   Menu,
   X,
-  User
+  User,
+  Calendar
 } from 'lucide-react';
 import ThemeToggle from '@/components/ui/theme-toggle';
 import EnhancedAIAssistantPanel from '@/components/ai/EnhancedAIAssistantPanel';
@@ -43,6 +44,11 @@ const TopNavigation = () => {
       title: 'Tareas',
       href: '/tasks',
       icon: ListChecks,
+    },
+    {
+      title: 'Planner',
+      href: '/planner',
+      icon: Calendar,
     },
     {
       title: 'Proyectos',
