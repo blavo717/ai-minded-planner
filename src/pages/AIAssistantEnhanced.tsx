@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import EnhancedAIAssistantPanel from '@/components/ai/EnhancedAIAssistantPanel';
+import IntelligentAIAssistantPanel from '@/components/ai/IntelligentAIAssistantPanel';
 import { Brain, Database, Zap, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -42,7 +42,7 @@ const AIAssistantEnhanced = () => {
 
         {/* Chat Interface - Ocupando todo el espacio restante */}
         <div className="flex-1 min-h-0">
-          <EnhancedAIAssistantPanel />
+          <IntelligentAIAssistantPanel />
         </div>
 
         {/* Features Info - Colapsable */}

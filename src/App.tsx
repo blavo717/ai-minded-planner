@@ -13,6 +13,7 @@ import NotFound from '@/pages/NotFound';
 import { useAuth, AuthProvider } from '@/hooks/useAuth';
 import MainLayout from '@/components/Layout/MainLayout';
 import AIAssistantEnhanced from '@/pages/AIAssistantEnhanced';
+import AIAssistantSimple from '@/pages/AIAssistantSimple';
 import Planner from '@/pages/Planner';
 import ActiveWork from '@/pages/ActiveWork';
 
@@ -71,6 +72,7 @@ const AppContent = () => {
                   <Route path="/planner" element={<Planner />} />
                   <Route path="/work/:taskId" element={<ActiveWork />} />
                   <Route path="/ai-assistant-enhanced" element={<AIAssistantEnhanced />} />
+                  <Route path="/ai-assistant-simple" element={<AIAssistantSimple />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </MainLayout>
