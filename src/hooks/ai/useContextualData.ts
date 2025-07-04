@@ -8,6 +8,7 @@ import { useProductivityMetrics } from '@/hooks/analytics/useProductivityMetrics
 import { useWorkPatterns } from '@/hooks/analytics/useWorkPatterns';
 import { ExtendedAIContext } from '@/types/ai-context';
 import { ContextAnalyzer, ContextAnalysis } from '@/utils/ai/ContextAnalyzer';
+import { useEnhancedContextualData } from './useEnhancedContextualData';
 
 export interface ContextualDataConfig {
   enableAnalysis?: boolean;
@@ -40,6 +41,9 @@ export const useContextualData = (config: ContextualDataConfig = {}) => {
   const { data: generalStats } = useGeneralStats();
   const { data: productivityMetrics } = useProductivityMetrics('week');
   const { data: workPatterns } = useWorkPatterns('week');
+  
+  // Usar el sistema mejorado como fuente de datos enriquecidos
+  const { contextData: enhancedContext, dataQuality: enhancedQuality } = useEnhancedContextualData();
 
   const [state, setState] = useState<ContextualDataState>({
     context: null,
@@ -184,21 +188,67 @@ export const useContextualData = (config: ContextualDataConfig = {}) => {
     finalConfig.maxDataPoints,
   ]);
 
-  // Actualizar datos contextuales
+  // Actualizar datos contextuales - MEJORADO con sistema enhanced
   const updateContextualData = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const context = generateEnrichedContext();
-      let analysis: ContextAnalysis | null = null;
+      // Priorizar datos del sistema mejorado si están disponibles
+      let context: ExtendedAIContext;
+      let dataQuality: number;
+      
+      if (enhancedContext && enhancedQuality > 70) {
+        console.log('🚀 Usando datos MEJORADOS del sistema enhanced');
+        
+        // Usar datos enhanced directamente (compatibilidad simplificada)
+        context = {
+          userInfo: {
+            id: enhancedContext.user.id,
+            hasActiveTasks: enhancedContext.user.activeTasks > 0,
+            hasActiveProjects: enhancedContext.projects.activeProjects.length > 0,
+            totalTasks: enhancedContext.user.totalTasks,
+            completedTasks: enhancedContext.user.completedToday,
+            pendingTasks: enhancedContext.user.activeTasks,
+          },
+          currentSession: {
+            timeOfDay: 'morning' as const,
+            dayOfWeek: new Date().toLocaleDateString('es-ES', { weekday: 'long' }),
+            isWeekend: [0, 6].includes(new Date().getDay()),
+          },
+          recentActivity: {
+            lastTaskUpdate: enhancedContext.recentActivity.lastTaskWorked?.updated_at ? new Date(enhancedContext.recentActivity.lastTaskWorked.updated_at) : undefined,
+            recentCompletions: enhancedContext.recentActivity.recentCompletions.length,
+            workPattern: enhancedContext.insights.workPattern,
+          },
+          recentTasks: enhancedContext.taskHierarchy.mainTasks.slice(0, 10).map(h => ({
+            id: h.mainTask.id,
+            title: h.mainTask.title,
+            status: h.mainTask.status,
+            priority: h.mainTask.priority,
+            updated_at: h.mainTask.updated_at,
+          })),
+          recentProjects: enhancedContext.projects.activeProjects.slice(0, 5).map(p => ({
+            id: p.id,
+            name: p.name,
+            status: p.status || 'active',
+            progress: p.progress || 0,
+          })),
+        };
+        dataQuality = enhancedQuality;
+      } else {
+        console.log('📊 Usando sistema de contexto legacy');
+        context = generateEnrichedContext();
+        dataQuality = calculateDataQuality(context);
+      }
 
+      let analysis: ContextAnalysis | null = null;
       if (finalConfig.enableAnalysis) {
         analysis = ContextAnalyzer.analyzeSituation(context);
       }
 
-      const dataQuality = calculateDataQuality(context);
       const recommendations = analysis ? 
-        generateSmartRecommendations(analysis, context) : [];
+        generateSmartRecommendations(analysis, context) : 
+        enhancedContext?.insights.recommendations || [];
 
       setState({
         context,
@@ -208,11 +258,18 @@ export const useContextualData = (config: ContextualDataConfig = {}) => {
         dataQuality,
         recommendations,
       });
+      
+      console.log('✅ Contexto actualizado:', {
+        source: enhancedContext ? 'enhanced' : 'legacy',
+        quality: dataQuality,
+        recommendations: recommendations.length
+      });
+      
     } catch (error) {
       console.error('Error updating contextual data:', error);
       setState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [generateEnrichedContext, finalConfig.enableAnalysis]);
+  }, [generateEnrichedContext, finalConfig.enableAnalysis, enhancedContext, enhancedQuality]);
 
   // Calcular calidad de datos
   const calculateDataQuality = useCallback((context: ExtendedAIContext): number => {
