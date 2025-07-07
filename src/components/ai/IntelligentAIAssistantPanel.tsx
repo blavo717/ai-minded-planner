@@ -62,7 +62,7 @@ const MessageComponent = memo(({
         message.type === 'user' 
           ? 'bg-ai-primary text-white shadow-ai-sm' 
           : 'bg-ai-primary-light text-ai-primary shadow-ai-sm'
-      } rounded-full p-1.5 hover:scale-105`}>
+      } rounded-full p-1 hover:scale-105`}>
         {message.type === 'user' ? (
           <User className="h-3 w-3" />
         ) : (
@@ -70,8 +70,8 @@ const MessageComponent = memo(({
         )}
       </div>
       
-      <div className={`flex-1 max-w-[80%] ${message.type === 'user' ? 'text-right' : ''}`}>
-        <div className={`inline-block p-3 rounded-lg transition-ai shadow-ai-sm hover:shadow-ai-md ${
+      <div className={`flex-1 max-w-[85%] ${message.type === 'user' ? 'text-right' : ''}`}>
+        <div className={`inline-block px-2 py-1.5 rounded-lg transition-ai shadow-ai-sm hover:shadow-ai-md ${
           message.type === 'user'
             ? 'bg-ai-primary text-white'
             : 'bg-ai-surface border border-ai-border hover:bg-ai-surface-hover'
@@ -81,7 +81,7 @@ const MessageComponent = memo(({
         
         {/* ✅ CHECKPOINT 1.2.1: Sin información de debug visible al usuario */}
         
-        <p className="text-xs text-ai-text-muted mt-1 transition-ai">
+        <p className="text-xs text-ai-text-muted mt-0.5 transition-ai">
           {format(message.timestamp, 'HH:mm', { locale: es })}
         </p>
       </div>
@@ -207,11 +207,11 @@ const IntelligentAIAssistantPanel = memo(() => {
   }
 
   return (
-    <Card className="w-full h-[650px] flex flex-col shadow-ai-lg transition-ai border-ai-border">
-      <CardHeader className="pb-2 px-3 py-2 bg-gradient-ai-surface border-b border-ai-border">
+    <Card className="w-full h-[700px] flex flex-col shadow-ai-lg transition-ai border-ai-border">
+      <CardHeader className="pb-1 px-2 py-1.5 bg-gradient-ai-surface border-b border-ai-border">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg text-ai-primary">
-            <Brain className="h-5 w-5 text-ai-primary" />
+          <CardTitle className="flex items-center gap-2 text-base text-ai-primary">
+            <Brain className="h-4 w-4 text-ai-primary" />
             <span>Chat IA</span>
           </CardTitle>
           
@@ -227,7 +227,7 @@ const IntelligentAIAssistantPanel = memo(() => {
                   variant="outline"
                   size="sm"
                   onClick={exportConversation}
-                  className="h-7 px-2 transition-ai hover:bg-ai-surface-hover border-ai-border"
+                  className="h-6 px-1.5 transition-ai hover:bg-ai-surface-hover border-ai-border"
                 >
                   <Download className="h-3 w-3" />
                   <span className="hidden sm:ml-1 sm:inline text-xs">Exportar</span>
@@ -237,7 +237,7 @@ const IntelligentAIAssistantPanel = memo(() => {
                   size="sm"
                   onClick={clearChat}
                   disabled={isLoading}
-                  className="h-7 px-2 transition-ai hover:bg-ai-surface-hover border-ai-border"
+                  className="h-6 px-1.5 transition-ai hover:bg-ai-surface-hover border-ai-border"
                 >
                   <Trash2 className="h-3 w-3" />
                   <span className="hidden sm:ml-1 sm:inline text-xs">Limpiar</span>
@@ -249,19 +249,19 @@ const IntelligentAIAssistantPanel = memo(() => {
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col p-0 min-h-0">
-        <ScrollArea className="flex-1 px-3">
-          <div className="space-y-4 py-3">
+        <ScrollArea className="flex-1 px-2">
+          <div className="space-y-3 py-2">
             {messages.length === 0 ? (
-              <div className="text-center py-8 space-y-3 animate-fade-in">
-                <div className="w-12 h-12 mx-auto bg-ai-primary-light rounded-full flex items-center justify-center transition-ai hover:scale-105 shadow-ai-sm">
-                  <Brain className="h-6 w-6 text-ai-primary" />
+              <div className="text-center py-6 space-y-2 animate-fade-in">
+                <div className="w-10 h-10 mx-auto bg-ai-primary-light rounded-full flex items-center justify-center transition-ai hover:scale-105 shadow-ai-sm">
+                  <Brain className="h-5 w-5 text-ai-primary" />
                 </div>
                 
                 <div className="space-y-1">
-                  <h3 className="text-base font-semibold text-ai-primary">
+                  <h3 className="text-sm font-semibold text-ai-primary">
                     ¿En qué puedo ayudarte?
                   </h3>
-                  <p className="text-ai-text-muted text-sm px-4">
+                  <p className="text-ai-text-muted text-xs px-3">
                     Pregúntame sobre tus tareas y proyectos.
                   </p>
                 </div>
@@ -279,10 +279,10 @@ const IntelligentAIAssistantPanel = memo(() => {
             
             {isLoading && (
               <div className="flex gap-2">
-                <div className="bg-purple-100 text-purple-700 rounded-full p-1.5">
+                <div className="bg-purple-100 text-purple-700 rounded-full p-1">
                   <Brain className="h-3 w-3" />
                 </div>
-                <div className="bg-gray-50 border rounded-lg p-3">
+                <div className="bg-gray-50 border rounded-lg px-2 py-1.5">
                   <div className="flex items-center gap-2">
                     <div className="flex space-x-1">
                       <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse"></div>
@@ -301,8 +301,8 @@ const IntelligentAIAssistantPanel = memo(() => {
 
         <Separator />
         
-        <div className="p-2 bg-gradient-ai-surface border-t border-ai-border">
-          <div className="flex gap-2">
+        <div className="p-1.5 bg-gradient-ai-surface border-t border-ai-border">
+          <div className="flex gap-1.5">
             <Input
               placeholder="Escribe tu pregunta..."
               value={inputMessage}
