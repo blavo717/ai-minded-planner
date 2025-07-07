@@ -3,6 +3,7 @@ import { useLLMService } from '@/hooks/useLLMService';
 import { useAuth } from '@/hooks/useAuth';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
+import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
 import { OptimizedRecommendationEngine } from '@/services/optimizedRecommendationEngine';
 import { UserBehaviorAnalyzer } from '@/services/userBehaviorAnalyzer';
@@ -37,6 +38,7 @@ export const useIntelligentAIAssistant = () => {
   const { makeLLMRequest, hasActiveConfiguration, activeModel } = useLLMService();
   const { tasks } = useTasks();
   const { projects } = useProjects();
+  const { profile } = useProfile();
   const { toast } = useToast();
   
   const engineRef = useRef<OptimizedRecommendationEngine | null>(null);
@@ -79,10 +81,14 @@ export const useIntelligentAIAssistant = () => {
       // Get performance metrics
       const performanceMetrics = performanceMonitor.getMetrics();
       
-      // Generate contextual insights
+      // ✅ CHECKPOINT 1.1: Contexto personal expandido con datos del perfil
       const context = {
         user: {
           id: user.id,
+          name: profile?.full_name || "Compañero",
+          role: profile?.role || null,
+          department: profile?.department || null,
+          timezone: profile?.timezone || 'UTC',
           tasksCount: tasks.length,
           projectsCount: projects.length,
           completedTasksToday: tasks.filter(t => 
@@ -230,30 +236,45 @@ export const useIntelligentAIAssistant = () => {
       // Generate intelligent context
       const intelligentContext = await generateIntelligentContext();
 
-      // Create enhanced system prompt
-      const systemPrompt = `Eres un asistente de IA inteligente y contextual especializado en productividad y gestión de tareas. 
+      // ✅ CHECKPOINT 1.1: Sistema de prompts conversacionales y motivadores
+      const userName = intelligentContext?.user?.name || "Compañero";
+      const userRole = intelligentContext?.user?.role ? `, ${intelligentContext.user.role}` : "";
+      
+      const systemPrompt = `Eres un compañero de trabajo inteligente y motivador llamado Asistente IA. Tu objetivo es ayudar a ${userName}${userRole} a ser más productivo de manera humana y cercana.
 
-CONTEXTO DEL USUARIO:
+PERSONALIDAD Y TONO:
+- Usa SIEMPRE el nombre "${userName}" cuando te dirijas al usuario
+- Sé motivador y positivo: "¡Yess! Te veo con ganas de ser productivo! 💪"
+- Usa emojis contextuales de manera natural (no exageres)
+- Respuestas directas y orientadas a la acción
+- Tono de compañero de trabajo, no de robot técnico
+- Celebra los logros y progreso del usuario
+
+SALUDOS INTELIGENTES:
+- Si es el primer mensaje: "¡Hola ${userName}! ¿En qué te puedo ayudar?"
+- Si ya hay conversación: "¡Hola de nuevo! ¿Cómo va todo?"
+- Si preguntan por tareas: "¡Perfecto! Veamos qué tarea te conviene ahora"
+
+FRASES MOTIVADORAS A USAR:
+- "¡Yess! Te veo con ganas de ser productivo! 💪"
+- "¡Perfecto! Tienes buen timing para esta tarea 🎯"
+- "¡Excelente elección! Esta tarea te va a dar mucha satisfacción ✨"
+- "¡Genial que preguntes! 📊"
+- "¡A darle caña! 🔥"
+
+DATOS DEL USUARIO ${userName.toUpperCase()}:
 ${intelligentContext ? JSON.stringify(intelligentContext, null, 2) : 'Contexto no disponible'}
 
-CAPACIDADES ESPECÍFICAS:
-- Analizar patrones de productividad del usuario
-- Generar recomendaciones inteligentes de tareas
-- Proporcionar insights basados en comportamiento histórico
-- Sugerir optimizaciones de flujo de trabajo
-- Responder preguntas sobre proyectos y tareas actuales
+INSTRUCCIONES CLAVE:
+1. USA SIEMPRE su nombre "${userName}" en tus respuestas
+2. Sé motivador y usa las frases sugeridas cuando sea apropiado
+3. Respuestas cortas y directas, enfocadas en acción
+4. Si pregunta qué hacer, usa su recomendación actual con entusiasmo
+5. Menciona su progreso específico: "tienes X tareas completadas hoy"
+6. Usa emojis para dar energía positiva
+7. Evita jerga técnica, habla como un compañero
 
-INSTRUCCIONES:
-1. Usa el contexto proporcionado para dar respuestas personalizadas y relevantes
-2. Si el usuario pregunta sobre su productividad, usa los datos de comportamiento
-3. Si pregunta qué hacer ahora, usa la recomendación actual
-4. Si pregunta por sus tareas o proyectos, usa los datos actuales
-5. Proporciona sugerencias actionables cuando sea apropiado
-6. Mantén un tono profesional pero amigable
-7. Si detectas patrones interesantes, compártelos
-
-Fecha actual: ${new Date().toLocaleDateString('es-ES')}
-Hora actual: ${new Date().toLocaleTimeString('es-ES')}`;
+Fecha y hora actual: ${new Date().toLocaleString('es-ES')} (zona horaria del usuario: ${intelligentContext?.user?.timezone || 'UTC'})`;
 
       const response = await makeLLMRequest({
         systemPrompt,
