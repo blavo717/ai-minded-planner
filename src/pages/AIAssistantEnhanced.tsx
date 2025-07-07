@@ -11,31 +11,11 @@ const AIAssistantEnhanced = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header compacto */}
-      <div className="text-center space-y-3">
+      {/* Header simplificado */}
+      <div className="text-center space-y-2">
         <div className="flex items-center justify-center gap-2">
-          <Brain className="h-8 w-8 text-purple-600" />
-          <h1 className="text-3xl font-bold">Asistente IA</h1>
-        </div>
-        
-        <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
-          Un asistente de inteligencia artificial avanzado con acceso completo a tu contexto personal, 
-          memoria persistente y análisis inteligente de tus patrones de trabajo.
-        </p>
-
-        <div className="flex flex-wrap justify-center gap-2">
-          <Badge variant="outline" className="flex items-center gap-1 border-purple-300 text-purple-700">
-            <Database className="h-3 w-3" />
-            Contexto completo
-          </Badge>
-          <Badge variant="outline" className="flex items-center gap-1 border-purple-300 text-purple-700">
-            <Zap className="h-3 w-3" />
-            Memoria persistente
-          </Badge>
-          <Badge variant="outline" className="flex items-center gap-1 border-purple-300 text-purple-700">
-            <Shield className="h-3 w-3" />
-            Seguro y privado
-          </Badge>
+          <Brain className="h-6 w-6 text-purple-600" />
+          <h1 className="text-2xl font-bold">Asistente IA</h1>
         </div>
       </div>
 

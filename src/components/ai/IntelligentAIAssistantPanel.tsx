@@ -262,61 +262,41 @@ const IntelligentAIAssistantPanel = memo(() => {
 
   return (
     <Card className="w-full h-[600px] flex flex-col shadow-lg border-2 border-purple-100">
-      <CardHeader className="pb-3 bg-gradient-to-r from-purple-50 to-blue-50">
+      <CardHeader className="pb-2 px-4 py-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-6 w-6 text-purple-600" />
-            <div className="flex flex-col">
-              <span>Asistente <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">IA Inteligente</span></span>
-              <span className="text-xs text-muted-foreground font-normal">
-                Contexto completo • Análisis de patrones • Recomendaciones personalizadas
-              </span>
-            </div>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Brain className="h-5 w-5 text-purple-600" />
+            <span>Chat IA</span>
           </CardTitle>
           
           <div className="flex items-center gap-2">
             <Badge className={`${getConnectionColor()} border text-xs`}>
               {getConnectionIcon()}
-              <span className="ml-1 capitalize">{connectionStatus}</span>
+              <span className="ml-1 hidden sm:inline capitalize">{connectionStatus}</span>
             </Badge>
             
-            {userContext && (
-              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-300">
-                <BarChart3 className="w-3 h-3 mr-1" />
-                T:{userContext.tasksCount} P:{userContext.projectsCount}
-              </Badge>
-            )}
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="h-8 border-gray-300"
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
-            
             {messages.length > 0 && (
-              <>
+              <div className="flex gap-1">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={exportConversation}
-                  className="h-8 border-blue-300 text-blue-700"
+                  className="h-7 px-2"
                 >
-                  <Download className="h-4 w-4" />
+                  <Download className="h-3 w-3" />
+                  <span className="hidden sm:ml-1 sm:inline text-xs">Exportar</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={clearChat}
                   disabled={isLoading}
-                  className="h-8 border-red-300 text-red-700"
+                  className="h-7 px-2"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3 w-3" />
+                  <span className="hidden sm:ml-1 sm:inline text-xs">Limpiar</span>
                 </Button>
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -396,34 +376,24 @@ const IntelligentAIAssistantPanel = memo(() => {
 
         <Separator />
         
-        <div className="p-4 bg-gradient-to-r from-purple-25 to-blue-25">
+        <div className="p-3">
           <div className="flex gap-2">
             <Input
-              placeholder="Pregúntame sobre tus tareas, productividad o patrones de trabajo..."
+              placeholder="Escribe tu pregunta..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               disabled={isLoading}
-              className="flex-1 border-purple-200 focus:border-purple-400"
+              className="flex-1"
             />
             <Button
               onClick={handleSendMessage}
               disabled={isLoading || !inputMessage.trim()}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="bg-purple-600 hover:bg-purple-700"
             >
               <Send className="h-4 w-4" />
             </Button>
           </div>
-          
-          {activeModel && (
-            <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-              <span>Modelo: {activeModel}</span>
-              <span className="flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                Sistema inteligente activo
-              </span>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>
