@@ -29,7 +29,6 @@ interface ProjectAnalyticsDashboardProps {
 }
 
 const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps> = ({ onClose, onBackToProjects }) => {
-  console.log('ProjectAnalyticsDashboard rendered with onBackToProjects:', onBackToProjects);
   const { projects } = useProjects();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   
@@ -99,12 +98,14 @@ const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps> = ({ o
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {onBackToProjects && (
-            <Button variant="outline" onClick={onBackToProjects} size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver a Proyectos
-            </Button>
-          )}
+          <Button 
+            variant="outline" 
+            onClick={onBackToProjects || (() => window.history.back())} 
+            size="sm"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Volver a Proyectos
+          </Button>
           <div className="space-y-1">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <BarChart3 className="w-6 h-6 text-blue-600" />
