@@ -24,6 +24,7 @@ import { SmartReminders, PendingReminder } from '@/services/smartReminders';
 import { ExecutableActionsService, ExecutableAction } from '@/services/executableActionsService';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useTaskLogMutations } from '@/hooks/useTaskLogMutations';
+import { PredictiveAnalyzer } from '@/services/predictiveAnalyzer';
 
 interface IntelligentMessage {
   id: string;
@@ -91,6 +92,9 @@ export const useIntelligentAIAssistant = () => {
   // ✅ CHECKPOINT 4.2: Sistema de acciones ejecutables
   const executableActionsRef = useRef<ExecutableActionsService | null>(null);
   
+  // ✅ CHECKPOINT 4.3: Sistema de análisis predictivo
+  const predictiveAnalyzerRef = useRef<PredictiveAnalyzer | null>(null);
+  
   // ✅ CHECKPOINT 3.2: Sistema de persistencia de conversaciones
   const {
     saveConversation,
@@ -136,6 +140,9 @@ export const useIntelligentAIAssistant = () => {
         );
       }
       
+      // ✅ CHECKPOINT 4.3: Inicializar analizador predictivo
+      predictiveAnalyzerRef.current = new PredictiveAnalyzer(user.id);
+      
       // Preload for better performance
       engineRef.current.preloadUserBehavior();
       setConnectionStatus(hasActiveConfiguration ? 'connected' : 'disconnected');
@@ -173,6 +180,11 @@ export const useIntelligentAIAssistant = () => {
       const advancedInsights = advancedAnalyzerRef.current ? 
         advancedAnalyzerRef.current.generateAdvancedInsights(tasks, [], taskSessions) : 
         { insights: [], productivity: null };
+      
+      // ✅ CHECKPOINT 4.3: Generar insights predictivos
+      const predictiveInsights = predictiveAnalyzerRef.current ? 
+        await predictiveAnalyzerRef.current.generateAllInsights(tasks, projects, taskSessions, []) : 
+        [];
       
       // Get performance metrics
       const performanceMetrics = performanceMonitor.getMetrics();
@@ -277,6 +289,8 @@ export const useIntelligentAIAssistant = () => {
         // ✅ CHECKPOINT 2.3: Incluir insights contextuales avanzados
         advancedInsights: advancedInsights.insights,
         advancedProductivity: advancedInsights.productivity,
+        // ✅ CHECKPOINT 4.3: Incluir insights predictivos
+        predictiveInsights: predictiveInsights,
         performanceMetrics: {
           averageRecommendationTime: performanceMetrics
             .filter(m => m.name === 'recommendation_generation')
@@ -641,6 +655,20 @@ export const useIntelligentAIAssistant = () => {
         );
         
         (intelligentContext.tasks as any).timeBasedRecommendations = timeBasedRecommendations;
+      }
+      
+      // ✅ CHECKPOINT 4.3: Agregar insights predictivos contextuales
+      if (predictiveAnalyzerRef.current && intelligentContext) {
+        const contextualInsights = await predictiveAnalyzerRef.current.generateContextualInsights(
+          content.trim(),
+          tasks,
+          projects,
+          taskSessions
+        );
+        
+        if (contextualInsights.length > 0) {
+          (intelligentContext as any).contextualPredictiveInsights = contextualInsights;
+        }
       }
       
       // Procesar mensaje con el sistema inteligente
