@@ -29,6 +29,7 @@ interface ProjectAnalyticsDashboardProps {
 }
 
 const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps> = ({ onClose, onBackToProjects }) => {
+  console.log('ProjectAnalyticsDashboard rendered with onBackToProjects:', onBackToProjects);
   const { projects } = useProjects();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   
