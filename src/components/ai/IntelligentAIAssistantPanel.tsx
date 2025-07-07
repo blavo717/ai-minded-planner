@@ -44,28 +44,28 @@ const ContextDisplay = memo(({ context }: { context: any }) => {
 
 ContextDisplay.displayName = 'ContextDisplay';
 
-// Memoized message component
+// Memoized message component - OPTIMIZED SPACING
 const MessageComponent = memo(({ message }: { message: any }) => (
-  <div className={`flex gap-3 ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
+  <div className={`flex gap-2 ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
     <div className={`flex-shrink-0 ${
       message.type === 'user' 
-        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white' 
-        : 'bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700'
-    } rounded-full p-2 shadow-sm`}>
+        ? 'bg-purple-600 text-white' 
+        : 'bg-purple-100 text-purple-700'
+    } rounded-full p-1.5`}>
       {message.type === 'user' ? (
-        <User className="h-4 w-4" />
+        <User className="h-3 w-3" />
       ) : (
-        <Brain className="h-4 w-4" />
+        <Brain className="h-3 w-3" />
       )}
     </div>
     
-    <div className={`flex-1 max-w-[85%] ${message.type === 'user' ? 'text-right' : ''}`}>
-      <div className={`inline-block p-4 rounded-lg shadow-sm ${
+    <div className={`flex-1 max-w-[80%] ${message.type === 'user' ? 'text-right' : ''}`}>
+      <div className={`inline-block p-3 rounded-lg ${
         message.type === 'user'
-          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-          : 'bg-white border border-gray-200'
+          ? 'bg-purple-600 text-white'
+          : 'bg-gray-50 border'
       }`}>
-        <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+        <p className="whitespace-pre-wrap leading-relaxed text-sm">{message.content}</p>
       </div>
       
       {message.context && message.type === 'assistant' && (
@@ -74,11 +74,9 @@ const MessageComponent = memo(({ message }: { message: any }) => (
         </div>
       )}
       
-      <div className="flex items-center gap-2 mt-2">
-        <p className="text-xs text-muted-foreground">
-          {format(message.timestamp, 'HH:mm', { locale: es })}
-        </p>
-      </div>
+      <p className="text-xs text-muted-foreground mt-1">
+        {format(message.timestamp, 'HH:mm', { locale: es })}
+      </p>
     </div>
   </div>
 ));
@@ -199,8 +197,8 @@ const IntelligentAIAssistantPanel = memo(() => {
   }
 
   return (
-    <Card className="w-full h-[600px] flex flex-col shadow-lg border-2 border-purple-100">
-      <CardHeader className="pb-2 px-4 py-3">
+    <Card className="w-full h-[650px] flex flex-col shadow-lg">
+      <CardHeader className="pb-2 px-3 py-2">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Brain className="h-5 w-5 text-purple-600" />
@@ -241,20 +239,20 @@ const IntelligentAIAssistantPanel = memo(() => {
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col p-0 min-h-0">
-        <ScrollArea className="flex-1 px-4">
-          <div className="space-y-6 py-4">
+        <ScrollArea className="flex-1 px-3">
+          <div className="space-y-4 py-3">
             {messages.length === 0 ? (
-              <div className="text-center py-12 space-y-4">
-                <div className="w-16 h-16 mx-auto bg-purple-100 rounded-full flex items-center justify-center">
-                  <Brain className="h-8 w-8 text-purple-600" />
+              <div className="text-center py-8 space-y-3">
+                <div className="w-12 h-12 mx-auto bg-purple-100 rounded-full flex items-center justify-center">
+                  <Brain className="h-6 w-6 text-purple-600" />
                 </div>
                 
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-purple-600">
-                    ¡Hola! ¿En qué puedo ayudarte?
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-purple-600">
+                    ¿En qué puedo ayudarte?
                   </h3>
-                  <p className="text-muted-foreground max-w-sm mx-auto text-sm">
-                    Pregúntame sobre tus tareas, proyectos o cualquier cosa relacionada con tu productividad.
+                  <p className="text-muted-foreground text-sm px-4">
+                    Pregúntame sobre tus tareas y proyectos.
                   </p>
                 </div>
               </div>
@@ -265,20 +263,19 @@ const IntelligentAIAssistantPanel = memo(() => {
             )}
             
             {isLoading && (
-              <div className="flex gap-3">
-                <div className="bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 rounded-full p-2">
-                  <Brain className="h-4 w-4" />
+              <div className="flex gap-2">
+                <div className="bg-purple-100 text-purple-700 rounded-full p-1.5">
+                  <Brain className="h-3 w-3" />
                 </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center gap-3">
+                <div className="bg-gray-50 border rounded-lg p-3">
+                  <div className="flex items-center gap-2">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                      <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse"></div>
+                      <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                     </div>
-                    <span className="text-sm text-purple-700">Analizando contexto y generando respuesta...</span>
+                    <span className="text-xs text-purple-700">Escribiendo...</span>
                   </div>
-                  <Progress value={45} className="mt-2 h-1" />
                 </div>
               </div>
             )}
@@ -289,7 +286,7 @@ const IntelligentAIAssistantPanel = memo(() => {
 
         <Separator />
         
-        <div className="p-3">
+        <div className="p-2">
           <div className="flex gap-2">
             <Input
               placeholder="Escribe tu pregunta..."
