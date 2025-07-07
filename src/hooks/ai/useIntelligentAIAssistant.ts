@@ -11,6 +11,7 @@ import { FeedbackLearningSystem } from '@/services/feedbackLearningSystem';
 import { performanceMonitor } from '@/utils/performanceMonitor';
 import { BasicProactiveAlerts, DeadlineAlert } from '@/services/basicProactiveAlerts';
 import { PersonalizedProactiveAlerts } from '@/services/personalizedProactiveAlerts';
+import { ConversationPatterns } from '@/services/conversationPatterns';
 
 interface IntelligentMessage {
   id: string;
@@ -236,9 +237,30 @@ export const useIntelligentAIAssistant = () => {
       // Generate intelligent context
       const intelligentContext = await generateIntelligentContext();
 
-      // ✅ CHECKPOINT 1.1: Sistema de prompts conversacionales y motivadores
+      // ✅ CHECKPOINT 1.2: Detectar tipo de consulta y contexto conversacional
+      const queryType = ConversationPatterns.detectQueryType(content);
+      const conversationContext = {
+        isFirstMessage: messages.length === 0,
+        hasRecentActivity: false, // TODO: implementar en checkpoint 2.1
+        lastActivity: null, // TODO: implementar en checkpoint 2.1 
+        completedTasksToday: intelligentContext?.user?.completedTasksToday || 0,
+        taskCount: intelligentContext?.user?.tasksCount || 0,
+        projectCount: intelligentContext?.user?.projectsCount || 0
+      };
+
+      // ✅ CHECKPOINT 1.1 & 1.2: Sistema de prompts conversacionales mejorado
       const userName = intelligentContext?.user?.name || "Compañero";
       const userRole = intelligentContext?.user?.role ? `, ${intelligentContext.user.role}` : "";
+      
+      // Generar saludo inteligente si es apropiado
+      let contextualGreeting = "";
+      if (queryType.type === 'greeting') {
+        contextualGreeting = ConversationPatterns.getIntelligentGreeting(
+          profile, 
+          conversationContext.lastActivity, 
+          conversationContext
+        );
+      }
       
       const systemPrompt = `Eres un compañero de trabajo inteligente y motivador llamado Asistente IA. Tu objetivo es ayudar a ${userName}${userRole} a ser más productivo de manera humana y cercana.
 
