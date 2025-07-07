@@ -28,7 +28,7 @@ interface ProjectAnalyticsDashboardProps {
 
 const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps> = ({ onClose }) => {
   const { projects } = useProjects();
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   
   const {
     projectAnalytics,
@@ -39,9 +39,9 @@ const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps> = ({ o
     getProjectById,
     getCriticalProjects,
     getHighRiskProjects
-  } = useProjectAnalytics(selectedProjectId || undefined);
+  } = useProjectAnalytics(selectedProjectId !== 'all' ? selectedProjectId : undefined);
 
-  const selectedProject = selectedProjectId ? getProjectById(selectedProjectId) : null;
+  const selectedProject = selectedProjectId && selectedProjectId !== 'all' ? getProjectById(selectedProjectId) : null;
   const criticalProjects = getCriticalProjects();
   const highRiskProjects = getHighRiskProjects();
 
@@ -73,7 +73,7 @@ const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps> = ({ o
   };
 
   const handleGenerateForecast = () => {
-    if (selectedProjectId) {
+    if (selectedProjectId && selectedProjectId !== 'all') {
       generateForecast(selectedProjectId);
     }
   };
@@ -110,7 +110,7 @@ const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps> = ({ o
               <SelectValue placeholder="Seleccionar proyecto específico" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos los proyectos</SelectItem>
+              <SelectItem value="all">Todos los proyectos</SelectItem>
               {projects?.map((project) => (
                 <SelectItem key={project.id} value={project.id}>
                   {project.name}
