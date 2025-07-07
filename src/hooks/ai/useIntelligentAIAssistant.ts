@@ -20,6 +20,7 @@ import { IntelligentAssistantService } from '@/services/ai/intelligentAssistantS
 import { TimeBasedRecommendationEngine } from '@/services/ai/timeBasedRecommendationEngine';
 import { AdvancedContextAnalyzer } from '@/services/advancedContextAnalyzer';
 import { useConversationPersistence } from '@/hooks/useConversationPersistence';
+import { SmartReminders, PendingReminder } from '@/services/smartReminders';
 
 interface IntelligentMessage {
   id: string;
@@ -31,6 +32,9 @@ interface IntelligentMessage {
     behaviorAnalysis?: any;
     performanceMetrics?: any;
     actionSuggestions?: string[];
+    isReminder?: boolean;
+    reminderId?: string;
+    taskId?: string;
   };
   proactiveAlert?: DeadlineAlert;
 }
@@ -71,6 +75,9 @@ export const useIntelligentAIAssistant = () => {
   // ✅ CHECKPOINT 2.3: Sistema de análisis contextual avanzado
   const advancedAnalyzerRef = useRef<AdvancedContextAnalyzer | null>(null);
   
+  // ✅ CHECKPOINT 4.1: Sistema de recordatorios inteligentes
+  const smartRemindersRef = useRef<SmartReminders | null>(null);
+  
   // ✅ CHECKPOINT 3.2: Sistema de persistencia de conversaciones
   const {
     saveConversation,
@@ -100,6 +107,11 @@ export const useIntelligentAIAssistant = () => {
       
       // ✅ CHECKPOINT 2.3: Inicializar analizador contextual avanzado
       advancedAnalyzerRef.current = new AdvancedContextAnalyzer(user.id);
+      
+      // ✅ CHECKPOINT 4.1: Inicializar sistema de recordatorios inteligentes
+      smartRemindersRef.current = new SmartReminders(user.id);
+      smartRemindersRef.current.setReminderCallback(handleActiveReminder);
+      smartRemindersRef.current.startReminderCheck();
       
       // Preload for better performance
       engineRef.current.preloadUserBehavior();
@@ -541,6 +553,31 @@ export const useIntelligentAIAssistant = () => {
     });
   }, [toast]);
 
+  // ✅ CHECKPOINT 4.1: Manejar recordatorios activos
+  const handleActiveReminder = useCallback((reminder: PendingReminder) => {
+    const reminderMessage: IntelligentMessage = {
+      id: `reminder-${Date.now()}`,
+      type: 'assistant',
+      content: `⏰ **${reminder.title}**\n\n${reminder.message || 'Es hora de trabajar en tu tarea.'}${reminder.task_title ? `\n\n📋 Tarea: "${reminder.task_title}"` : ''}`,
+      timestamp: new Date(),
+      context: {
+        isReminder: true,
+        reminderId: reminder.id,
+        taskId: reminder.task_id
+      }
+    };
+
+    setMessages(prev => [...prev, reminderMessage]);
+    
+    toast({
+      title: '⏰ Recordatorio',
+      description: reminder.title,
+      duration: 8000,
+    });
+    
+    console.log('🔔 Recordatorio activado:', reminder.title);
+  }, [toast]);
+
   const sendMessage = useCallback(async (content: string) => {
     if (!hasActiveConfiguration) {
       toast({
@@ -621,6 +658,32 @@ export const useIntelligentAIAssistant = () => {
       // Verificar alertas proactivas después de respuesta
       checkForProactiveAlerts();
 
+      // ✅ CHECKPOINT 4.1: Detectar solicitudes de recordatorio en el mensaje
+      if (smartRemindersRef.current) {
+        const reminderMatch = content.match(/recuerda(?:me)?\s+(?:en\s+)?(\d+)\s*(?:minutos?|mins?)/i);
+        if (reminderMatch) {
+          const minutes = parseInt(reminderMatch[1]);
+          if (minutes > 0 && minutes <= 1440) { // Máximo 24 horas
+            const reminderResult = await smartRemindersRef.current.scheduleCustomReminder(
+              'Recordatorio solicitado desde el chat',
+              minutes,
+              'chat_reminder'
+            );
+            
+            if (reminderResult.success) {
+              const reminderResponse: IntelligentMessage = {
+                id: `reminder-confirm-${Date.now()}`,
+                type: 'assistant',
+                content: reminderResult.message,
+                timestamp: new Date(),
+              };
+              
+              setMessages(prev => [...prev, reminderResponse]);
+            }
+          }
+        }
+      }
+
     } catch (error) {
       console.error('Error in dynamic intelligent assistant:', error);
       
@@ -657,6 +720,11 @@ export const useIntelligentAIAssistant = () => {
     // ✅ SPRINT 3: Reset alertas proactivas para nueva sesión
     if (proactiveAlertsRef.current) {
       proactiveAlertsRef.current.resetSession();
+    }
+    
+    // ✅ CHECKPOINT 4.1: Reset sistema de recordatorios
+    if (smartRemindersRef.current) {
+      smartRemindersRef.current.resetSession();
     }
     
     // ✅ CHECKPOINT 3.2: Limpiar conversación persistida
@@ -725,5 +793,7 @@ export const useIntelligentAIAssistant = () => {
     handleProactiveDismiss,
     // ✅ CHECKPOINT 3.2: Funciones de persistencia
     conversationStats: getConversationStats(),
+    // ✅ CHECKPOINT 4.1: Funciones de recordatorios
+    smartReminders: smartRemindersRef.current,
   };
 };
