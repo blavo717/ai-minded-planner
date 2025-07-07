@@ -45,6 +45,9 @@ export interface PromptContext {
   sessions?: any;
   preferences?: any;
   assignments?: any;
+  // ✅ CHECKPOINT 2.3: Análisis contextual avanzado
+  advancedInsights?: any[];
+  advancedProductivity?: any;
 }
 
 /**
@@ -92,6 +95,8 @@ ${this.buildSessionsContext(context)}
 ${this.buildPreferencesContext(context)}
 
 ${this.buildAssignmentsContext(context)}
+
+${this.buildAdvancedInsightsContext(context)}
 
 ${this.buildTemporalAnalysis(context)}
 
@@ -494,6 +499,62 @@ En progreso: ${context.tasks.inProgress.length}`;
     }
 
     return assignSection + '\n';
+  }
+
+  /**
+   * ✅ CHECKPOINT 2.3: Construir contexto de insights históricos avanzados
+   */
+  private buildAdvancedInsightsContext(context: PromptContext): string {
+    let insightsSection = `ANÁLISIS HISTÓRICO E INSIGHTS INTELIGENTES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+`;
+
+    // Insights históricos
+    if (context.advancedInsights && context.advancedInsights.length > 0) {
+      insightsSection += `🧠 INSIGHTS INTELIGENTES DETECTADOS:\n`;
+      context.advancedInsights.slice(0, 5).forEach(insight => {
+        const severityEmoji = insight.severity === 'high' ? '🔴' : insight.severity === 'medium' ? '🟡' : '🟢';
+        insightsSection += `  ${severityEmoji} ${insight.icon} ${insight.title}\n`;
+        insightsSection += `    └ ${insight.description}\n`;
+        if (insight.actionable) {
+          insightsSection += `    └ ⚡ Acción recomendada disponible\n`;
+        }
+      });
+      insightsSection += '\n';
+    }
+
+    // Análisis de productividad avanzado
+    if (context.advancedProductivity) {
+      const prod = context.advancedProductivity;
+      insightsSection += `📊 ANÁLISIS DE PRODUCTIVIDAD AVANZADO:\n`;
+      
+      if (prod.weeklyProgress) {
+        const trend = prod.weeklyProgress.trend === 'improving' ? '📈 Mejorando' : 
+                     prod.weeklyProgress.trend === 'declining' ? '📉 Declinando' : 
+                     '➡️ Estable';
+        insightsSection += `  • Progreso semanal: ${prod.weeklyProgress.currentWeek}h esta semana vs ${prod.weeklyProgress.lastWeek}h anterior (${trend})\n`;
+      }
+
+      if (prod.optimalHours && prod.optimalHours.length > 0) {
+        insightsSection += `  • Horarios óptimos identificados: ${prod.productiveTimeSlots?.join(', ') || 'Calculando...'}\n`;
+      }
+
+      if (prod.averageSessionDuration) {
+        insightsSection += `  • Duración promedio de sesiones: ${prod.averageSessionDuration} minutos\n`;
+      }
+
+      if (prod.completionRate) {
+        const completionPercent = Math.round(prod.completionRate * 100);
+        insightsSection += `  • Tasa de completación: ${completionPercent}%\n`;
+      }
+    }
+
+    if (!context.advancedInsights?.length && !context.advancedProductivity) {
+      insightsSection += `Construyendo análisis histórico... Se necesitan más datos para generar insights.`;
+    }
+
+    return insightsSection + '\n';
   }
 
   /**

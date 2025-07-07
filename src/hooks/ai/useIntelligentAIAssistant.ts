@@ -18,6 +18,7 @@ import { BasicProactiveAlerts, DeadlineAlert } from '@/services/basicProactiveAl
 import { PersonalizedProactiveAlerts } from '@/services/personalizedProactiveAlerts';
 import { IntelligentAssistantService } from '@/services/ai/intelligentAssistantService';
 import { TimeBasedRecommendationEngine } from '@/services/ai/timeBasedRecommendationEngine';
+import { AdvancedContextAnalyzer } from '@/services/advancedContextAnalyzer';
 
 interface IntelligentMessage {
   id: string;
@@ -65,6 +66,9 @@ export const useIntelligentAIAssistant = () => {
   
   // ✅ SPRINT 3: Sistema de alertas proactivas personalizadas
   const proactiveAlertsRef = useRef<PersonalizedProactiveAlerts | null>(null);
+  
+  // ✅ CHECKPOINT 2.3: Sistema de análisis contextual avanzado
+  const advancedAnalyzerRef = useRef<AdvancedContextAnalyzer | null>(null);
 
   // Initialize intelligent systems
   useEffect(() => {
@@ -82,6 +86,9 @@ export const useIntelligentAIAssistant = () => {
       // ✅ SPRINT 3: Inicializar sistema personalizado de alertas
       proactiveAlertsRef.current = new PersonalizedProactiveAlerts(user.id);
       proactiveAlertsRef.current.ensureDefaultPreferences();
+      
+      // ✅ CHECKPOINT 2.3: Inicializar analizador contextual avanzado
+      advancedAnalyzerRef.current = new AdvancedContextAnalyzer(user.id);
       
       // Preload for better performance
       engineRef.current.preloadUserBehavior();
@@ -101,6 +108,11 @@ export const useIntelligentAIAssistant = () => {
       
       // Get behavior analysis
       const behaviorAnalysis = await behaviorAnalyzerRef.current.analyzeUserBehavior();
+      
+      // ✅ CHECKPOINT 2.3: Generar análisis contextual avanzado
+      const advancedInsights = advancedAnalyzerRef.current ? 
+        advancedAnalyzerRef.current.generateAdvancedInsights(tasks, [], taskSessions) : 
+        { insights: [], productivity: null };
       
       // Get performance metrics
       const performanceMetrics = performanceMonitor.getMetrics();
@@ -202,6 +214,9 @@ export const useIntelligentAIAssistant = () => {
         currentRecommendation: recommendation,
         behaviorInsights: behaviorAnalysis.insights,
         productivityProfile: behaviorAnalysis.profile,
+        // ✅ CHECKPOINT 2.3: Incluir insights contextuales avanzados
+        advancedInsights: advancedInsights.insights,
+        advancedProductivity: advancedInsights.productivity,
         performanceMetrics: {
           averageRecommendationTime: performanceMetrics
             .filter(m => m.name === 'recommendation_generation')
