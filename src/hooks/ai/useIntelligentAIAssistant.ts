@@ -11,7 +11,7 @@ import { FeedbackLearningSystem } from '@/services/feedbackLearningSystem';
 import { performanceMonitor } from '@/utils/performanceMonitor';
 import { BasicProactiveAlerts, DeadlineAlert } from '@/services/basicProactiveAlerts';
 import { PersonalizedProactiveAlerts } from '@/services/personalizedProactiveAlerts';
-import { ConversationPatterns } from '@/services/conversationPatterns';
+import { IntelligentAssistantService } from '@/services/ai/intelligentAssistantService';
 
 interface IntelligentMessage {
   id: string;
@@ -46,6 +46,9 @@ export const useIntelligentAIAssistant = () => {
   const behaviorAnalyzerRef = useRef<UserBehaviorAnalyzer | null>(null);
   const learningSystemRef = useRef<FeedbackLearningSystem | null>(null);
   
+  // ✅ CHECKPOINT 1.2.1: Sistema de Asistente Inteligente Dinámico
+  const intelligentAssistantRef = useRef<IntelligentAssistantService | null>(null);
+  
   // ✅ SPRINT 3: Sistema de alertas proactivas personalizadas
   const proactiveAlertsRef = useRef<PersonalizedProactiveAlerts | null>(null);
 
@@ -55,6 +58,9 @@ export const useIntelligentAIAssistant = () => {
       engineRef.current = new OptimizedRecommendationEngine(user.id);
       behaviorAnalyzerRef.current = new UserBehaviorAnalyzer(user.id);
       learningSystemRef.current = new FeedbackLearningSystem(user.id);
+      
+      // ✅ CHECKPOINT 1.2.1: Inicializar sistema inteligente dinámico
+      intelligentAssistantRef.current = new IntelligentAssistantService(user.id);
       
       // ✅ SPRINT 3: Inicializar sistema personalizado de alertas
       proactiveAlertsRef.current = new PersonalizedProactiveAlerts(user.id);
@@ -218,12 +224,12 @@ export const useIntelligentAIAssistant = () => {
       return;
     }
 
-    if (!content.trim()) return;
+    if (!content.trim() || !intelligentAssistantRef.current) return;
 
     setConnectionStatus('connecting');
     setIsLoading(true);
 
-    // Add user message
+    // Add user message to local state
     const userMessage: IntelligentMessage = {
       id: `user-${Date.now()}`,
       type: 'user',
@@ -234,91 +240,29 @@ export const useIntelligentAIAssistant = () => {
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      // Generate intelligent context
+      // ✅ CHECKPOINT 1.2.1: Usar sistema dinámico en lugar de prompt estático
       const intelligentContext = await generateIntelligentContext();
-
-      // ✅ CHECKPOINT 1.2: Detectar tipo de consulta y contexto conversacional
-      const queryType = ConversationPatterns.detectQueryType(content);
-      const conversationContext = {
-        isFirstMessage: messages.length === 0,
-        hasRecentActivity: false, // TODO: implementar en checkpoint 2.1
-        lastActivity: null, // TODO: implementar en checkpoint 2.1 
-        completedTasksToday: intelligentContext?.user?.completedTasksToday || 0,
-        taskCount: intelligentContext?.user?.tasksCount || 0,
-        projectCount: intelligentContext?.user?.projectsCount || 0
-      };
-
-      // ✅ CHECKPOINT 1.1 & 1.2: Sistema de prompts conversacionales mejorado
-      const userName = intelligentContext?.user?.name || "Compañero";
-      const userRole = intelligentContext?.user?.role ? `, ${intelligentContext.user.role}` : "";
       
-      // Generar saludo inteligente si es apropiado
-      let contextualGreeting = "";
-      if (queryType.type === 'greeting') {
-        contextualGreeting = ConversationPatterns.getIntelligentGreeting(
-          profile, 
-          conversationContext.lastActivity, 
-          conversationContext
-        );
-      }
-      
-      const systemPrompt = `Eres un compañero de trabajo inteligente y motivador llamado Asistente IA. Tu objetivo es ayudar a ${userName}${userRole} a ser más productivo de manera humana y cercana.
+      // Procesar mensaje con el sistema inteligente
+      const response = await intelligentAssistantRef.current.processUserMessage(
+        content.trim(),
+        intelligentContext,
+        makeLLMRequest
+      );
 
-PERSONALIDAD Y TONO:
-- Usa SIEMPRE el nombre "${userName}" cuando te dirijas al usuario
-- Sé motivador y positivo: "¡Yess! Te veo con ganas de ser productivo! 💪"
-- Usa emojis contextuales de manera natural (no exageres)
-- Respuestas directas y orientadas a la acción
-- Tono de compañero de trabajo, no de robot técnico
-- Celebra los logros y progreso del usuario
-
-SALUDOS INTELIGENTES:
-- Si es el primer mensaje: "¡Hola ${userName}! ¿En qué te puedo ayudar?"
-- Si ya hay conversación: "¡Hola de nuevo! ¿Cómo va todo?"
-- Si preguntan por tareas: "¡Perfecto! Veamos qué tarea te conviene ahora"
-
-FRASES MOTIVADORAS A USAR:
-- "¡Yess! Te veo con ganas de ser productivo! 💪"
-- "¡Perfecto! Tienes buen timing para esta tarea 🎯"
-- "¡Excelente elección! Esta tarea te va a dar mucha satisfacción ✨"
-- "¡Genial que preguntes! 📊"
-- "¡A darle caña! 🔥"
-
-DATOS DEL USUARIO ${userName.toUpperCase()}:
-${intelligentContext ? JSON.stringify(intelligentContext, null, 2) : 'Contexto no disponible'}
-
-INSTRUCCIONES CLAVE:
-1. USA SIEMPRE su nombre "${userName}" en tus respuestas
-2. Sé motivador y usa las frases sugeridas cuando sea apropiado
-3. Respuestas cortas y directas, enfocadas en acción
-4. Si pregunta qué hacer, usa su recomendación actual con entusiasmo
-5. Menciona su progreso específico: "tienes X tareas completadas hoy"
-6. Usa emojis para dar energía positiva
-7. Evita jerga técnica, habla como un compañero
-
-Fecha y hora actual: ${new Date().toLocaleString('es-ES')} (zona horaria del usuario: ${intelligentContext?.user?.timezone || 'UTC'})`;
-
-      const response = await makeLLMRequest({
-        systemPrompt,
-        userPrompt: content,
-        functionName: 'intelligent_assistant_chat',
-        temperature: 0.7,
-        maxTokens: 1500,
-      });
-
-      // Add assistant response with context
+      // Add assistant response - SIN INFORMACIÓN DE DEBUG
       const assistantMessage: IntelligentMessage = {
         id: `assistant-${Date.now()}`,
         type: 'assistant',
         content: response.content,
         timestamp: new Date(),
-        context: intelligentContext,
+        // Sin contexto visible para el usuario - solo funcionalidad interna
       };
 
       setMessages(prev => [...prev, assistantMessage]);
       setConnectionStatus('connected');
 
-      // Record feedback for learning (using 'feedback_positive' as default for AI interactions)
+      // Registrar feedback para aprendizaje
       if (learningSystemRef.current && intelligentContext?.currentRecommendation) {
         await learningSystemRef.current.processFeedback({
           user_id: user!.id,
@@ -327,17 +271,18 @@ Fecha y hora actual: ${new Date().toLocaleString('es-ES')} (zona horaria del usu
           context_data: {
             query: content,
             response_length: response.content.length,
-            context_available: !!intelligentContext,
-            interaction_type: 'ai_chat'
+            confidence: response.confidence,
+            was_repetitive: response.confidence < 0.8,
+            interaction_type: 'dynamic_ai_chat'
           }
         });
       }
 
-      // ✅ SPRINT 2: Verificar alertas proactivas después de respuesta
+      // Verificar alertas proactivas después de respuesta
       checkForProactiveAlerts();
 
     } catch (error) {
-      console.error('Error in intelligent assistant:', error);
+      console.error('Error in dynamic intelligent assistant:', error);
       
       setConnectionStatus('error');
       
@@ -350,7 +295,7 @@ Fecha y hora actual: ${new Date().toLocaleString('es-ES')} (zona horaria del usu
       const errorMessage: IntelligentMessage = {
         id: `error-${Date.now()}`,
         type: 'assistant',
-        content: 'Lo siento, hubo un error procesando tu mensaje. Por favor intenta de nuevo.',
+        content: 'Lo siento, hubo un error procesando tu mensaje. ¿Puedes intentar de nuevo?',
         timestamp: new Date(),
       };
 
@@ -358,11 +303,16 @@ Fecha y hora actual: ${new Date().toLocaleString('es-ES')} (zona horaria del usu
     } finally {
       setIsLoading(false);
     }
-  }, [hasActiveConfiguration, generateIntelligentContext, makeLLMRequest, user, toast]);
+  }, [hasActiveConfiguration, generateIntelligentContext, makeLLMRequest, user, toast, checkForProactiveAlerts]);
 
-  const clearChat = useCallback(() => {
+  const clearChat = useCallback(async () => {
     setMessages([]);
     setConnectionStatus(hasActiveConfiguration ? 'connected' : 'disconnected');
+    
+    // ✅ CHECKPOINT 1.2.1: Limpiar memoria conversacional del sistema dinámico
+    if (intelligentAssistantRef.current) {
+      await intelligentAssistantRef.current.clearConversation();
+    }
     
     // ✅ SPRINT 3: Reset alertas proactivas para nueva sesión
     if (proactiveAlertsRef.current) {
@@ -371,7 +321,7 @@ Fecha y hora actual: ${new Date().toLocaleString('es-ES')} (zona horaria del usu
     
     toast({
       title: 'Chat limpiado',
-      description: 'La conversación se ha limpiado correctamente.',
+      description: 'Nueva conversación iniciada.',
     });
   }, [hasActiveConfiguration, toast]);
 

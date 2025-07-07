@@ -31,19 +31,8 @@ import ProactiveAlert from '@/components/ai/assistant/ProactiveAlert';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-// Memoized context display component - SIMPLIFIED
-const ContextDisplay = memo(({ context }: { context: any }) => {
-  // Context info hidden in basic mode - only show in debug mode
-  if (!context || process.env.NODE_ENV !== 'development') return null;
-
-  return (
-    <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-50 rounded">
-      Debug: Context loaded
-    </div>
-  );
-});
-
-ContextDisplay.displayName = 'ContextDisplay';
+// ✅ CHECKPOINT 1.2.1: Eliminación completa de información de debug
+// Ya no mostramos contexto al usuario - solo funcionalidad interna
 
 // Memoized message component - OPTIMIZED WITH DESIGN SYSTEM + PROACTIVE ALERTS
 const MessageComponent = memo(({ 
@@ -90,11 +79,7 @@ const MessageComponent = memo(({
           <p className="whitespace-pre-wrap leading-relaxed text-sm">{message.content}</p>
         </div>
         
-        {message.context && message.type === 'assistant' && (
-          <div className="mt-3">
-            <ContextDisplay context={message.context} />
-          </div>
-        )}
+        {/* ✅ CHECKPOINT 1.2.1: Sin información de debug visible al usuario */}
         
         <p className="text-xs text-ai-text-muted mt-1 transition-ai">
           {format(message.timestamp, 'HH:mm', { locale: es })}
