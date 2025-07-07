@@ -212,6 +212,42 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_integrations: {
+        Row: {
+          created_at: string
+          id: string
+          integration_data: Json
+          is_active: boolean | null
+          last_sync_at: string | null
+          provider: string
+          sync_frequency: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          integration_data: Json
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          provider: string
+          sync_frequency?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          integration_data?: Json
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          provider?: string
+          sync_frequency?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       external_contacts: {
         Row: {
           company: string | null
@@ -415,6 +451,105 @@ export type Database = {
           location_type?: string | null
           longitude?: number | null
           name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      predictive_analysis: {
+        Row: {
+          analysis_type: string
+          confidence_score: number | null
+          created_at: string
+          id: string
+          is_resolved: boolean | null
+          prediction_data: Json
+          resolved_at: string | null
+          severity: string | null
+          suggestions: Json | null
+          target_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_type: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          is_resolved?: boolean | null
+          prediction_data: Json
+          resolved_at?: string | null
+          severity?: string | null
+          suggestions?: Json | null
+          target_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_type?: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          is_resolved?: boolean | null
+          prediction_data?: Json
+          resolved_at?: string | null
+          severity?: string | null
+          suggestions?: Json | null
+          target_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      proactive_notifications: {
+        Row: {
+          action_data: Json | null
+          created_at: string
+          dismissed_at: string | null
+          id: string
+          is_dismissed: boolean | null
+          is_read: boolean | null
+          is_sent: boolean | null
+          message: string
+          notification_type: string
+          priority: number | null
+          read_at: string | null
+          scheduled_for: string
+          sent_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_data?: Json | null
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          is_sent?: boolean | null
+          message: string
+          notification_type: string
+          priority?: number | null
+          read_at?: string | null
+          scheduled_for: string
+          sent_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_data?: Json | null
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          is_sent?: boolean | null
+          message?: string
+          notification_type?: string
+          priority?: number | null
+          read_at?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          title?: string
           user_id?: string
         }
         Relationships: []
@@ -1171,6 +1306,54 @@ export type Database = {
           id?: string
           role?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_plans: {
+        Row: {
+          actual_hours: number | null
+          ai_confidence: number | null
+          completion_rate: number | null
+          created_at: string
+          id: string
+          optimization_strategy: string | null
+          planned_tasks: Json | null
+          status: string | null
+          total_estimated_hours: number | null
+          updated_at: string
+          user_id: string
+          week_end_date: string
+          week_start_date: string
+        }
+        Insert: {
+          actual_hours?: number | null
+          ai_confidence?: number | null
+          completion_rate?: number | null
+          created_at?: string
+          id?: string
+          optimization_strategy?: string | null
+          planned_tasks?: Json | null
+          status?: string | null
+          total_estimated_hours?: number | null
+          updated_at?: string
+          user_id: string
+          week_end_date: string
+          week_start_date: string
+        }
+        Update: {
+          actual_hours?: number | null
+          ai_confidence?: number | null
+          completion_rate?: number | null
+          created_at?: string
+          id?: string
+          optimization_strategy?: string | null
+          planned_tasks?: Json | null
+          status?: string | null
+          total_estimated_hours?: number | null
+          updated_at?: string
+          user_id?: string
+          week_end_date?: string
+          week_start_date?: string
         }
         Relationships: []
       }
