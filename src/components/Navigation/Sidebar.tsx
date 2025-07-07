@@ -11,7 +11,10 @@ import {
   Settings,
   LogOut,
   BarChart3,
-  Brain
+  Brain,
+  Shield,
+  Users,
+  TrendingUp
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -56,6 +59,21 @@ const Sidebar = () => {
       title: 'IA',
       href: '/ai-assistant-enhanced',
       icon: Brain,
+    },
+    {
+      title: 'Equipo',
+      href: '/team-collaboration',
+      icon: Users,
+    },
+    {
+      title: 'Proyectos Analytics',
+      href: '/project-analytics', 
+      icon: TrendingUp,
+    },
+    {
+      title: 'Salud del Sistema',
+      href: '/system-health',
+      icon: Shield,
     },
     {
       title: 'Configuración',
