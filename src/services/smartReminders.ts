@@ -25,6 +25,7 @@ export class SmartReminders {
   private userId: string;
   private reminderInterval: NodeJS.Timeout | null = null;
   private onReminderCallback?: (reminder: PendingReminder) => void;
+  private isCheckingReminders: boolean = false;
 
   constructor(userId: string) {
     this.userId = userId;
@@ -261,19 +262,37 @@ export class SmartReminders {
    * Inicia verificación periódica de recordatorios pendientes
    */
   startReminderCheck(): void {
-    if (this.reminderInterval) return; // Ya está activo
+    // Prevenir múltiples intervalos activos
+    if (this.reminderInterval) {
+      console.log('⚠️ Sistema de recordatorios ya activo, saltando inicialización');
+      return;
+    }
 
     this.reminderInterval = setInterval(async () => {
-      const pendingReminders = await this.getPendingReminders();
+      // Prevenir ejecuciones concurrentes
+      if (this.isCheckingReminders) {
+        console.log('⚠️ Verificación ya en progreso, saltando ciclo');
+        return;
+      }
+
+      this.isCheckingReminders = true;
       
-      for (const reminder of pendingReminders) {
-        if (this.onReminderCallback && reminder.id) {
-          // Triggear callback
-          this.onReminderCallback(reminder);
-          
-          // Marcar como entregado
-          await this.markAsDelivered(reminder.id);
+      try {
+        const pendingReminders = await this.getPendingReminders();
+        
+        for (const reminder of pendingReminders) {
+          if (this.onReminderCallback && reminder.id) {
+            // Triggear callback
+            this.onReminderCallback(reminder);
+            
+            // Marcar como entregado
+            await this.markAsDelivered(reminder.id);
+          }
         }
+      } catch (error) {
+        console.error('Error en verificación de recordatorios:', error);
+      } finally {
+        this.isCheckingReminders = false;
       }
     }, 30000); // Verificar cada 30 segundos
 
@@ -369,5 +388,6 @@ export class SmartReminders {
   resetSession(): void {
     this.stopReminderCheck();
     this.onReminderCallback = undefined;
+    this.isCheckingReminders = false;
   }
 }

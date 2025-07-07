@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useMemo } from 'react';
 
 export interface PersistedMessage {
   id: string;
@@ -21,8 +21,9 @@ export interface ConversationData {
  * Guarda automáticamente cada mensaje y restaura las últimas 30 conversaciones
  */
 export const useConversationPersistence = (conversationId: string) => {
-  const storageKey = `ai_conversation_${conversationId}`;
+  const storageKey = useMemo(() => `ai_conversation_${conversationId}`, [conversationId]);
   const lastSaveRef = useRef<number>(Date.now());
+  const cleanupExecutedRef = useRef<boolean>(false);
 
   /**
    * Guarda la conversación completa en localStorage
@@ -208,12 +209,15 @@ export const useConversationPersistence = (conversationId: string) => {
     }
   }, []);
 
-  // Limpiar conversaciones antiguas al inicializar
+  // Limpiar conversaciones antiguas al inicializar (solo una vez)
   useEffect(() => {
-    cleanOldConversations();
-  }, [cleanOldConversations]);
+    if (!cleanupExecutedRef.current) {
+      cleanupExecutedRef.current = true;
+      cleanOldConversations();
+    }
+  }, []); // Sin dependencias para ejecutar solo una vez
 
-  return {
+  return useMemo(() => ({
     saveConversation,
     loadConversation,
     clearConversation,
@@ -222,5 +226,14 @@ export const useConversationPersistence = (conversationId: string) => {
     exportConversation,
     getStorageSize,
     cleanOldConversations
-  };
+  }), [
+    saveConversation,
+    loadConversation, 
+    clearConversation,
+    autoSaveMessage,
+    getConversationStats,
+    exportConversation,
+    getStorageSize,
+    cleanOldConversations
+  ]);
 };

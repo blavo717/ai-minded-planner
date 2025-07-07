@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useLLMService } from '@/hooks/useLLMService';
 import { useAuth } from '@/hooks/useAuth';
 import { useTasks } from '@/hooks/useTasks';
@@ -53,6 +53,7 @@ export const useIntelligentAIAssistant = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [conversationId] = useState(() => `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [initializationComplete, setInitializationComplete] = useState(false);
   
   const { user } = useAuth();
   const { makeLLMRequest, hasActiveConfiguration, activeModel } = useLLMService();
@@ -105,56 +106,103 @@ export const useIntelligentAIAssistant = () => {
     getConversationStats
   } = useConversationPersistence(conversationId);
 
-  // Initialize intelligent systems
+  // Memoizar handleActiveReminder para evitar recreaciones
+  const handleActiveReminderMemo = useCallback((reminder: PendingReminder) => {
+    const reminderMessage: IntelligentMessage = {
+      id: `reminder-${Date.now()}`,
+      type: 'assistant',
+      content: `⏰ **${reminder.title}**\n\n${reminder.message || 'Es hora de trabajar en tu tarea.'}${reminder.task_title ? `\n\n📋 Tarea: "${reminder.task_title}"` : ''}`,
+      timestamp: new Date(),
+      context: {
+        isReminder: true,
+        reminderId: reminder.id,
+        taskId: reminder.task_id
+      }
+    };
+
+    setMessages(prev => [...prev, reminderMessage]);
+    
+    toast({
+      title: '⏰ Recordatorio',
+      description: reminder.title,
+      duration: 8000,
+    });
+    
+    console.log('🔔 Recordatorio activado:', reminder.title);
+  }, [toast]);
+
+  // Inicializar sistemas principales una sola vez
   useEffect(() => {
-    if (user) {
+    if (!user || initializationComplete) return;
+
+    console.log('🚀 Inicializando sistemas AI para usuario:', user.id);
+
+    try {
       engineRef.current = new OptimizedRecommendationEngine(user.id);
       behaviorAnalyzerRef.current = new UserBehaviorAnalyzer(user.id);
       learningSystemRef.current = new FeedbackLearningSystem(user.id);
-      
-      // ✅ CHECKPOINT 1.2.1: Inicializar sistema inteligente dinámico
       intelligentAssistantRef.current = new IntelligentAssistantService(user.id);
-      
-      // ✅ CHECKPOINT 1.2.2: Inicializar motor de recomendaciones temporal
       timeBasedEngineRef.current = new TimeBasedRecommendationEngine();
-      
-      // ✅ SPRINT 3: Inicializar sistema personalizado de alertas
       proactiveAlertsRef.current = new PersonalizedProactiveAlerts(user.id);
-      proactiveAlertsRef.current.ensureDefaultPreferences();
-      
-      // ✅ CHECKPOINT 2.3: Inicializar analizador contextual avanzado
       advancedAnalyzerRef.current = new AdvancedContextAnalyzer(user.id);
-      
-      // ✅ CHECKPOINT 4.1: Inicializar sistema de recordatorios inteligentes
-      smartRemindersRef.current = new SmartReminders(user.id);
-      smartRemindersRef.current.setReminderCallback(handleActiveReminder);
-      smartRemindersRef.current.startReminderCheck();
-      
-      // ✅ CHECKPOINT 4.2: Inicializar sistema de acciones ejecutables
-      if (smartRemindersRef.current) {
-        executableActionsRef.current = new ExecutableActionsService(
-          user.id,
-          taskMutations,
-          taskLogMutations,
-          smartRemindersRef.current
-        );
-      }
-      
-      // ✅ CHECKPOINT 4.3: Inicializar analizador predictivo
       predictiveAnalyzerRef.current = new PredictiveAnalyzer(user.id);
-      
-      // Preload for better performance
-      engineRef.current.preloadUserBehavior();
+
+      // Inicializar recordatorios
+      smartRemindersRef.current = new SmartReminders(user.id);
+      smartRemindersRef.current.setReminderCallback(handleActiveReminderMemo);
+      smartRemindersRef.current.startReminderCheck();
+
+      setInitializationComplete(true);
+      console.log('✅ Sistemas AI inicializados correctamente');
+    } catch (error) {
+      console.error('❌ Error inicializando sistemas AI:', error);
+    }
+  }, [user, handleActiveReminderMemo]);
+
+  // Inicializar acciones ejecutables cuando las mutaciones estén disponibles
+  useEffect(() => {
+    if (!user || !initializationComplete || !smartRemindersRef.current || !taskMutations || !taskLogMutations) return;
+
+    if (!executableActionsRef.current) {
+      executableActionsRef.current = new ExecutableActionsService(
+        user.id,
+        taskMutations,
+        taskLogMutations,
+        smartRemindersRef.current
+      );
+      console.log('✅ ExecutableActionsService inicializado');
+    }
+  }, [user, initializationComplete, taskMutations, taskLogMutations]);
+
+  // Configurar alertas proactivas una vez inicializado
+  useEffect(() => {
+    if (!initializationComplete || !proactiveAlertsRef.current) return;
+
+    proactiveAlertsRef.current.ensureDefaultPreferences();
+  }, [initializationComplete]);
+
+  // Cargar conversación persistida una sola vez
+  useEffect(() => {
+    if (!initializationComplete) return;
+
+    const storedMessages = loadConversation();
+    if (storedMessages.length > 0) {
+      setMessages(storedMessages);
+      console.log(`📥 ${storedMessages.length} mensajes restaurados desde el almacenamiento`);
+    }
+  }, [initializationComplete, loadConversation]);
+
+  // Actualizar estado de conexión
+  useEffect(() => {
+    if (initializationComplete) {
       setConnectionStatus(hasActiveConfiguration ? 'connected' : 'disconnected');
       
-      // ✅ CHECKPOINT 3.2: Cargar conversación persistida al inicializar
-      const storedMessages = loadConversation();
-      if (storedMessages.length > 0) {
-        setMessages(storedMessages);
-        console.log(`📥 ${storedMessages.length} mensajes restaurados desde el almacenamiento`);
+      // Preload para mejor performance
+      if (engineRef.current) {
+        engineRef.current.preloadUserBehavior();
       }
     }
-  }, [user, hasActiveConfiguration, loadConversation, taskMutations, taskLogMutations]);
+  }, [initializationComplete, hasActiveConfiguration]);
 
   // ✅ CHECKPOINT 3.2: Auto-guardar mensajes cuando cambie el array
   useEffect(() => {
@@ -590,30 +638,7 @@ export const useIntelligentAIAssistant = () => {
     });
   }, [toast]);
 
-  // ✅ CHECKPOINT 4.1: Manejar recordatorios activos
-  const handleActiveReminder = useCallback((reminder: PendingReminder) => {
-    const reminderMessage: IntelligentMessage = {
-      id: `reminder-${Date.now()}`,
-      type: 'assistant',
-      content: `⏰ **${reminder.title}**\n\n${reminder.message || 'Es hora de trabajar en tu tarea.'}${reminder.task_title ? `\n\n📋 Tarea: "${reminder.task_title}"` : ''}`,
-      timestamp: new Date(),
-      context: {
-        isReminder: true,
-        reminderId: reminder.id,
-        taskId: reminder.task_id
-      }
-    };
-
-    setMessages(prev => [...prev, reminderMessage]);
-    
-    toast({
-      title: '⏰ Recordatorio',
-      description: reminder.title,
-      duration: 8000,
-    });
-    
-    console.log('🔔 Recordatorio activado:', reminder.title);
-  }, [toast]);
+  // Función ya movida arriba en la inicialización
 
   const sendMessage = useCallback(async (content: string) => {
     if (!hasActiveConfiguration) {
