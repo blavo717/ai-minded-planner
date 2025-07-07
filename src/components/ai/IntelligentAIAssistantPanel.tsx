@@ -24,7 +24,8 @@ import {
   Download,
   TrendingUp,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Keyboard
 } from 'lucide-react';
 import { useIntelligentAIAssistant } from '@/hooks/ai/useIntelligentAIAssistant';
 import ProactiveAlert from '@/components/ai/assistant/ProactiveAlert';
@@ -93,8 +94,22 @@ MessageComponent.displayName = 'MessageComponent';
 
 const IntelligentAIAssistantPanel = memo(() => {
   const [inputMessage, setInputMessage] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // ✅ CHECKPOINT 3.3: Sugerencias de preguntas comunes
+  const suggestions = [
+    "¿Qué tareas tengo urgentes hoy?",
+    "¿En qué proyecto debería trabajar ahora?",
+    "¿Cuántas tareas completé esta semana?",
+    "¿Qué tareas están vencidas?",
+    "Ayúdame a priorizar mis tareas",
+    "¿Cómo va mi productividad?",
+    "¿Qué microtareas puedo hacer rápido?",
+    "Recuérdame trabajar en 15 minutos"
+  ];
   
   const {
     messages,
@@ -118,6 +133,41 @@ const IntelligentAIAssistantPanel = memo(() => {
     scrollToBottom();
   }, [messages]);
 
+  // ✅ CHECKPOINT 3.3: Shortcuts de teclado
+  useEffect(() => {
+    const handleKeyboardShortcuts = (e: KeyboardEvent) => {
+      // Ctrl+L: Limpiar chat
+      if (e.ctrlKey && e.key === 'l') {
+        e.preventDefault();
+        clearChat();
+      }
+      // Ctrl+Enter: Enviar mensaje (alternativo)
+      if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        handleSendMessage();
+      }
+      // Escape: Cerrar sugerencias
+      if (e.key === 'Escape') {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyboardShortcuts);
+    return () => document.removeEventListener('keydown', handleKeyboardShortcuts);
+  }, [clearChat]);
+
+  // Mostrar sugerencias cuando el input está vacío y enfocado
+  const handleInputFocus = () => {
+    if (!inputMessage.trim()) {
+      setShowSuggestions(true);
+    }
+  };
+
+  const handleInputBlur = () => {
+    // Delay para permitir clicks en sugerencias
+    setTimeout(() => setShowSuggestions(false), 200);
+  };
+
   const handleSendMessage = async () => {
     if (inputMessage.trim() && !isLoading) {
       await sendMessage(inputMessage);
@@ -130,6 +180,12 @@ const IntelligentAIAssistantPanel = memo(() => {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setInputMessage(suggestion);
+    setShowSuggestions(false);
+    inputRef.current?.focus();
   };
 
   const handleRefresh = async () => {
@@ -277,19 +333,20 @@ const IntelligentAIAssistantPanel = memo(() => {
               ))
             )}
             
+            {/* ✅ CHECKPOINT 3.3: Mejor estado visual de "escribiendo..." */}
             {isLoading && (
-              <div className="flex gap-2">
-                <div className="bg-purple-100 text-purple-700 rounded-full p-1">
+              <div className="flex gap-2 animate-fade-in">
+                <div className="bg-ai-primary-light text-ai-primary rounded-full p-1 shadow-ai-sm">
                   <Brain className="h-3 w-3" />
                 </div>
-                <div className="bg-gray-50 border rounded-lg px-2 py-1.5">
+                <div className="bg-ai-surface border border-ai-border rounded-lg px-2 py-1.5 shadow-ai-sm">
                   <div className="flex items-center gap-2">
                     <div className="flex space-x-1">
-                      <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse"></div>
-                      <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                      <div className="w-1.5 h-1.5 bg-ai-primary rounded-full animate-bounce"></div>
+                      <div className="w-1.5 h-1.5 bg-ai-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-1.5 h-1.5 bg-ai-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
-                    <span className="text-xs text-purple-700">Escribiendo...</span>
+                    <span className="text-xs text-ai-primary font-medium">Pensando...</span>
                   </div>
                 </div>
               </div>
@@ -301,16 +358,58 @@ const IntelligentAIAssistantPanel = memo(() => {
 
         <Separator />
         
-        <div className="p-1.5 bg-gradient-ai-surface border-t border-ai-border">
+        <div className="relative p-1.5 bg-gradient-ai-surface border-t border-ai-border">
+          {/* ✅ CHECKPOINT 3.3: Sugerencias inteligentes */}
+          {showSuggestions && (
+            <div className="absolute bottom-full left-1.5 right-1.5 mb-1 bg-ai-surface border border-ai-border rounded-lg shadow-ai-lg z-50 max-h-48 overflow-y-auto animate-fade-in">
+              <div className="p-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lightbulb className="h-3 w-3 text-ai-primary" />
+                  <span className="text-xs font-medium text-ai-primary">Preguntas frecuentes</span>
+                  <kbd className="text-xs text-ai-text-muted bg-ai-surface border border-ai-border rounded px-1">ESC</kbd>
+                </div>
+                <div className="space-y-1">
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="w-full text-left text-xs p-2 rounded hover:bg-ai-surface-hover text-ai-text transition-ai"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="flex gap-1.5">
-            <Input
-              placeholder="Escribe tu pregunta..."
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              disabled={isLoading}
-              className="flex-1 border-ai-border focus:border-ai-primary transition-ai"
-            />
+            <div className="flex-1 relative">
+              <Input
+                ref={inputRef}
+                placeholder="Escribe tu pregunta... (Ctrl+L = limpiar, Ctrl+Enter = enviar)"
+                value={inputMessage}
+                onChange={(e) => {
+                  setInputMessage(e.target.value);
+                  if (e.target.value.trim()) {
+                    setShowSuggestions(false);
+                  }
+                }}
+                onKeyPress={handleKeyPress}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+                disabled={isLoading}
+                className="border-ai-border focus:border-ai-primary transition-ai pr-8"
+              />
+              {!inputMessage.trim() && !showSuggestions && (
+                <button
+                  onClick={() => setShowSuggestions(true)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-ai-text-muted hover:text-ai-primary transition-ai"
+                >
+                  <Lightbulb className="h-4 w-4" />
+                </button>
+              )}
+            </div>
             <Button
               onClick={handleSendMessage}
               disabled={isLoading || !inputMessage.trim()}
@@ -318,6 +417,16 @@ const IntelligentAIAssistantPanel = memo(() => {
             >
               <Send className="h-4 w-4" />
             </Button>
+          </div>
+          
+          {/* ✅ CHECKPOINT 3.3: Indicador de shortcuts */}
+          <div className="flex items-center gap-2 mt-1 text-xs text-ai-text-muted">
+            <Keyboard className="h-3 w-3" />
+            <span>Shortcuts:</span>
+            <kbd className="bg-ai-surface border border-ai-border rounded px-1">Ctrl+L</kbd>
+            <span>limpiar</span>
+            <kbd className="bg-ai-surface border border-ai-border rounded px-1">Ctrl+↵</kbd>
+            <span>enviar</span>
           </div>
         </div>
       </CardContent>
