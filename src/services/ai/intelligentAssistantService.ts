@@ -74,7 +74,9 @@ export class IntelligentAssistantService {
         conversation: conversationSummary,
         currentRecommendation: currentContext.currentRecommendation,
         recentActivity: currentContext.recentActivity,
-        behavioral: currentContext.behaviorInsights
+        behaviorInsights: currentContext.behaviorInsights,
+        productivityProfile: currentContext.productivityProfile,
+        performanceMetrics: currentContext.performanceMetrics
       };
 
       // 4. Generar prompt dinámico
