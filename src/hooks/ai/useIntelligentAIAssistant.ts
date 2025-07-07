@@ -19,6 +19,7 @@ import { PersonalizedProactiveAlerts } from '@/services/personalizedProactiveAle
 import { IntelligentAssistantService } from '@/services/ai/intelligentAssistantService';
 import { TimeBasedRecommendationEngine } from '@/services/ai/timeBasedRecommendationEngine';
 import { AdvancedContextAnalyzer } from '@/services/advancedContextAnalyzer';
+import { useConversationPersistence } from '@/hooks/useConversationPersistence';
 
 interface IntelligentMessage {
   id: string;
@@ -69,6 +70,16 @@ export const useIntelligentAIAssistant = () => {
   
   // ✅ CHECKPOINT 2.3: Sistema de análisis contextual avanzado
   const advancedAnalyzerRef = useRef<AdvancedContextAnalyzer | null>(null);
+  
+  // ✅ CHECKPOINT 3.2: Sistema de persistencia de conversaciones
+  const {
+    saveConversation,
+    loadConversation,
+    clearConversation: clearStoredConversation,
+    autoSaveMessage,
+    exportConversation: exportStoredConversation,
+    getConversationStats
+  } = useConversationPersistence(conversationId);
 
   // Initialize intelligent systems
   useEffect(() => {
@@ -93,8 +104,22 @@ export const useIntelligentAIAssistant = () => {
       // Preload for better performance
       engineRef.current.preloadUserBehavior();
       setConnectionStatus(hasActiveConfiguration ? 'connected' : 'disconnected');
+      
+      // ✅ CHECKPOINT 3.2: Cargar conversación persistida al inicializar
+      const storedMessages = loadConversation();
+      if (storedMessages.length > 0) {
+        setMessages(storedMessages);
+        console.log(`📥 ${storedMessages.length} mensajes restaurados desde el almacenamiento`);
+      }
     }
-  }, [user, hasActiveConfiguration]);
+  }, [user, hasActiveConfiguration, loadConversation]);
+
+  // ✅ CHECKPOINT 3.2: Auto-guardar mensajes cuando cambie el array
+  useEffect(() => {
+    if (messages.length > 0) {
+      autoSaveMessage(messages);
+    }
+  }, [messages, autoSaveMessage]);
 
   // Generate intelligent context for the assistant
   const generateIntelligentContext = useCallback(async () => {
@@ -634,33 +659,49 @@ export const useIntelligentAIAssistant = () => {
       proactiveAlertsRef.current.resetSession();
     }
     
+    // ✅ CHECKPOINT 3.2: Limpiar conversación persistida
+    clearStoredConversation();
+    
     toast({
       title: 'Chat limpiado',
       description: 'Nueva conversación iniciada.',
     });
-  }, [hasActiveConfiguration, toast]);
+  }, [hasActiveConfiguration, toast, clearStoredConversation]);
 
+  // ✅ CHECKPOINT 3.2: Exportar conversación mejorado con persistencia
   const exportConversation = useCallback(() => {
-    const exportData = {
-      conversationId,
-      timestamp: new Date().toISOString(),
-      messages,
-      userContext: {
-        userId: user?.id,
-        tasksCount: tasks.length,
-        projectsCount: projects.length,
-      },
-      activeModel,
-    };
+    // Intentar exportar desde almacenamiento primero
+    const exportedData = exportStoredConversation();
     
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `intelligent-conversation-${conversationId}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [conversationId, messages, user, tasks, projects, activeModel]);
+    if (!exportedData) {
+      // Fallback a exportación manual si no hay datos persistidos
+      const exportData = {
+        conversationId,
+        timestamp: new Date().toISOString(),
+        messages,
+        userContext: {
+          userId: user?.id,
+          tasksCount: tasks.length,
+          projectsCount: projects.length,
+        },
+        activeModel,
+        stats: getConversationStats()
+      };
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `intelligent-conversation-${conversationId}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    
+    toast({
+      title: 'Conversación exportada',
+      description: 'El archivo se ha descargado exitosamente.',
+    });
+  }, [conversationId, messages, user, tasks, projects, activeModel, exportStoredConversation, getConversationStats, toast]);
 
   return {
     messages,
@@ -682,5 +723,7 @@ export const useIntelligentAIAssistant = () => {
     // ✅ SPRINT 2: Funciones para manejo de alertas proactivas  
     handleProactiveAction,
     handleProactiveDismiss,
+    // ✅ CHECKPOINT 3.2: Funciones de persistencia
+    conversationStats: getConversationStats(),
   };
 };
