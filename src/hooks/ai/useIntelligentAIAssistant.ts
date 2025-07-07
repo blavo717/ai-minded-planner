@@ -21,6 +21,9 @@ import { TimeBasedRecommendationEngine } from '@/services/ai/timeBasedRecommenda
 import { AdvancedContextAnalyzer } from '@/services/advancedContextAnalyzer';
 import { useConversationPersistence } from '@/hooks/useConversationPersistence';
 import { SmartReminders, PendingReminder } from '@/services/smartReminders';
+import { ExecutableActionsService, ExecutableAction } from '@/services/executableActionsService';
+import { useTaskMutations } from '@/hooks/useTaskMutations';
+import { useTaskLogMutations } from '@/hooks/useTaskLogMutations';
 
 interface IntelligentMessage {
   id: string;
@@ -35,6 +38,9 @@ interface IntelligentMessage {
     isReminder?: boolean;
     reminderId?: string;
     taskId?: string;
+    isActionResult?: boolean;
+    actionType?: string;
+    actionData?: any;
   };
   proactiveAlert?: DeadlineAlert;
 }
@@ -59,6 +65,10 @@ export const useIntelligentAIAssistant = () => {
   const { preferences: productivityPreferences } = useProductivityPreferences();
   const { taskAssignments } = useTaskAssignments();
   
+  // ✅ CHECKPOINT 4.2: Hooks para acciones ejecutables
+  const taskMutations = useTaskMutations();
+  const taskLogMutations = useTaskLogMutations();
+  
   const engineRef = useRef<OptimizedRecommendationEngine | null>(null);
   const behaviorAnalyzerRef = useRef<UserBehaviorAnalyzer | null>(null);
   const learningSystemRef = useRef<FeedbackLearningSystem | null>(null);
@@ -77,6 +87,9 @@ export const useIntelligentAIAssistant = () => {
   
   // ✅ CHECKPOINT 4.1: Sistema de recordatorios inteligentes
   const smartRemindersRef = useRef<SmartReminders | null>(null);
+  
+  // ✅ CHECKPOINT 4.2: Sistema de acciones ejecutables
+  const executableActionsRef = useRef<ExecutableActionsService | null>(null);
   
   // ✅ CHECKPOINT 3.2: Sistema de persistencia de conversaciones
   const {
@@ -113,6 +126,16 @@ export const useIntelligentAIAssistant = () => {
       smartRemindersRef.current.setReminderCallback(handleActiveReminder);
       smartRemindersRef.current.startReminderCheck();
       
+      // ✅ CHECKPOINT 4.2: Inicializar sistema de acciones ejecutables
+      if (smartRemindersRef.current) {
+        executableActionsRef.current = new ExecutableActionsService(
+          user.id,
+          taskMutations,
+          taskLogMutations,
+          smartRemindersRef.current
+        );
+      }
+      
       // Preload for better performance
       engineRef.current.preloadUserBehavior();
       setConnectionStatus(hasActiveConfiguration ? 'connected' : 'disconnected');
@@ -124,7 +147,7 @@ export const useIntelligentAIAssistant = () => {
         console.log(`📥 ${storedMessages.length} mensajes restaurados desde el almacenamiento`);
       }
     }
-  }, [user, hasActiveConfiguration, loadConversation]);
+  }, [user, hasActiveConfiguration, loadConversation, taskMutations, taskLogMutations]);
 
   // ✅ CHECKPOINT 3.2: Auto-guardar mensajes cuando cambie el array
   useEffect(() => {
@@ -684,6 +707,35 @@ export const useIntelligentAIAssistant = () => {
         }
       }
 
+      // ✅ CHECKPOINT 4.2: Detectar y ejecutar acciones automáticamente
+      if (executableActionsRef.current) {
+        const detectedActions = ExecutableActionsService.detectActionIntentions(content.trim(), tasks);
+        
+        for (const action of detectedActions) {
+          const actionResult = await executableActionsRef.current.executeAction(action);
+          
+          if (actionResult.success) {
+            const actionConfirmation: IntelligentMessage = {
+              id: `action-${Date.now()}-${Math.random()}`,
+              type: 'assistant',
+              content: `🎯 **Acción ejecutada**: ${action.description}\n\n${actionResult.message}`,
+              timestamp: new Date(),
+              context: {
+                isActionResult: true,
+                actionType: action.type,
+                actionData: actionResult.data
+              }
+            };
+            
+            setMessages(prev => [...prev, actionConfirmation]);
+            
+            console.log('✅ Acción ejecutada automáticamente:', action.type, actionResult);
+          } else {
+            console.warn('⚠️ Error ejecutando acción:', action.type, actionResult.message);
+          }
+        }
+      }
+
     } catch (error) {
       console.error('Error in dynamic intelligent assistant:', error);
       
@@ -725,6 +777,11 @@ export const useIntelligentAIAssistant = () => {
     // ✅ CHECKPOINT 4.1: Reset sistema de recordatorios
     if (smartRemindersRef.current) {
       smartRemindersRef.current.resetSession();
+    }
+    
+    // ✅ CHECKPOINT 4.2: Reset sistema de acciones ejecutables
+    if (executableActionsRef.current) {
+      executableActionsRef.current = null;
     }
     
     // ✅ CHECKPOINT 3.2: Limpiar conversación persistida
@@ -795,5 +852,7 @@ export const useIntelligentAIAssistant = () => {
     conversationStats: getConversationStats(),
     // ✅ CHECKPOINT 4.1: Funciones de recordatorios
     smartReminders: smartRemindersRef.current,
+    // ✅ CHECKPOINT 4.2: Funciones de acciones ejecutables
+    executableActions: executableActionsRef.current,
   };
 };
