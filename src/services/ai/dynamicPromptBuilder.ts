@@ -9,6 +9,10 @@ export interface UserContext {
   tasksCount: number;
   projectsCount: number;
   completedTasksToday: number;
+  // ✅ CHECKPOINT 1.4: Contexto personal completo
+  lastActivity?: any;
+  workPatterns?: string[];
+  personalizedReferences?: string[];
 }
 
 export interface TaskContext {
@@ -281,6 +285,22 @@ En progreso: ${context.tasks.inProgress.length}`;
 
 `;
 
+    // ✅ CHECKPOINT 2.1: Información de jerarquía completa
+    if (context.tasks.hierarchy.length > 0) {
+      taskContext += `📁 JERARQUÍA DE PROYECTOS (${context.tasks.hierarchy.length} tareas principales):\n`;
+      context.tasks.hierarchy.slice(0, 3).forEach(mainTask => {
+        taskContext += `  • "${mainTask.title}" (${mainTask.progressPercent}% completado)\n`;
+        if (mainTask.subtaskCount > 0) {
+          taskContext += `    └ ${mainTask.completedSubtasks}/${mainTask.subtaskCount} subtareas completadas`;
+          if (mainTask.microtaskCount > 0) {
+            taskContext += `, ${mainTask.completedMicrotasks}/${mainTask.microtaskCount} microtareas`;
+          }
+          taskContext += '\n';
+        }
+      });
+      taskContext += '\n';
+    }
+
     // Tareas vencidas (prioridad máxima)
     if (tasks.specificTasks.overdue.length > 0) {
       taskContext += `🚨 TAREAS VENCIDAS (${tasks.specificTasks.overdue.length}):\n`;
@@ -384,17 +404,39 @@ ${context.currentRecommendation ?
    * ✅ PROMPT RICO: Contexto de actividad reciente
    */
   private buildRecentActivityContext(context: PromptContext): string {
-    return `ACTIVIDAD RECIENTE Y PRODUCTIVIDAD:
+    let activitySection = `ACTIVIDAD RECIENTE Y PRODUCTIVIDAD:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 • Tareas completadas hoy: ${context.user.completedTasksToday}
-• Patrón de productividad: ${context.user.completedTasksToday >= 3 ? 'Alto' : context.user.completedTasksToday >= 1 ? 'Moderado' : 'Bajo'}
-${context.behaviorInsights ? 
-  `• Insights de comportamiento disponibles: ${context.behaviorInsights.length || 0} insights` :
-  '• Sin análisis de comportamiento disponible'
-}
+• Patrón de productividad: ${context.user.completedTasksToday >= 3 ? 'Alto' : context.user.completedTasksToday >= 1 ? 'Moderado' : 'Bajo'}`;
 
-`;
+    // ✅ CHECKPOINT 1.4: Incluir datos históricos y patrones de trabajo
+    if (context.user.lastActivity) {
+      if (typeof context.user.lastActivity === 'string') {
+        activitySection += `\n• Última actividad: ${context.user.lastActivity}`;
+      } else {
+        activitySection += `\n• Última tarea trabajada: "${context.user.lastActivity.lastTaskWorked}" ${context.user.lastActivity.timeAgo}`;
+      }
+    }
+
+    if (context.user.workPatterns && context.user.workPatterns.length > 0) {
+      activitySection += `\n• Patrones de trabajo identificados:`;
+      context.user.workPatterns.forEach(pattern => {
+        activitySection += `\n  - ${pattern}`;
+      });
+    }
+
+    if (context.user.personalizedReferences && context.user.personalizedReferences.length > 0) {
+      activitySection += `\n• Referencias personalizadas disponibles: ${context.user.personalizedReferences.join(', ')}`;
+    }
+
+    if (context.behaviorInsights) {
+      activitySection += `\n• Insights de comportamiento disponibles: ${context.behaviorInsights.length || 0} insights`;
+    } else {
+      activitySection += `\n• Sin análisis de comportamiento disponible`;
+    }
+
+    return activitySection + '\n\n';
   }
 
   /**

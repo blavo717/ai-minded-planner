@@ -116,7 +116,7 @@ export const useIntelligentAIAssistant = () => {
         t.status === 'pending' && !t.is_archived && (t.estimated_duration || 30) <= 15
       );
 
-      // ✅ CHECKPOINT 1.1: Contexto personal expandido con datos del perfil
+      // ✅ CHECKPOINT 1.4: Contexto personal completo expandido
       const context = {
         user: {
           id: user.id,
@@ -130,10 +130,14 @@ export const useIntelligentAIAssistant = () => {
             t.status === 'completed' && 
             new Date(t.completed_at || '').toDateString() === new Date().toDateString()
           ).length,
+          // ✅ CHECKPOINT 1.4: Datos históricos y patrones de trabajo
+          lastActivity: generateLastActivity(tasks),
+          workPatterns: generateWorkPatterns(tasks, behaviorAnalysis),
+          personalizedReferences: generatePersonalizedReferences(profile, behaviorAnalysis)
         },
-        // ✅ CHECKPOINT 1.2.2: Expandir contexto de tareas con datos específicos
+        // ✅ CHECKPOINT 2.1: Expandir contexto de tareas con jerarquía completa
         tasks: {
-          hierarchy: [],
+          hierarchy: await generateTaskHierarchy(tasks),
           urgentToday: urgentTasks,
           overdue: overdueTasks,
           inProgress: inProgressTasks,
@@ -183,7 +187,137 @@ export const useIntelligentAIAssistant = () => {
       console.error('Error generating intelligent context:', error);
       return null;
     }
-  }, [user, tasks, projects]);
+  }, [user, tasks, projects, profile]);
+
+  // ✅ CHECKPOINT 1.4: Generadores de contexto personal completo
+  const generateLastActivity = useCallback((tasks: any[]) => {
+    const recentTasks = tasks
+      .filter(t => t.updated_at)
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .slice(0, 3);
+
+    if (recentTasks.length === 0) return "Sin actividad reciente registrada";
+
+    const lastTask = recentTasks[0];
+    const timeDiff = new Date().getTime() - new Date(lastTask.updated_at).getTime();
+    const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
+    
+    return {
+      lastTaskWorked: lastTask.title,
+      timeAgo: hoursAgo < 24 ? `hace ${hoursAgo}h` : `hace ${Math.floor(hoursAgo / 24)} días`,
+      recentActivity: recentTasks.map(t => ({
+        title: t.title,
+        status: t.status,
+        updated: new Date(t.updated_at).toLocaleDateString('es-ES')
+      }))
+    };
+  }, []);
+
+  const generateWorkPatterns = useCallback((tasks: any[], behaviorAnalysis: any) => {
+    const completedTasks = tasks.filter(t => t.status === 'completed');
+    const patterns = [];
+
+    // Patrón de horarios productivos
+    if (behaviorAnalysis?.profile?.optimalHours?.length > 0) {
+      const hours = behaviorAnalysis.profile.optimalHours;
+      patterns.push(`Más productivo entre las ${hours[0]}:00 y ${hours[hours.length-1]}:00`);
+    }
+
+    // Patrón de tipos de tareas preferidas
+    if (behaviorAnalysis?.profile?.preferredTags?.length > 0) {
+      patterns.push(`Prefiere tareas de tipo: ${behaviorAnalysis.profile.preferredTags.join(', ')}`);
+    }
+
+    // Patrón de duración promedio
+    if (completedTasks.length > 0) {
+      const avgDuration = completedTasks
+        .filter(t => t.actual_duration)
+        .reduce((sum, t) => sum + (t.actual_duration || 0), 0) / completedTasks.length;
+      
+      if (avgDuration > 0) {
+        patterns.push(`Duración promedio de tareas: ${Math.round(avgDuration)} minutos`);
+      }
+    }
+
+    return patterns.length > 0 ? patterns : ["Construyendo patrones de trabajo..."];
+  }, []);
+
+  const generatePersonalizedReferences = useCallback((profile: any, behaviorAnalysis: any) => {
+    const references = [];
+
+    // Referencias por rol
+    if (profile?.role) {
+      references.push(`Como ${profile.role.toLowerCase()} que eres`);
+    }
+
+    // Referencias por departamento
+    if (profile?.department) {
+      references.push(`En tu trabajo en ${profile.department}`);
+    }
+
+    // Referencias por patrones de productividad
+    if (behaviorAnalysis?.profile?.optimalHours?.length > 0) {
+      const hours = behaviorAnalysis.profile.optimalHours;
+      if (hours.includes(new Date().getHours())) {
+        references.push("En tu horario más productivo");
+      }
+    }
+
+    // Referencias por comportamiento
+    if (behaviorAnalysis?.insights?.length > 0) {
+      const strengthInsights = behaviorAnalysis.insights.filter((i: any) => i.type === 'strength');
+      if (strengthInsights.length > 0) {
+        references.push(`Considerando tu fortaleza en ${strengthInsights[0].title.toLowerCase()}`);
+      }
+    }
+
+    return references.length > 0 ? references : [""];
+  }, []);
+
+  // ✅ CHECKPOINT 2.1: Generador de jerarquía completa de tareas
+  const generateTaskHierarchy = useCallback(async (tasks: any[]) => {
+    // Organizar tareas por jerarquía: tareas principales -> subtareas -> microtareas
+    const mainTasks = tasks.filter(t => t.task_level === 1);
+    const subtasks = tasks.filter(t => t.task_level === 2);
+    const microtasks = tasks.filter(t => t.task_level === 3);
+
+    const hierarchy = mainTasks.map(mainTask => {
+      // Encontrar subtareas de esta tarea principal
+      const taskSubtasks = subtasks.filter(st => st.parent_task_id === mainTask.id);
+      
+      // Para cada subtarea, encontrar sus microtareas
+      const subtasksWithMicros = taskSubtasks.map(subtask => {
+        const taskMicrotasks = microtasks.filter(mt => mt.parent_task_id === subtask.id);
+        
+        return {
+          ...subtask,
+          microtasks: taskMicrotasks,
+          microtaskCount: taskMicrotasks.length,
+          completedMicrotasks: taskMicrotasks.filter(mt => mt.status === 'completed').length
+        };
+      });
+
+      // Calcular progreso total
+      const totalSubtasks = subtasksWithMicros.length;
+      const completedSubtasks = subtasksWithMicros.filter(st => st.status === 'completed').length;
+      const totalMicrotasks = subtasksWithMicros.reduce((sum, st) => sum + st.microtaskCount, 0);
+      const completedMicrotasks = subtasksWithMicros.reduce((sum, st) => sum + st.completedMicrotasks, 0);
+
+      return {
+        ...mainTask,
+        subtasks: subtasksWithMicros,
+        subtaskCount: totalSubtasks,
+        completedSubtasks,
+        microtaskCount: totalMicrotasks,
+        completedMicrotasks,
+        progressPercent: totalSubtasks > 0 ? 
+          Math.round(((completedSubtasks * 0.7) + (completedMicrotasks / Math.max(1, totalMicrotasks) * 0.3)) * 100) :
+          mainTask.status === 'completed' ? 100 : 0
+      };
+    });
+
+    return hierarchy;
+  }, []);
 
   const generateActionSuggestions = (tasks: any[], projects: any[], recommendation: any) => {
     const suggestions = [];
