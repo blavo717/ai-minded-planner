@@ -13,7 +13,9 @@ import {
   SkipForward, 
   CheckCircle,
   ArrowRight,
-  Info
+  Info,
+  BarChart3,
+  Sparkles
 } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
 import { format } from 'date-fns';
@@ -21,6 +23,8 @@ import { es } from 'date-fns/locale';
 import { enhancedFactorsService } from '@/services/enhancedFactorsService';
 import { useAuth } from '@/hooks/useAuth';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import ContextualRecommendations from './ContextualRecommendations';
+import ProductivityDashboard from './ProductivityDashboard';
 
 interface SimplifiedSmartPlannerProps {
   tasks: Task[];
@@ -44,6 +48,8 @@ const SimplifiedSmartPlanner: React.FC<SimplifiedSmartPlannerProps> = ({
   const [skippedTasks, setSkippedTasks] = useState<string[]>([]);
   const [showDetails, setShowDetails] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [showProductivityDashboard, setShowProductivityDashboard] = useState(false);
+  const [contextualReason, setContextualReason] = useState<string>('');
 
   // Generar recomendación simplificada
   const recommendation = useMemo(() => {
@@ -85,7 +91,7 @@ const SimplifiedSmartPlanner: React.FC<SimplifiedSmartPlannerProps> = ({
 
     if (!best) return null;
 
-    // Generar razón simple y clara
+    // Generar razón simple y clara (será sobrescrita por ContextualRecommendations)
     const getSimpleReason = () => {
       if (best.task.priority === 'urgent') return "Es urgente y necesita atención inmediata";
       if (best.task.due_date && new Date(best.task.due_date).getTime() - Date.now() < 86400000) {
@@ -100,13 +106,13 @@ const SimplifiedSmartPlanner: React.FC<SimplifiedSmartPlannerProps> = ({
 
     return {
       task: best.task,
-      reason: getSimpleReason(),
+      reason: contextualReason || getSimpleReason(),
       confidence: Math.round(confidence),
       estimatedMinutes,
       alternatives: taskScores.slice(1, 3).map(ts => ts.task),
       factors: best.factors
     };
-  }, [tasks, skippedTasks, user]);
+  }, [tasks, skippedTasks, user, contextualReason]);
 
   const trackAction = useCallback(async (action: TaskAction['action']) => {
     if (!recommendation) return;
@@ -158,6 +164,13 @@ const SimplifiedSmartPlanner: React.FC<SimplifiedSmartPlannerProps> = ({
     return 'text-orange-600';
   };
 
+  // Mostrar dashboard de productividad
+  if (showProductivityDashboard) {
+    return (
+      <ProductivityDashboard onClose={() => setShowProductivityDashboard(false)} />
+    );
+  }
+
   // Estado vacío
   if (!recommendation) {
     return (
@@ -173,10 +186,21 @@ const SimplifiedSmartPlanner: React.FC<SimplifiedSmartPlannerProps> = ({
                 No tienes tareas pendientes en este momento
               </p>
             </div>
-            <Button onClick={onShowAllTasks} size="lg" className="text-lg px-8">
-              <Target className="w-5 h-5 mr-2" />
-              Ver todas las tareas
-            </Button>
+            <div className="flex gap-3">
+              <Button onClick={onShowAllTasks} size="lg" className="text-lg px-8">
+                <Target className="w-5 h-5 mr-2" />
+                Ver todas las tareas
+              </Button>
+              <Button 
+                onClick={() => setShowProductivityDashboard(true)} 
+                variant="outline" 
+                size="lg"
+                className="text-lg px-8"
+              >
+                <BarChart3 className="w-5 h-5 mr-2" />
+                Mi Productividad
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -188,9 +212,19 @@ const SimplifiedSmartPlanner: React.FC<SimplifiedSmartPlannerProps> = ({
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl border-0 bg-gradient-to-br from-white to-blue-50/30">
       <CardHeader className="text-center space-y-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
-        <div className="flex items-center justify-center gap-3">
-          <Brain className="w-7 h-7" />
-          <CardTitle className="text-2xl font-bold">Tu próxima tarea</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center justify-center gap-3 flex-1">
+            <Brain className="w-7 h-7" />
+            <CardTitle className="text-2xl font-bold">Tu próxima tarea</CardTitle>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowProductivityDashboard(true)}
+            className="text-white hover:bg-white/20"
+          >
+            <BarChart3 className="w-4 h-4" />
+          </Button>
         </div>
         <p className="text-blue-100 text-sm">
           Basado en tu productividad y prioridades
@@ -216,16 +250,12 @@ const SimplifiedSmartPlanner: React.FC<SimplifiedSmartPlannerProps> = ({
           )}
         </div>
 
-        {/* Por qué ahora */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <Zap className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div>
-              <h4 className="font-semibold text-blue-900 mb-1">¿Por qué ahora?</h4>
-              <p className="text-blue-800 text-sm">{reason}</p>
-            </div>
-          </div>
-        </div>
+        {/* Recomendaciones contextuales */}
+        <ContextualRecommendations 
+          task={task} 
+          confidence={confidence}
+          onReasonChange={setContextualReason}
+        />
 
         {/* Métricas simples */}
         <div className="grid grid-cols-2 gap-4">
@@ -282,6 +312,15 @@ const SimplifiedSmartPlanner: React.FC<SimplifiedSmartPlannerProps> = ({
             >
               <SkipForward className="w-4 h-4 mr-2" />
               Siguiente tarea
+            </Button>
+            
+            <Button 
+              onClick={() => setShowProductivityDashboard(true)}
+              variant="outline" 
+              className="flex-1 py-3"
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Mi Progreso
             </Button>
             
             <Button 
