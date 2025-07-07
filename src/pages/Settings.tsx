@@ -22,6 +22,7 @@ import { useLLMConfigurations, LLMConfiguration } from '@/hooks/useLLMConfigurat
 import LLMConfigurationForm from '@/components/LLM/LLMConfigurationForm';
 import LLMConfigurationList from '@/components/LLM/LLMConfigurationList';
 import AIConfigurationPanel from '@/components/ai/AIConfigurationPanel';
+import SystemHealth from '@/pages/SystemHealth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Brain, Key } from 'lucide-react';
 
@@ -100,10 +101,11 @@ const Settings = () => {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile">Perfil</TabsTrigger>
           <TabsTrigger value="ia">IA</TabsTrigger>
           <TabsTrigger value="advanced">Avanzado</TabsTrigger>
+          <TabsTrigger value="system-health">Salud del Sistema</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -224,6 +226,10 @@ const Settings = () => {
 
         <TabsContent value="advanced" className="space-y-6">
           <AIConfigurationPanel />
+        </TabsContent>
+
+        <TabsContent value="system-health" className="space-y-6">
+          <SystemHealth />
         </TabsContent>
       </Tabs>
     </div>

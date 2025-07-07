@@ -16,6 +16,8 @@ import TopFiltersBar from '@/components/tasks/filters/TopFiltersBar';
 import TasksViewSection from '@/components/tasks/TasksViewSection';
 import { TasksProvider, useTasksContext } from '@/components/tasks/providers/TasksProvider';
 import TaskModals from '@/components/tasks/modals/TaskModals';
+import TeamCollaborationDashboard from '@/components/planner/TeamCollaborationDashboard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FilterState } from '@/types/filters';
 import { Task } from '@/hooks/useTasks';
 
@@ -27,7 +29,7 @@ const TasksContent = () => {
   const { taskAssignments } = useTaskAssignments();
   const { dependencies: allTaskDependencies } = useTaskDependencies();
   const { user } = useAuth();
-  
+  const [activeTab, setActiveTab] = useState('tasks');
   
   const {
     viewMode,
@@ -115,6 +117,7 @@ const TasksContent = () => {
 
 
   if (showHistory) {
+    setActiveTab('tasks'); // Reset to tasks tab when showing history
     return (
       <div className="space-y-6">
         <TasksHeader
@@ -148,42 +151,53 @@ const TasksContent = () => {
       {/* Insights section */}
       <TasksInsightsSection showInsights={showInsights} />
 
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+        <TabsList className="grid w-full grid-cols-2 mx-6 mt-4">
+          <TabsTrigger value="tasks">Tareas</TabsTrigger>
+          <TabsTrigger value="collaboration">Colaboración</TabsTrigger>
+        </TabsList>
 
-      {/* Filtros horizontales */}
-      <TopFiltersBar
-        projects={projects}
-        profiles={profiles}
-        availableTags={availableTags}
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onSaveFilter={handleSaveFilter}
-        onLoadFilter={loadFilter}
-        taskAssignments={taskAssignments}
-        taskDependencies={allTaskDependencies}
-        overdueTasks={overdueTasks}
-        todayTasks={todayTasks}
-        highPriorityTasks={highPriorityTasks}
-        unassignedTasks={unassignedTasks}
-        recentTasks={recentTasks}
-      />
+        <TabsContent value="tasks" className="flex-1 flex flex-col mt-0">
+          {/* Filtros horizontales */}
+          <TopFiltersBar
+            projects={projects}
+            profiles={profiles}
+            availableTags={availableTags}
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            onSaveFilter={handleSaveFilter}
+            onLoadFilter={loadFilter}
+            taskAssignments={taskAssignments}
+            taskDependencies={allTaskDependencies}
+            overdueTasks={overdueTasks}
+            todayTasks={todayTasks}
+            highPriorityTasks={highPriorityTasks}
+            unassignedTasks={unassignedTasks}
+            recentTasks={recentTasks}
+          />
 
+          {/* Área principal de tareas - FULL WIDTH */}
+          <div className="flex-1 overflow-hidden">
+            <TasksViewSection
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              filteredTasks={filteredTasks}
+              projects={projects}
+              getSubtasksForTask={getSubtasksForTask}
+              onEditTask={handleEditTask}
+              onManageDependencies={handleManageDependencies}
+              onAssignTask={handleAssignTask}
+              onCompleteTask={handleCompleteTask}
+              onArchiveTask={handleArchiveTask}
+              onCreateSubtask={handleCreateSubtask}
+            />
+          </div>
+        </TabsContent>
 
-      {/* Área principal de tareas - FULL WIDTH */}
-      <div className="flex-1 overflow-hidden">
-        <TasksViewSection
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          filteredTasks={filteredTasks}
-          projects={projects}
-          getSubtasksForTask={getSubtasksForTask}
-          onEditTask={handleEditTask}
-          onManageDependencies={handleManageDependencies}
-          onAssignTask={handleAssignTask}
-          onCompleteTask={handleCompleteTask}
-          onArchiveTask={handleArchiveTask}
-          onCreateSubtask={handleCreateSubtask}
-        />
-      </div>
+        <TabsContent value="collaboration" className="flex-1 p-6">
+          <TeamCollaborationDashboard />
+        </TabsContent>
+      </Tabs>
 
       <TaskModals />
     </div>

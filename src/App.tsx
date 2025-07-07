@@ -16,9 +16,6 @@ import AIAssistantEnhanced from '@/pages/AIAssistantEnhanced';
 import AIAssistantSimple from '@/pages/AIAssistantSimple';
 import Planner from '@/pages/Planner';
 import ActiveWork from '@/pages/ActiveWork';
-import SystemHealth from '@/pages/SystemHealth';
-import TeamCollaboration from '@/pages/TeamCollaboration';
-import ProjectAnalytics from '@/pages/ProjectAnalytics';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -76,9 +73,6 @@ const AppContent = () => {
                   <Route path="/work/:taskId" element={<ActiveWork />} />
                   <Route path="/ai-assistant-enhanced" element={<AIAssistantEnhanced />} />
                   <Route path="/ai-assistant-simple" element={<AIAssistantSimple />} />
-                  <Route path="/system-health" element={<SystemHealth />} />
-                  <Route path="/team-collaboration" element={<TeamCollaboration />} />
-                  <Route path="/project-analytics" element={<ProjectAnalytics />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </MainLayout>
