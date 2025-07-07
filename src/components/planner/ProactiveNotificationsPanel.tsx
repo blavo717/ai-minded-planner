@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   Lightbulb,
   Clock,
-  Party,
   Sparkles
 } from 'lucide-react';
 import { useProactiveNotifications } from '@/hooks/useProactiveNotifications';
