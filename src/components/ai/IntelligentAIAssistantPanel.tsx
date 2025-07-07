@@ -30,70 +30,14 @@ import { useIntelligentAIAssistant } from '@/hooks/ai/useIntelligentAIAssistant'
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-// Memoized context display component
+// Memoized context display component - SIMPLIFIED
 const ContextDisplay = memo(({ context }: { context: any }) => {
-  if (!context) return null;
+  // Context info hidden in basic mode - only show in debug mode
+  if (!context || process.env.NODE_ENV !== 'development') return null;
 
   return (
-    <div className="space-y-3 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
-      <div className="flex items-center gap-2">
-        <Brain className="w-4 h-4 text-purple-600" />
-        <span className="text-sm font-medium text-purple-800">Contexto Inteligente</span>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-        <div className="space-y-1">
-          <div className="font-medium text-gray-700">📊 Tareas</div>
-          <div className="text-gray-600">
-            Total: {context.user?.tasksCount || 0}
-          </div>
-          <div className="text-gray-600">
-            Completadas hoy: {context.user?.completedTasksToday || 0}
-          </div>
-        </div>
-        
-        <div className="space-y-1">
-          <div className="font-medium text-gray-700">🎯 Recomendación</div>
-          {context.currentRecommendation ? (
-            <>
-              <div className="text-gray-600 truncate">
-                {context.currentRecommendation.task.title}
-              </div>
-              <div className="text-green-600">
-                Confianza: {Math.round(context.currentRecommendation.confidence)}%
-              </div>
-            </>
-          ) : (
-            <div className="text-gray-500">Sin recomendación</div>
-          )}
-        </div>
-        
-        <div className="space-y-1">
-          <div className="font-medium text-gray-700">⚡ Rendimiento</div>
-          <div className="text-gray-600">
-            Métricas: {context.performanceMetrics?.totalMetrics || 0}
-          </div>
-          <div className="text-gray-600">
-            Tiempo prom: {Math.round(context.performanceMetrics?.averageRecommendationTime || 0)}ms
-          </div>
-        </div>
-      </div>
-      
-      {context.actionSuggestions && context.actionSuggestions.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Lightbulb className="w-4 h-4 text-amber-500" />
-            <span className="text-sm font-medium text-amber-700">Sugerencias</span>
-          </div>
-          <div className="space-y-1">
-            {context.actionSuggestions.slice(0, 2).map((suggestion: string, index: number) => (
-              <div key={index} className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
-                • {suggestion}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+    <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-50 rounded">
+      Debug: Context loaded
     </div>
   );
 });
@@ -134,12 +78,6 @@ const MessageComponent = memo(({ message }: { message: any }) => (
         <p className="text-xs text-muted-foreground">
           {format(message.timestamp, 'HH:mm', { locale: es })}
         </p>
-        {message.type === 'assistant' && (
-          <Badge variant="outline" className="text-xs">
-            <Sparkles className="w-3 h-3 mr-1" />
-            IA Inteligente
-          </Badge>
-        )}
       </div>
     </div>
   </div>
@@ -306,43 +244,18 @@ const IntelligentAIAssistantPanel = memo(() => {
         <ScrollArea className="flex-1 px-4">
           <div className="space-y-6 py-4">
             {messages.length === 0 ? (
-              <div className="text-center py-12 space-y-6">
-                <div className="w-20 h-20 mx-auto bg-gradient-to-r from-purple-100 to-blue-100 rounded-full flex items-center justify-center">
-                  <Brain className="h-10 w-10 text-purple-600" />
+              <div className="text-center py-12 space-y-4">
+                <div className="w-16 h-16 mx-auto bg-purple-100 rounded-full flex items-center justify-center">
+                  <Brain className="h-8 w-8 text-purple-600" />
                 </div>
                 
                 <div className="space-y-2">
-                  <h3 className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                    ¡Hola! Soy tu asistente IA inteligente
+                  <h3 className="text-lg font-semibold text-purple-600">
+                    ¡Hola! ¿En qué puedo ayudarte?
                   </h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Tengo acceso completo a tus tareas, proyectos y patrones de trabajo. 
-                    Puedo ayudarte con análisis, recomendaciones y planificación.
+                  <p className="text-muted-foreground max-w-sm mx-auto text-sm">
+                    Pregúntame sobre tus tareas, proyectos o cualquier cosa relacionada con tu productividad.
                   </p>
-                </div>
-                
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
-                    <Target className="h-3 w-3 mr-1" />
-                    Recomendaciones inteligentes
-                  </Badge>
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    Análisis de patrones
-                  </Badge>
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
-                    <Lightbulb className="h-3 w-3 mr-1" />
-                    Contexto completo
-                  </Badge>
-                </div>
-                
-                <div className="text-xs text-muted-foreground">
-                  <p>Ejemplos de preguntas:</p>
-                  <div className="mt-2 space-y-1">
-                    <p>• "¿Qué debería hacer ahora?"</p>
-                    <p>• "Analiza mis patrones de productividad"</p>
-                    <p>• "¿Cómo van mis proyectos?"</p>
-                  </div>
                 </div>
               </div>
             ) : (
