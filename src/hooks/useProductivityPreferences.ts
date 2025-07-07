@@ -22,6 +22,23 @@ export interface ProductivityPreferences {
     daily_tasks: number;
     weekly_tasks: number;
   };
+  alert_preferences?: {
+    enabled: boolean;
+    deadline_days_before: number[];
+    allowed_hours: 'work_hours' | 'any_time' | 'energy_based';
+    min_severity: 'low' | 'medium' | 'high';
+    max_daily_alerts: number;
+    respect_focus_time: boolean;
+    custom_messages: boolean;
+    alert_types: {
+      deadline_warnings: boolean;
+      productivity_reminders: boolean;
+      task_health_alerts: boolean;
+      achievement_celebrations: boolean;
+    };
+    timing_strategy: 'immediate' | 'smart' | 'batch';
+    energy_based_timing: boolean;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -73,7 +90,7 @@ export const useProductivityPreferences = () => {
         };
       }
       
-      return data as ProductivityPreferences;
+      return data as unknown as ProductivityPreferences;
     },
     enabled: !!user?.id,
   });

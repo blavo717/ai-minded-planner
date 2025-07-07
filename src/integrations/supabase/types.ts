@@ -212,6 +212,45 @@ export type Database = {
         }
         Relationships: []
       }
+      alert_effectiveness_tracking: {
+        Row: {
+          action_timestamp: string | null
+          alert_id: string
+          alert_type: string
+          context_data: Json | null
+          created_at: string
+          id: string
+          relevance_score: number | null
+          shown_at: string
+          user_action: string | null
+          user_id: string
+        }
+        Insert: {
+          action_timestamp?: string | null
+          alert_id: string
+          alert_type: string
+          context_data?: Json | null
+          created_at?: string
+          id?: string
+          relevance_score?: number | null
+          shown_at?: string
+          user_action?: string | null
+          user_id: string
+        }
+        Update: {
+          action_timestamp?: string | null
+          alert_id?: string
+          alert_type?: string
+          context_data?: Json | null
+          created_at?: string
+          id?: string
+          relevance_score?: number | null
+          shown_at?: string
+          user_action?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       calendar_integrations: {
         Row: {
           created_at: string
@@ -1242,6 +1281,7 @@ export type Database = {
       }
       user_productivity_preferences: {
         Row: {
+          alert_preferences: Json | null
           break_duration: number | null
           created_at: string
           energy_schedule: Json | null
@@ -1257,6 +1297,7 @@ export type Database = {
           work_hours_start: number | null
         }
         Insert: {
+          alert_preferences?: Json | null
           break_duration?: number | null
           created_at?: string
           energy_schedule?: Json | null
@@ -1272,6 +1313,7 @@ export type Database = {
           work_hours_start?: number | null
         }
         Update: {
+          alert_preferences?: Json | null
           break_duration?: number | null
           created_at?: string
           energy_schedule?: Json | null

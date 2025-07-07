@@ -19,7 +19,7 @@ export interface DeadlineAlert {
 }
 
 export class BasicProactiveAlerts {
-  private lastAlertSession: string | null = null;
+  protected lastAlertSession: string | null = null;
 
   /**
    * Detecta tareas con due_date cercano (< 2 días)
@@ -85,7 +85,7 @@ export class BasicProactiveAlerts {
     };
   }
 
-  private calculateSeverity(task: Task, daysUntilDue: number): DeadlineAlert['severity'] {
+  protected calculateSeverity(task: Task, daysUntilDue: number): DeadlineAlert['severity'] {
     if (daysUntilDue === 0 || task.priority === 'urgent') {
       return 'high';
     }
@@ -95,7 +95,7 @@ export class BasicProactiveAlerts {
     return 'low';
   }
 
-  private generateAlertMessages(
+  protected generateAlertMessages(
     task: Task, 
     daysUntilDue: number, 
     severity: DeadlineAlert['severity']

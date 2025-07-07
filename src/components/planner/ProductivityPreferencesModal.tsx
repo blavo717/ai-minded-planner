@@ -93,7 +93,7 @@ const ProductivityPreferencesModal: React.FC<ProductivityPreferencesModalProps> 
         </DialogHeader>
 
         <Tabs defaultValue="schedule" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="schedule" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Horarios
@@ -109,6 +109,10 @@ const ProductivityPreferencesModal: React.FC<ProductivityPreferencesModalProps> 
             <TabsTrigger value="goals" className="flex items-center gap-2">
               <Target className="w-4 h-4" />
               Objetivos
+            </TabsTrigger>
+            <TabsTrigger value="alerts" className="flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              Alertas
             </TabsTrigger>
           </TabsList>
 
@@ -367,6 +371,243 @@ const ProductivityPreferencesModal: React.FC<ProductivityPreferencesModalProps> 
                     className="w-full"
                   />
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="alerts" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="w-5 h-5" />
+                  Configuración de Alertas Inteligentes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium">Habilitar alertas proactivas</label>
+                    <p className="text-xs text-muted-foreground">Sistema inteligente de recordatorios de deadlines</p>
+                  </div>
+                  <Switch
+                    checked={localPrefs.alert_preferences?.enabled ?? true}
+                    onCheckedChange={(checked) => setLocalPrefs({
+                      ...localPrefs,
+                      alert_preferences: {
+                        ...localPrefs.alert_preferences,
+                        enabled: checked,
+                        deadline_days_before: localPrefs.alert_preferences?.deadline_days_before ?? [0, 1, 2],
+                        allowed_hours: localPrefs.alert_preferences?.allowed_hours ?? 'work_hours',
+                        min_severity: localPrefs.alert_preferences?.min_severity ?? 'medium',
+                        max_daily_alerts: localPrefs.alert_preferences?.max_daily_alerts ?? 3,
+                        respect_focus_time: localPrefs.alert_preferences?.respect_focus_time ?? true,
+                        custom_messages: localPrefs.alert_preferences?.custom_messages ?? false,
+                        alert_types: localPrefs.alert_preferences?.alert_types ?? {
+                          deadline_warnings: true,
+                          productivity_reminders: true,
+                          task_health_alerts: true,
+                          achievement_celebrations: false
+                        },
+                        timing_strategy: localPrefs.alert_preferences?.timing_strategy ?? 'smart',
+                        energy_based_timing: localPrefs.alert_preferences?.energy_based_timing ?? true
+                      }
+                    })}
+                  />
+                </div>
+
+                {localPrefs.alert_preferences?.enabled && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        Días de anticipación para deadlines
+                      </label>
+                      <div className="flex gap-2">
+                        {[0, 1, 2, 3, 7].map((day) => (
+                          <Button
+                            key={day}
+                            variant={(localPrefs.alert_preferences?.deadline_days_before ?? [0, 1, 2]).includes(day) ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => {
+                              const current = localPrefs.alert_preferences?.deadline_days_before ?? [0, 1, 2];
+                              const newDays = current.includes(day)
+                                ? current.filter(d => d !== day)
+                                : [...current, day].sort((a, b) => a - b);
+                              setLocalPrefs({
+                                ...localPrefs,
+                                alert_preferences: {
+                                  ...localPrefs.alert_preferences!,
+                                  deadline_days_before: newDays
+                                }
+                              });
+                            }}
+                          >
+                            {day === 0 ? 'Hoy' : day === 1 ? '1 día' : `${day} días`}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Horarios permitidos para alertas</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { value: 'work_hours', label: 'Solo horario laboral' },
+                          { value: 'energy_based', label: 'Basado en energía' },
+                          { value: 'any_time', label: 'Cualquier momento' }
+                        ].map((option) => (
+                          <Button
+                            key={option.value}
+                            variant={(localPrefs.alert_preferences?.allowed_hours ?? 'work_hours') === option.value ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setLocalPrefs({
+                              ...localPrefs,
+                              alert_preferences: {
+                                ...localPrefs.alert_preferences!,
+                                allowed_hours: option.value as any
+                              }
+                            })}
+                          >
+                            {option.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        Máximo de alertas diarias: {localPrefs.alert_preferences?.max_daily_alerts ?? 3}
+                      </label>
+                      <Slider
+                        value={[localPrefs.alert_preferences?.max_daily_alerts ?? 3]}
+                        onValueChange={([value]) => setLocalPrefs({
+                          ...localPrefs,
+                          alert_preferences: {
+                            ...localPrefs.alert_preferences!,
+                            max_daily_alerts: value
+                          }
+                        })}
+                        max={10}
+                        min={1}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Severidad mínima para mostrar</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { value: 'low', label: 'Baja', color: 'bg-blue-100 text-blue-800' },
+                          { value: 'medium', label: 'Media', color: 'bg-yellow-100 text-yellow-800' },
+                          { value: 'high', label: 'Alta', color: 'bg-red-100 text-red-800' }
+                        ].map((severity) => (
+                          <Button
+                            key={severity.value}
+                            variant={(localPrefs.alert_preferences?.min_severity ?? 'medium') === severity.value ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setLocalPrefs({
+                              ...localPrefs,
+                              alert_preferences: {
+                                ...localPrefs.alert_preferences!,
+                                min_severity: severity.value as any
+                              }
+                            })}
+                          >
+                            {severity.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium">Tipos de alertas</label>
+                      <div className="space-y-2">
+                        {[
+                          { key: 'deadline_warnings', label: 'Avisos de deadlines', icon: '⏰' },
+                          { key: 'productivity_reminders', label: 'Recordatorios de productividad', icon: '⚡' },
+                          { key: 'task_health_alerts', label: 'Alertas de salud de tareas', icon: '🏥' },
+                          { key: 'achievement_celebrations', label: 'Celebración de logros', icon: '🎉' }
+                        ].map((alertType) => (
+                          <div key={alertType.key} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span>{alertType.icon}</span>
+                              <span className="text-sm">{alertType.label}</span>
+                            </div>
+                            <Switch
+                              checked={localPrefs.alert_preferences?.alert_types?.[alertType.key as keyof typeof localPrefs.alert_preferences.alert_types] ?? true}
+                              onCheckedChange={(checked) => setLocalPrefs({
+                                ...localPrefs,
+                                alert_preferences: {
+                                  ...localPrefs.alert_preferences!,
+                                  alert_types: {
+                                    ...localPrefs.alert_preferences!.alert_types,
+                                    [alertType.key]: checked
+                                  }
+                                }
+                              })}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium">Configuración avanzada</label>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm">Timing basado en energía</span>
+                            <p className="text-xs text-muted-foreground">Adaptar alertas según tu nivel de energía</p>
+                          </div>
+                          <Switch
+                            checked={localPrefs.alert_preferences?.energy_based_timing ?? true}
+                            onCheckedChange={(checked) => setLocalPrefs({
+                              ...localPrefs,
+                              alert_preferences: {
+                                ...localPrefs.alert_preferences!,
+                                energy_based_timing: checked
+                              }
+                            })}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm">Mensajes personalizados</span>
+                            <p className="text-xs text-muted-foreground">Usar mensajes adaptativos según tu contexto</p>
+                          </div>
+                          <Switch
+                            checked={localPrefs.alert_preferences?.custom_messages ?? false}
+                            onCheckedChange={(checked) => setLocalPrefs({
+                              ...localPrefs,
+                              alert_preferences: {
+                                ...localPrefs.alert_preferences!,
+                                custom_messages: checked
+                              }
+                            })}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm">Respetar tiempo de enfoque</span>
+                            <p className="text-xs text-muted-foreground">No interrumpir durante sesiones de trabajo</p>
+                          </div>
+                          <Switch
+                            checked={localPrefs.alert_preferences?.respect_focus_time ?? true}
+                            onCheckedChange={(checked) => setLocalPrefs({
+                              ...localPrefs,
+                              alert_preferences: {
+                                ...localPrefs.alert_preferences!,
+                                respect_focus_time: checked
+                              }
+                            })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
