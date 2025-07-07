@@ -17,16 +17,18 @@ import {
   Users,
   Zap,
   Activity,
-  RefreshCw
+  RefreshCw,
+  ArrowLeft
 } from 'lucide-react';
 import { useProjectAnalytics } from '@/hooks/useProjectAnalytics';
 import { useProjects } from '@/hooks/useProjects';
 
 interface ProjectAnalyticsDashboardProps {
   onClose?: () => void;
+  onBackToProjects?: () => void;
 }
 
-const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps> = ({ onClose }) => {
+const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps> = ({ onClose, onBackToProjects }) => {
   const { projects } = useProjects();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   
@@ -95,14 +97,22 @@ const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps> = ({ o
     <div className="w-full max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-blue-600" />
-            Análisis de Proyectos
-          </h2>
-          <p className="text-gray-600">
-            Métricas en tiempo real, predicciones y gestión de riesgos
-          </p>
+        <div className="flex items-center gap-4">
+          {onBackToProjects && (
+            <Button variant="outline" onClick={onBackToProjects} size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver a Proyectos
+            </Button>
+          )}
+          <div className="space-y-1">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <BarChart3 className="w-6 h-6 text-blue-600" />
+              Análisis de Proyectos
+            </h2>
+            <p className="text-gray-600">
+              Métricas en tiempo real, predicciones y gestión de riesgos
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>

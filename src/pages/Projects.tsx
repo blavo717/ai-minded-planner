@@ -102,7 +102,7 @@ const Projects = () => {
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <ProjectAnalyticsDashboard />
+          <ProjectAnalyticsDashboard onBackToProjects={() => setViewMode('grid')} />
         </TabsContent>
       </Tabs>
 
