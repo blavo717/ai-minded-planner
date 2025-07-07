@@ -41,7 +41,7 @@ export class SystemValidator {
         dayOfWeek: 'monday',
         userEnergyLevel: 'high' as const,
         completedTasksToday: 2,
-        workPattern: 'regular' as const
+        workPattern: 'normal' as const
       };
       const factors = service.generateEnhancedFactors(mockTask, mockContext);
       
