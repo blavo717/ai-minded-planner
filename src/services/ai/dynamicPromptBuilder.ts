@@ -40,6 +40,11 @@ export interface PromptContext {
   behaviorInsights?: any[];
   productivityProfile?: any;
   performanceMetrics?: any;
+  // ✅ CHECKPOINT 2.2: Contexto rico adicional
+  projects?: any;
+  sessions?: any;
+  preferences?: any;
+  assignments?: any;
 }
 
 /**
@@ -81,6 +86,12 @@ FECHA Y HORA ACTUAL: ${new Date().toLocaleString('es-ES', { timeZone: context.us
 ${this.buildCompleteTasksContext(context)}
 
 ${this.buildProjectsContext(context)}
+
+${this.buildSessionsContext(context)}
+
+${this.buildPreferencesContext(context)}
+
+${this.buildAssignmentsContext(context)}
 
 ${this.buildTemporalAnalysis(context)}
 
@@ -360,18 +371,129 @@ En progreso: ${context.tasks.inProgress.length}`;
   }
 
   /**
-   * ✅ PROMPT RICO: Construir contexto de proyectos
+   * ✅ CHECKPOINT 2.2: Construir contexto rico de proyectos
    */
   private buildProjectsContext(context: PromptContext): string {
-    return `PROYECTOS ACTIVOS (${context.user.projectsCount} totales):
+    let projectSection = `PROYECTOS ACTIVOS (${context.user.projectsCount} totales):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-${context.user.projectsCount > 0 ? 
-  `El usuario tiene ${context.user.projectsCount} proyectos activos con tareas distribuidas entre ellos.` :
-  'No hay proyectos activos registrados.'
-}
+`;
+
+    if (context.projects?.projectsWithProgress && context.projects.projectsWithProgress.length > 0) {
+      projectSection += `📊 PROGRESO DETALLADO DE PROYECTOS:\n`;
+      context.projects.projectsWithProgress.slice(0, 5).forEach(project => {
+        projectSection += `  • "${project.name}" - ${project.progressPercent}% completado\n`;
+        projectSection += `    └ ${project.completedTaskCount}/${project.taskCount} tareas completadas`;
+        if (project.urgentTasks > 0) {
+          projectSection += ` (${project.urgentTasks} urgentes)`;
+        }
+        projectSection += '\n';
+      });
+    } else {
+      projectSection += `El usuario tiene ${context.user.projectsCount} proyectos activos con tareas distribuidas entre ellos.\n`;
+    }
+
+    return projectSection + '\n';
+  }
+
+  /**
+   * ✅ CHECKPOINT 2.2: Construir contexto de sesiones de trabajo
+   */
+  private buildSessionsContext(context: PromptContext): string {
+    let sessionSection = `SESIONES DE TRABAJO Y PRODUCTIVIDAD:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 `;
+
+    if (context.sessions) {
+      sessionSection += `• Total de sesiones registradas: ${context.sessions.totalSessions}\n`;
+      
+      if (context.sessions.sessionPatterns && context.sessions.sessionPatterns.length > 0) {
+        sessionSection += `• Patrones de sesiones identificados:\n`;
+        context.sessions.sessionPatterns.forEach(pattern => {
+          sessionSection += `  - ${pattern}\n`;
+        });
+      }
+
+      if (context.sessions.recentSessions && context.sessions.recentSessions.length > 0) {
+        sessionSection += `\n📝 SESIONES RECIENTES:\n`;
+        context.sessions.recentSessions.slice(0, 3).forEach(session => {
+          sessionSection += `  • ${session.duration_minutes ? `${session.duration_minutes} min` : 'En curso'}`;
+          if (session.productivity_score) {
+            sessionSection += ` (Productividad: ${session.productivity_score}/10)`;
+          }
+          sessionSection += `\n`;
+        });
+      }
+    } else {
+      sessionSection += `Sin sesiones de trabajo registradas.\n`;
+    }
+
+    return sessionSection + '\n';
+  }
+
+  /**
+   * ✅ CHECKPOINT 2.2: Construir contexto de preferencias de productividad
+   */
+  private buildPreferencesContext(context: PromptContext): string {
+    let prefSection = `PREFERENCIAS DE PRODUCTIVIDAD:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+`;
+
+    if (context.preferences?.productivity) {
+      const prefs = context.preferences.productivity;
+      
+      prefSection += `• Horario de trabajo: ${context.preferences.workingHours}\n`;
+      
+      if (prefs.focus_session_duration) {
+        prefSection += `• Duración de sesiones de enfoque: ${prefs.focus_session_duration} minutos\n`;
+      }
+      
+      if (prefs.productivity_goals) {
+        prefSection += `• Objetivos de productividad: ${prefs.productivity_goals.daily_tasks} tareas/día, ${prefs.productivity_goals.weekly_tasks} tareas/semana\n`;
+      }
+
+      if (context.preferences.energySchedule) {
+        const energy = context.preferences.energySchedule;
+        prefSection += `• Horarios de energía alta: ${energy.high?.join(', ') || 'No configurados'}\n`;
+        prefSection += `• Horarios de energía media: ${energy.medium?.join(', ') || 'No configurados'}\n`;
+      }
+    } else {
+      prefSection += `Preferencias de productividad no configuradas.\n`;
+    }
+
+    return prefSection + '\n';
+  }
+
+  /**
+   * ✅ CHECKPOINT 2.2: Construir contexto de asignaciones y colaboración
+   */
+  private buildAssignmentsContext(context: PromptContext): string {
+    let assignSection = `ASIGNACIONES Y COLABORACIÓN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+`;
+
+    if (context.assignments) {
+      assignSection += `• Total de asignaciones: ${context.assignments.totalAssignments}\n`;
+      assignSection += `• Nivel de colaboración: ${context.assignments.collaborationLevel}\n`;
+
+      if (context.assignments.taskAssignments && context.assignments.taskAssignments.length > 0) {
+        assignSection += `\n👥 ASIGNACIONES ACTIVAS:\n`;
+        context.assignments.taskAssignments.slice(0, 3).forEach(assignment => {
+          assignSection += `  • Rol: ${assignment.role_in_task}`;
+          if (assignment.due_date) {
+            assignSection += ` - Vence: ${new Date(assignment.due_date).toLocaleDateString('es-ES')}`;
+          }
+          assignSection += '\n';
+        });
+      }
+    } else {
+      assignSection += `Sin asignaciones de tareas registradas. Trabajo individual.\n`;
+    }
+
+    return assignSection + '\n';
   }
 
   /**

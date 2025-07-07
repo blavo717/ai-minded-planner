@@ -5,6 +5,11 @@ import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
+// ✅ CHECKPOINT 2.2: Integración de hooks adicionales para contexto rico
+import { useTaskLogs } from '@/hooks/useTaskLogs';
+import { useTaskSessions } from '@/hooks/useTaskSessions';
+import { useProductivityPreferences } from '@/hooks/useProductivityPreferences';
+import { useTaskAssignments } from '@/hooks/useTaskAssignments';
 import { OptimizedRecommendationEngine } from '@/services/optimizedRecommendationEngine';
 import { UserBehaviorAnalyzer } from '@/services/userBehaviorAnalyzer';
 import { FeedbackLearningSystem } from '@/services/feedbackLearningSystem';
@@ -42,6 +47,11 @@ export const useIntelligentAIAssistant = () => {
   const { projects } = useProjects();
   const { profile } = useProfile();
   const { toast } = useToast();
+  
+  // ✅ CHECKPOINT 2.2: Hooks adicionales para contexto rico
+  const { sessions: taskSessions = [] } = useTaskSessions();
+  const { preferences: productivityPreferences } = useProductivityPreferences();
+  const { taskAssignments } = useTaskAssignments();
   
   const engineRef = useRef<OptimizedRecommendationEngine | null>(null);
   const behaviorAnalyzerRef = useRef<UserBehaviorAnalyzer | null>(null);
@@ -167,6 +177,28 @@ export const useIntelligentAIAssistant = () => {
             }))
           }
         },
+        // ✅ CHECKPOINT 2.2: Datos adicionales de contexto rico
+        projects: {
+          activeProjects: projects,
+          projectsWithProgress: generateProjectsWithProgress(projects, tasks)
+        },
+        sessions: {
+          recentSessions: taskSessions.slice(0, 10),
+          totalSessions: taskSessions.length,
+          sessionPatterns: generateSessionPatterns(taskSessions)
+        },
+        preferences: {
+          productivity: productivityPreferences,
+          workingHours: productivityPreferences ? 
+            `${productivityPreferences.work_hours_start}:00 - ${productivityPreferences.work_hours_end}:00` : 
+            'No configuradas',
+          energySchedule: productivityPreferences?.energy_schedule
+        },
+        assignments: {
+          taskAssignments: taskAssignments,
+          totalAssignments: taskAssignments.length,
+          collaborationLevel: generateCollaborationLevel(taskAssignments)
+        },
         currentRecommendation: recommendation,
         behaviorInsights: behaviorAnalysis.insights,
         productivityProfile: behaviorAnalysis.profile,
@@ -187,7 +219,7 @@ export const useIntelligentAIAssistant = () => {
       console.error('Error generating intelligent context:', error);
       return null;
     }
-  }, [user, tasks, projects, profile]);
+  }, [user, tasks, projects, profile, taskSessions, productivityPreferences, taskAssignments]);
 
   // ✅ CHECKPOINT 1.4: Generadores de contexto personal completo
   const generateLastActivity = useCallback((tasks: any[]) => {
@@ -317,6 +349,67 @@ export const useIntelligentAIAssistant = () => {
     });
 
     return hierarchy;
+  }, []);
+
+  // ✅ CHECKPOINT 2.2: Generadores de contexto rico adicional
+  const generateProjectsWithProgress = useCallback((projects: any[], tasks: any[]) => {
+    return projects.map(project => {
+      const projectTasks = tasks.filter(t => t.project_id === project.id);
+      const completedTasks = projectTasks.filter(t => t.status === 'completed');
+      const progressPercent = projectTasks.length > 0 ? 
+        Math.round((completedTasks.length / projectTasks.length) * 100) : 0;
+      
+      return {
+        ...project,
+        taskCount: projectTasks.length,
+        completedTaskCount: completedTasks.length,
+        progressPercent,
+        urgentTasks: projectTasks.filter(t => t.priority === 'high' || t.priority === 'urgent').length
+      };
+    });
+  }, []);
+
+  const generateSessionPatterns = useCallback((sessions: any[]) => {
+    if (sessions.length === 0) return ["Sin sesiones registradas"];
+    
+    const patterns = [];
+    
+    // Promedio de productividad
+    const avgProductivity = sessions
+      .filter(s => s.productivity_score)
+      .reduce((sum, s) => sum + s.productivity_score, 0) / Math.max(1, sessions.filter(s => s.productivity_score).length);
+    
+    if (avgProductivity > 0) {
+      patterns.push(`Productividad promedio: ${Math.round(avgProductivity)}/10`);
+    }
+    
+    // Duración promedio de sesiones
+    const avgDuration = sessions
+      .filter(s => s.duration_minutes)
+      .reduce((sum, s) => sum + s.duration_minutes, 0) / Math.max(1, sessions.filter(s => s.duration_minutes).length);
+    
+    if (avgDuration > 0) {
+      patterns.push(`Duración promedio de sesión: ${Math.round(avgDuration)} minutos`);
+    }
+    
+    // Sesiones recientes
+    const recentSessions = sessions.slice(0, 5).length;
+    patterns.push(`${recentSessions} sesiones recientes registradas`);
+    
+    return patterns;
+  }, []);
+
+  const generateCollaborationLevel = useCallback((assignments: any[]) => {
+    if (assignments.length === 0) return "Trabajo individual";
+    
+    const roles = assignments.map(a => a.role_in_task);
+    const uniqueRoles = [...new Set(roles)];
+    
+    if (assignments.length >= 5) return "Alta colaboración";
+    if (assignments.length >= 3) return "Colaboración moderada";
+    if (assignments.length >= 1) return "Colaboración básica";
+    
+    return "Trabajo individual";
   }, []);
 
   const generateActionSuggestions = (tasks: any[], projects: any[], recommendation: any) => {
