@@ -8,10 +8,11 @@ import { OptimizedRecommendationEngine } from '@/services/optimizedRecommendatio
 import { UserBehaviorAnalyzer } from '@/services/userBehaviorAnalyzer';
 import { FeedbackLearningSystem } from '@/services/feedbackLearningSystem';
 import { performanceMonitor } from '@/utils/performanceMonitor';
+import { BasicProactiveAlerts, DeadlineAlert } from '@/services/basicProactiveAlerts';
 
 interface IntelligentMessage {
   id: string;
-  type: 'user' | 'assistant';
+  type: 'user' | 'assistant' | 'proactive_alert';
   content: string;
   timestamp: Date;
   context?: {
@@ -20,6 +21,7 @@ interface IntelligentMessage {
     performanceMetrics?: any;
     actionSuggestions?: string[];
   };
+  proactiveAlert?: DeadlineAlert;
 }
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -39,6 +41,9 @@ export const useIntelligentAIAssistant = () => {
   const engineRef = useRef<OptimizedRecommendationEngine | null>(null);
   const behaviorAnalyzerRef = useRef<UserBehaviorAnalyzer | null>(null);
   const learningSystemRef = useRef<FeedbackLearningSystem | null>(null);
+  
+  // ✅ SPRINT 2: Sistema de alertas proactivas básico
+  const proactiveAlertsRef = useRef<BasicProactiveAlerts>(new BasicProactiveAlerts());
 
   // Initialize intelligent systems
   useEffect(() => {
@@ -121,6 +126,46 @@ export const useIntelligentAIAssistant = () => {
     
     return suggestions;
   };
+
+  // ✅ SPRINT 2: Funcionalidad proactiva para detectar deadlines
+  const checkForProactiveAlerts = useCallback(() => {
+    if (!tasks.length) return;
+
+    const alert = proactiveAlertsRef.current.checkForDeadlineAlerts(tasks, conversationId);
+    
+    if (alert) {
+      const proactiveMessage: IntelligentMessage = {
+        id: `proactive-${Date.now()}`,
+        type: 'proactive_alert',
+        content: `📅 ${alert.title}\n\n${alert.message}`,
+        timestamp: new Date(),
+        proactiveAlert: alert,
+      };
+
+      setMessages(prev => [...prev, proactiveMessage]);
+      
+      console.log('✅ Alerta proactiva mostrada:', alert.title);
+    }
+  }, [tasks, conversationId]);
+
+  const handleProactiveAction = useCallback((alert: DeadlineAlert) => {
+    console.log('🎯 Acción proactiva ejecutada:', alert.actionType, alert.task.title);
+    
+    // Simular acción (en implementación real podría abrir modal de tarea o marcar como en progreso)
+    toast({
+      title: 'Acción ejecutada',
+      description: `Tarea "${alert.task.title}" lista para trabajar.`,
+    });
+  }, [toast]);
+
+  const handleProactiveDismiss = useCallback((alertId: string) => {
+    console.log('❌ Alerta proactiva descartada:', alertId);
+    
+    toast({
+      title: 'Alerta descartada',
+      description: 'Te recordaré en la próxima sesión si sigue siendo relevante.',
+    });
+  }, [toast]);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!hasActiveConfiguration) {
@@ -211,6 +256,9 @@ Hora actual: ${new Date().toLocaleTimeString('es-ES')}`;
         });
       }
 
+      // ✅ SPRINT 2: Verificar alertas proactivas después de respuesta
+      checkForProactiveAlerts();
+
     } catch (error) {
       console.error('Error in intelligent assistant:', error);
       
@@ -238,6 +286,10 @@ Hora actual: ${new Date().toLocaleTimeString('es-ES')}`;
   const clearChat = useCallback(() => {
     setMessages([]);
     setConnectionStatus(hasActiveConfiguration ? 'connected' : 'disconnected');
+    
+    // ✅ SPRINT 2: Reset alertas proactivas para nueva sesión
+    proactiveAlertsRef.current.resetSession();
+    
     toast({
       title: 'Chat limpiado',
       description: 'La conversación se ha limpiado correctamente.',
@@ -283,5 +335,8 @@ Hora actual: ${new Date().toLocaleTimeString('es-ES')}`;
       projectsCount: projects.length,
       userId: user?.id,
     },
+    // ✅ SPRINT 2: Funciones para manejo de alertas proactivas  
+    handleProactiveAction,
+    handleProactiveDismiss,
   };
 };

@@ -27,6 +27,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useIntelligentAIAssistant } from '@/hooks/ai/useIntelligentAIAssistant';
+import ProactiveAlert from '@/components/ai/assistant/ProactiveAlert';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -44,42 +45,64 @@ const ContextDisplay = memo(({ context }: { context: any }) => {
 
 ContextDisplay.displayName = 'ContextDisplay';
 
-// Memoized message component - OPTIMIZED WITH DESIGN SYSTEM
-const MessageComponent = memo(({ message }: { message: any }) => (
-  <div className={`flex gap-2 transition-ai animate-fade-in ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
-    <div className={`flex-shrink-0 transition-ai ${
-      message.type === 'user' 
-        ? 'bg-ai-primary text-white shadow-ai-sm' 
-        : 'bg-ai-primary-light text-ai-primary shadow-ai-sm'
-    } rounded-full p-1.5 hover:scale-105`}>
-      {message.type === 'user' ? (
-        <User className="h-3 w-3" />
-      ) : (
-        <Brain className="h-3 w-3" />
-      )}
-    </div>
-    
-    <div className={`flex-1 max-w-[80%] ${message.type === 'user' ? 'text-right' : ''}`}>
-      <div className={`inline-block p-3 rounded-lg transition-ai shadow-ai-sm hover:shadow-ai-md ${
-        message.type === 'user'
-          ? 'bg-ai-primary text-white'
-          : 'bg-ai-surface border border-ai-border hover:bg-ai-surface-hover'
-      }`}>
-        <p className="whitespace-pre-wrap leading-relaxed text-sm">{message.content}</p>
+// Memoized message component - OPTIMIZED WITH DESIGN SYSTEM + PROACTIVE ALERTS
+const MessageComponent = memo(({ 
+  message, 
+  onProactiveAction, 
+  onProactiveDismiss 
+}: { 
+  message: any;
+  onProactiveAction?: (alert: any) => void;
+  onProactiveDismiss?: (alertId: string) => void;
+}) => {
+  // ✅ SPRINT 2: Renderizar alertas proactivas
+  if (message.type === 'proactive_alert' && message.proactiveAlert) {
+    return (
+      <ProactiveAlert
+        alert={message.proactiveAlert}
+        onActionClick={onProactiveAction!}
+        onDismiss={onProactiveDismiss!}
+      />
+    );
+  }
+
+  // Renderizado normal de mensajes
+  return (
+    <div className={`flex gap-2 transition-ai animate-fade-in ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
+      <div className={`flex-shrink-0 transition-ai ${
+        message.type === 'user' 
+          ? 'bg-ai-primary text-white shadow-ai-sm' 
+          : 'bg-ai-primary-light text-ai-primary shadow-ai-sm'
+      } rounded-full p-1.5 hover:scale-105`}>
+        {message.type === 'user' ? (
+          <User className="h-3 w-3" />
+        ) : (
+          <Brain className="h-3 w-3" />
+        )}
       </div>
       
-      {message.context && message.type === 'assistant' && (
-        <div className="mt-3">
-          <ContextDisplay context={message.context} />
+      <div className={`flex-1 max-w-[80%] ${message.type === 'user' ? 'text-right' : ''}`}>
+        <div className={`inline-block p-3 rounded-lg transition-ai shadow-ai-sm hover:shadow-ai-md ${
+          message.type === 'user'
+            ? 'bg-ai-primary text-white'
+            : 'bg-ai-surface border border-ai-border hover:bg-ai-surface-hover'
+        }`}>
+          <p className="whitespace-pre-wrap leading-relaxed text-sm">{message.content}</p>
         </div>
-      )}
-      
-      <p className="text-xs text-ai-text-muted mt-1 transition-ai">
-        {format(message.timestamp, 'HH:mm', { locale: es })}
-      </p>
+        
+        {message.context && message.type === 'assistant' && (
+          <div className="mt-3">
+            <ContextDisplay context={message.context} />
+          </div>
+        )}
+        
+        <p className="text-xs text-ai-text-muted mt-1 transition-ai">
+          {format(message.timestamp, 'HH:mm', { locale: es })}
+        </p>
+      </div>
     </div>
-  </div>
-));
+  );
+});
 
 MessageComponent.displayName = 'MessageComponent';
 
@@ -98,6 +121,8 @@ const IntelligentAIAssistantPanel = memo(() => {
     hasConfiguration,
     userContext,
     activeModel,
+    handleProactiveAction,
+    handleProactiveDismiss,
   } = useIntelligentAIAssistant();
 
   const scrollToBottom = () => {
@@ -258,7 +283,12 @@ const IntelligentAIAssistantPanel = memo(() => {
               </div>
             ) : (
               messages.map((message) => (
-                <MessageComponent key={message.id} message={message} />
+                <MessageComponent 
+                  key={message.id} 
+                  message={message}
+                  onProactiveAction={handleProactiveAction}
+                  onProactiveDismiss={handleProactiveDismiss}
+                />
               ))
             )}
             
