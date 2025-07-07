@@ -21,6 +21,7 @@ export interface ConversationData {
  * Guarda automáticamente cada mensaje y restaura las últimas 30 conversaciones
  */
 export const useConversationPersistence = (conversationId: string) => {
+  // ✅ PASO 2: Estabilizar storageKey para evitar recreaciones
   const storageKey = useMemo(() => `ai_conversation_${conversationId}`, [conversationId]);
   const lastSaveRef = useRef<number>(Date.now());
   const cleanupExecutedRef = useRef<boolean>(false);
@@ -209,7 +210,7 @@ export const useConversationPersistence = (conversationId: string) => {
     }
   }, []);
 
-  // Limpiar conversaciones antiguas al inicializar (solo una vez)
+  // ✅ PASO 2: Limpiar conversaciones antiguas al inicializar (solo una vez)
   useEffect(() => {
     if (!cleanupExecutedRef.current) {
       cleanupExecutedRef.current = true;
@@ -217,6 +218,7 @@ export const useConversationPersistence = (conversationId: string) => {
     }
   }, []); // Sin dependencias para ejecutar solo una vez
 
+  // ✅ PASO 2: Memoizar objeto de retorno con dependencias estabilizadas
   return useMemo(() => ({
     saveConversation,
     loadConversation,
@@ -226,14 +228,5 @@ export const useConversationPersistence = (conversationId: string) => {
     exportConversation,
     getStorageSize,
     cleanOldConversations
-  }), [
-    saveConversation,
-    loadConversation, 
-    clearConversation,
-    autoSaveMessage,
-    getConversationStats,
-    exportConversation,
-    getStorageSize,
-    cleanOldConversations
-  ]);
+  }), [storageKey, conversationId]); // Dependencias simplificadas y estables
 };

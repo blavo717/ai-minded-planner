@@ -52,7 +52,9 @@ export const useIntelligentAIAssistant = () => {
   const [messages, setMessages] = useState<IntelligentMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
-  const [conversationId] = useState(() => `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  // ✅ PASO 1: Estabilizar conversationId para evitar recreaciones
+  const conversationIdRef = useRef(`conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const conversationId = conversationIdRef.current;
   const [initializationComplete, setInitializationComplete] = useState(false);
   
   const { user } = useAuth();
@@ -106,7 +108,7 @@ export const useIntelligentAIAssistant = () => {
     getConversationStats
   } = useConversationPersistence(conversationId);
 
-  // Memoizar handleActiveReminder para evitar recreaciones
+  // ✅ PASO 4: Memoizar handleActiveReminder sin dependencias cambiantes
   const handleActiveReminderMemo = useCallback((reminder: PendingReminder) => {
     const reminderMessage: IntelligentMessage = {
       id: `reminder-${Date.now()}`,
@@ -122,14 +124,16 @@ export const useIntelligentAIAssistant = () => {
 
     setMessages(prev => [...prev, reminderMessage]);
     
-    toast({
-      title: '⏰ Recordatorio',
-      description: reminder.title,
-      duration: 8000,
-    });
+    if (toast) {
+      toast({
+        title: '⏰ Recordatorio',
+        description: reminder.title,
+        duration: 8000,
+      });
+    }
     
     console.log('🔔 Recordatorio activado:', reminder.title);
-  }, [toast]);
+  }, []); // Sin dependencias para estabilizar
 
   // Inicializar sistemas principales una sola vez
   useEffect(() => {
@@ -147,8 +151,8 @@ export const useIntelligentAIAssistant = () => {
       advancedAnalyzerRef.current = new AdvancedContextAnalyzer(user.id);
       predictiveAnalyzerRef.current = new PredictiveAnalyzer(user.id);
 
-      // Inicializar recordatorios
-      smartRemindersRef.current = new SmartReminders(user.id);
+      // ✅ PASO 3: Inicializar recordatorios con singleton pattern
+      smartRemindersRef.current = SmartReminders.getInstance(user.id);
       smartRemindersRef.current.setReminderCallback(handleActiveReminderMemo);
       smartRemindersRef.current.startReminderCheck();
 
@@ -157,7 +161,7 @@ export const useIntelligentAIAssistant = () => {
     } catch (error) {
       console.error('❌ Error inicializando sistemas AI:', error);
     }
-  }, [user, handleActiveReminderMemo]);
+  }, [user]); // ✅ PASO 4: Remover handleActiveReminderMemo de dependencias para estabilizar
 
   // Inicializar acciones ejecutables cuando las mutaciones estén disponibles
   useEffect(() => {
@@ -181,16 +185,18 @@ export const useIntelligentAIAssistant = () => {
     proactiveAlertsRef.current.ensureDefaultPreferences();
   }, [initializationComplete]);
 
-  // Cargar conversación persistida una sola vez
+  // ✅ PASO 5: Cargar conversación persistida una sola vez al montar
+  const messagesLoadedRef = useRef(false);
   useEffect(() => {
-    if (!initializationComplete) return;
+    if (!initializationComplete || messagesLoadedRef.current) return;
 
     const storedMessages = loadConversation();
     if (storedMessages.length > 0) {
       setMessages(storedMessages);
       console.log(`📥 ${storedMessages.length} mensajes restaurados desde el almacenamiento`);
     }
-  }, [initializationComplete, loadConversation]);
+    messagesLoadedRef.current = true;
+  }, [initializationComplete]); // ✅ PASO 5: Remover loadConversation de dependencias
 
   // Actualizar estado de conexión
   useEffect(() => {
@@ -204,12 +210,28 @@ export const useIntelligentAIAssistant = () => {
     }
   }, [initializationComplete, hasActiveConfiguration]);
 
-  // ✅ CHECKPOINT 3.2: Auto-guardar mensajes cuando cambie el array
+  // ✅ PASO 5: Auto-guardar mensajes con debouncing para evitar calls excesivos
+  const debouncedAutoSave = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (messages.length > 0) {
-      autoSaveMessage(messages);
+      // Limpiar timeout anterior
+      if (debouncedAutoSave.current) {
+        clearTimeout(debouncedAutoSave.current);
+      }
+      
+      // Programar nuevo guardado con debounce de 1 segundo
+      debouncedAutoSave.current = setTimeout(() => {
+        autoSaveMessage(messages);
+      }, 1000);
     }
-  }, [messages, autoSaveMessage]);
+    
+    // Cleanup function para limpiar timeout
+    return () => {
+      if (debouncedAutoSave.current) {
+        clearTimeout(debouncedAutoSave.current);
+      }
+    };
+  }, [messages]); // ✅ PASO 5: Remover autoSaveMessage de dependencias
 
   // Generate intelligent context for the assistant
   const generateIntelligentContext = useCallback(async () => {

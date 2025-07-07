@@ -26,9 +26,20 @@ export class SmartReminders {
   private reminderInterval: NodeJS.Timeout | null = null;
   private onReminderCallback?: (reminder: PendingReminder) => void;
   private isCheckingReminders: boolean = false;
+  
+  // ✅ PASO 3: Singleton pattern para evitar múltiples instancias
+  private static instances: Map<string, SmartReminders> = new Map();
 
   constructor(userId: string) {
     this.userId = userId;
+  }
+
+  // ✅ PASO 3: Factory method que retorna singleton por usuario
+  static getInstance(userId: string): SmartReminders {
+    if (!SmartReminders.instances.has(userId)) {
+      SmartReminders.instances.set(userId, new SmartReminders(userId));
+    }
+    return SmartReminders.instances.get(userId)!;
   }
 
   /**
