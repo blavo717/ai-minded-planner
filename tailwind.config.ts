@@ -92,12 +92,26 @@ export default {
 					'medium-light': 'hsl(var(--priority-medium-light))',
 					low: 'hsl(var(--priority-low))',
 					'low-light': 'hsl(var(--priority-low-light))'
+				},
+				// AI Assistant specific colors  
+				'ai': {
+					primary: 'hsl(var(--ai-primary))',
+					'primary-light': 'hsl(var(--ai-primary-light))',
+					secondary: 'hsl(var(--ai-secondary))',
+					accent: 'hsl(var(--ai-accent))',
+					surface: 'hsl(var(--ai-surface))',
+					'surface-hover': 'hsl(var(--ai-surface-hover))',
+					border: 'hsl(var(--ai-border))',
+					text: 'hsl(var(--ai-text))',
+					'text-muted': 'hsl(var(--ai-text-muted))'
 				}
 			},
 			backgroundImage: {
 				'gradient-primary': 'var(--gradient-primary)',
 				'gradient-card': 'var(--gradient-card)',
 				'gradient-subtle': 'var(--gradient-subtle)',
+				'gradient-ai-primary': 'var(--gradient-ai-primary)',
+				'gradient-ai-surface': 'var(--gradient-ai-surface)',
 				'priority-urgent': 'var(--priority-urgent-gradient)',
 				'priority-high': 'var(--priority-high-gradient)',
 				'priority-medium': 'var(--priority-medium-gradient)',
@@ -109,9 +123,18 @@ export default {
 				'task-lg': 'var(--shadow-lg)',
 				'task-xl': 'var(--shadow-xl)',
 				'colored': 'var(--shadow-colored)',
+				'ai-sm': 'var(--shadow-ai-sm)',
+				'ai-md': 'var(--shadow-ai-md)',
+				'ai-lg': 'var(--shadow-ai-lg)',
 				'glow-urgent': '0 0 20px hsl(var(--status-completed-glow) / 0.3)',
 				'glow-completed': '0 0 20px hsl(var(--status-completed-glow) / 0.3)',
 				'glow-progress': '0 0 20px hsl(var(--status-in-progress-glow) / 0.3)'
+			},
+			transitionProperty: {
+				'ai': 'color, background-color, border-color, transform, box-shadow, opacity'
+			},
+			transitionTimingFunction: {
+				'ai': 'cubic-bezier(0.4, 0, 0.2, 1)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

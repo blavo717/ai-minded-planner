@@ -44,14 +44,14 @@ const ContextDisplay = memo(({ context }: { context: any }) => {
 
 ContextDisplay.displayName = 'ContextDisplay';
 
-// Memoized message component - OPTIMIZED SPACING
+// Memoized message component - OPTIMIZED WITH DESIGN SYSTEM
 const MessageComponent = memo(({ message }: { message: any }) => (
-  <div className={`flex gap-2 ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
-    <div className={`flex-shrink-0 ${
+  <div className={`flex gap-2 transition-ai animate-fade-in ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex-shrink-0 transition-ai ${
       message.type === 'user' 
-        ? 'bg-purple-600 text-white' 
-        : 'bg-purple-100 text-purple-700'
-    } rounded-full p-1.5`}>
+        ? 'bg-ai-primary text-white shadow-ai-sm' 
+        : 'bg-ai-primary-light text-ai-primary shadow-ai-sm'
+    } rounded-full p-1.5 hover:scale-105`}>
       {message.type === 'user' ? (
         <User className="h-3 w-3" />
       ) : (
@@ -60,10 +60,10 @@ const MessageComponent = memo(({ message }: { message: any }) => (
     </div>
     
     <div className={`flex-1 max-w-[80%] ${message.type === 'user' ? 'text-right' : ''}`}>
-      <div className={`inline-block p-3 rounded-lg ${
+      <div className={`inline-block p-3 rounded-lg transition-ai shadow-ai-sm hover:shadow-ai-md ${
         message.type === 'user'
-          ? 'bg-purple-600 text-white'
-          : 'bg-gray-50 border'
+          ? 'bg-ai-primary text-white'
+          : 'bg-ai-surface border border-ai-border hover:bg-ai-surface-hover'
       }`}>
         <p className="whitespace-pre-wrap leading-relaxed text-sm">{message.content}</p>
       </div>
@@ -74,7 +74,7 @@ const MessageComponent = memo(({ message }: { message: any }) => (
         </div>
       )}
       
-      <p className="text-xs text-muted-foreground mt-1">
+      <p className="text-xs text-ai-text-muted mt-1 transition-ai">
         {format(message.timestamp, 'HH:mm', { locale: es })}
       </p>
     </div>
@@ -197,16 +197,16 @@ const IntelligentAIAssistantPanel = memo(() => {
   }
 
   return (
-    <Card className="w-full h-[650px] flex flex-col shadow-lg">
-      <CardHeader className="pb-2 px-3 py-2">
+    <Card className="w-full h-[650px] flex flex-col shadow-ai-lg transition-ai border-ai-border">
+      <CardHeader className="pb-2 px-3 py-2 bg-gradient-ai-surface border-b border-ai-border">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Brain className="h-5 w-5 text-purple-600" />
+          <CardTitle className="flex items-center gap-2 text-lg text-ai-primary">
+            <Brain className="h-5 w-5 text-ai-primary" />
             <span>Chat IA</span>
           </CardTitle>
           
           <div className="flex items-center gap-2">
-            <Badge className={`${getConnectionColor()} border text-xs`}>
+            <Badge className={`${getConnectionColor()} border text-xs transition-ai`}>
               {getConnectionIcon()}
               <span className="ml-1 hidden sm:inline capitalize">{connectionStatus}</span>
             </Badge>
@@ -217,7 +217,7 @@ const IntelligentAIAssistantPanel = memo(() => {
                   variant="outline"
                   size="sm"
                   onClick={exportConversation}
-                  className="h-7 px-2"
+                  className="h-7 px-2 transition-ai hover:bg-ai-surface-hover border-ai-border"
                 >
                   <Download className="h-3 w-3" />
                   <span className="hidden sm:ml-1 sm:inline text-xs">Exportar</span>
@@ -227,7 +227,7 @@ const IntelligentAIAssistantPanel = memo(() => {
                   size="sm"
                   onClick={clearChat}
                   disabled={isLoading}
-                  className="h-7 px-2"
+                  className="h-7 px-2 transition-ai hover:bg-ai-surface-hover border-ai-border"
                 >
                   <Trash2 className="h-3 w-3" />
                   <span className="hidden sm:ml-1 sm:inline text-xs">Limpiar</span>
@@ -242,16 +242,16 @@ const IntelligentAIAssistantPanel = memo(() => {
         <ScrollArea className="flex-1 px-3">
           <div className="space-y-4 py-3">
             {messages.length === 0 ? (
-              <div className="text-center py-8 space-y-3">
-                <div className="w-12 h-12 mx-auto bg-purple-100 rounded-full flex items-center justify-center">
-                  <Brain className="h-6 w-6 text-purple-600" />
+              <div className="text-center py-8 space-y-3 animate-fade-in">
+                <div className="w-12 h-12 mx-auto bg-ai-primary-light rounded-full flex items-center justify-center transition-ai hover:scale-105 shadow-ai-sm">
+                  <Brain className="h-6 w-6 text-ai-primary" />
                 </div>
                 
                 <div className="space-y-1">
-                  <h3 className="text-base font-semibold text-purple-600">
+                  <h3 className="text-base font-semibold text-ai-primary">
                     ¿En qué puedo ayudarte?
                   </h3>
-                  <p className="text-muted-foreground text-sm px-4">
+                  <p className="text-ai-text-muted text-sm px-4">
                     Pregúntame sobre tus tareas y proyectos.
                   </p>
                 </div>
@@ -286,7 +286,7 @@ const IntelligentAIAssistantPanel = memo(() => {
 
         <Separator />
         
-        <div className="p-2">
+        <div className="p-2 bg-gradient-ai-surface border-t border-ai-border">
           <div className="flex gap-2">
             <Input
               placeholder="Escribe tu pregunta..."
@@ -294,12 +294,12 @@ const IntelligentAIAssistantPanel = memo(() => {
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               disabled={isLoading}
-              className="flex-1"
+              className="flex-1 border-ai-border focus:border-ai-primary transition-ai"
             />
             <Button
               onClick={handleSendMessage}
               disabled={isLoading || !inputMessage.trim()}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-ai-primary hover:bg-ai-primary/90 transition-ai shadow-ai-sm hover:shadow-ai-md"
             >
               <Send className="h-4 w-4" />
             </Button>
