@@ -23,8 +23,11 @@ import {
 } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserAchievements } from '@/hooks/useUserAchievements';
+import { useProductivityPreferences } from '@/hooks/useProductivityPreferences';
 import { format, subDays, startOfWeek, endOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
+import ProductivityPreferencesModal from './ProductivityPreferencesModal';
 
 interface ProductivityDashboardProps {
   onClose?: () => void;
@@ -56,7 +59,10 @@ interface Achievement {
 const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({ onClose }) => {
   const { tasks } = useTasks();
   const { user } = useAuth();
+  const { getAchievementsWithDefinitions } = useUserAchievements();
+  const { preferences, getWorkingHoursText, getWorkingDaysText } = useProductivityPreferences();
   const [selectedTab, setSelectedTab] = useState('overview');
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
 
   // Calcular estadísticas de productividad
   const stats = useMemo((): ProductivityStats => {
@@ -109,77 +115,8 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({ onClose }
     };
   }, [tasks]);
 
-  // Sistema de logros
-  const achievements = useMemo((): Achievement[] => {
-    return [
-      {
-        id: 'first_task',
-        title: 'Primer Paso',
-        description: 'Completa tu primera tarea',
-        icon: '🎯',
-        type: 'completion',
-        isUnlocked: stats.totalTasks > 0,
-        progress: Math.min(stats.totalTasks, 1),
-        maxProgress: 1,
-        unlockedAt: stats.totalTasks > 0 ? new Date() : undefined
-      },
-      {
-        id: 'task_master',
-        title: 'Maestro de Tareas',
-        description: 'Completa 10 tareas',
-        icon: '🏆',
-        type: 'completion',
-        isUnlocked: stats.totalTasks >= 10,
-        progress: Math.min(stats.totalTasks, 10),
-        maxProgress: 10,
-        unlockedAt: stats.totalTasks >= 10 ? new Date() : undefined
-      },
-      {
-        id: 'streak_warrior',
-        title: 'Guerrero de la Consistencia',
-        description: 'Mantén una racha de 7 días',
-        icon: '🔥',
-        type: 'streak',
-        isUnlocked: stats.currentStreak >= 7,
-        progress: Math.min(stats.currentStreak, 7),
-        maxProgress: 7,
-        unlockedAt: stats.currentStreak >= 7 ? new Date() : undefined
-      },
-      {
-        id: 'efficiency_expert',
-        title: 'Experto en Eficiencia',
-        description: 'Logra 80% de tasa de completación',
-        icon: '⚡',
-        type: 'efficiency',
-        isUnlocked: stats.completionRate >= 80,
-        progress: Math.min(stats.completionRate, 80),
-        maxProgress: 80,
-        unlockedAt: stats.completionRate >= 80 ? new Date() : undefined
-      },
-      {
-        id: 'priority_master',
-        title: 'Maestro de Prioridades',
-        description: 'Completa 5 tareas de alta prioridad',
-        icon: '🌟',
-        type: 'completion',
-        isUnlocked: stats.highPriorityCompleted >= 5,
-        progress: Math.min(stats.highPriorityCompleted, 5),
-        maxProgress: 5,
-        unlockedAt: stats.highPriorityCompleted >= 5 ? new Date() : undefined
-      },
-      {
-        id: 'early_bird',
-        title: 'Madrugador',
-        description: 'Trabaja antes de las 9 AM',
-        icon: '🌅',
-        type: 'consistency',
-        isUnlocked: stats.mostProductiveHour < 9,
-        progress: stats.mostProductiveHour < 9 ? 1 : 0,
-        maxProgress: 1,
-        unlockedAt: stats.mostProductiveHour < 9 ? new Date() : undefined
-      }
-    ];
-  }, [stats]);
+  // Obtener logros del nuevo sistema
+  const achievements = getAchievementsWithDefinitions();
 
   const unlockedAchievements = achievements.filter(a => a.isUnlocked);
   const nextAchievement = achievements.find(a => !a.isUnlocked);
@@ -211,12 +148,22 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({ onClose }
             Patrones, logros y métricas personales
           </p>
         </div>
-        {onClose && (
-          <Button variant="outline" onClick={onClose} size="sm">
-            <ChevronRight className="w-4 h-4 mr-2" />
-            Volver al planner
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowPreferencesModal(true)}
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Configurar
           </Button>
-        )}
+          {onClose && (
+            <Button variant="outline" onClick={onClose} size="sm">
+              <ChevronRight className="w-4 h-4 mr-2" />
+              Volver al planner
+            </Button>
+          )}
+        </div>
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
@@ -468,6 +415,26 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({ onClose }
                     {stats.averageTaskDuration}min
                   </div>
                 </div>
+
+                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                  <div>
+                    <div className="font-medium">Horario de trabajo</div>
+                    <div className="text-sm text-gray-600">Configurado por ti</div>
+                  </div>
+                  <div className="text-lg font-bold text-purple-600">
+                    {getWorkingHoursText()}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                  <div>
+                    <div className="font-medium">Días laborales</div>
+                    <div className="text-sm text-gray-600">Preferencias actuales</div>
+                  </div>
+                  <div className="text-sm font-bold text-orange-600">
+                    {getWorkingDaysText()}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -528,6 +495,12 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({ onClose }
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Modal de preferencias */}
+      <ProductivityPreferencesModal 
+        open={showPreferencesModal}
+        onOpenChange={setShowPreferencesModal}
+      />
     </div>
   );
 };

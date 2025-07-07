@@ -12,6 +12,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
+import { useProductivityPreferences } from '@/hooks/useProductivityPreferences';
 
 interface ContextualRecommendationsProps {
   task: Task;
@@ -31,6 +32,7 @@ const ContextualRecommendations: React.FC<ContextualRecommendationsProps> = ({
   confidence,
   onReasonChange
 }) => {
+  const { preferences, isCurrentlyWorkingTime, getCurrentEnergyLevel } = useProductivityPreferences();
   // Generar contexto actual
   const context = useMemo((): ContextualInfo => {
     const now = new Date();
@@ -44,20 +46,13 @@ const ContextualRecommendations: React.FC<ContextualRecommendationsProps> = ({
     else if (hour >= 18 && hour < 22) timeOfDay = 'evening';
     else timeOfDay = 'night';
 
-    // Determinar nivel de energía basado en hora
-    let energyLevel: ContextualInfo['energyLevel'];
-    if ((hour >= 9 && hour <= 11) || (hour >= 14 && hour <= 16)) {
-      energyLevel = 'high';
-    } else if ((hour >= 7 && hour < 9) || (hour >= 12 && hour < 14) || (hour >= 17 && hour < 20)) {
-      energyLevel = 'medium';
-    } else {
-      energyLevel = 'low';
-    }
+    // Usar nivel de energía de las preferencias del usuario
+    const energyLevel = getCurrentEnergyLevel();
 
-    // Determinar sesión de trabajo (simulado)
+    // Determinar sesión de trabajo basado en preferencias del usuario
     let workSession: ContextualInfo['workSession'] = 'middle';
-    if (hour >= 8 && hour <= 9) workSession = 'start';
-    else if (hour >= 17 && hour <= 18) workSession = 'end';
+    if (preferences && hour === preferences.work_hours_start) workSession = 'start';
+    else if (preferences && hour >= preferences.work_hours_end - 1) workSession = 'end';
 
     return {
       timeOfDay,
@@ -93,11 +88,18 @@ const ContextualRecommendations: React.FC<ContextualRecommendationsProps> = ({
       }
     }
 
-    // Razones contextuales basadas en hora del día
+    // Verificar si estamos en horario de trabajo
+    if (isCurrentlyWorkingTime()) {
+      reasons.push("estás en tu horario de trabajo configurado");
+    } else {
+      reasons.push("puedes trabajar en tareas personales fuera del horario laboral");
+    }
+
+    // Razones contextuales basadas en hora del día y preferencias
     switch (context.timeOfDay) {
       case 'morning':
         if (context.energyLevel === 'high') {
-          reasons.push("las mañanas son tu momento más productivo");
+          reasons.push("es tu momento de mayor energía según tu configuración");
         } else {
           reasons.push("es un buen momento para tareas de planificación");
         }
@@ -192,18 +194,27 @@ const ContextualRecommendations: React.FC<ContextualRecommendationsProps> = ({
         break;
     }
 
-    // Badge de energía
+    // Badge de energía basado en configuración personal
     if (context.energyLevel === 'high') {
       badges.push({
         icon: Brain,
-        label: 'Alta energía',
+        label: 'Alta energía personal',
         color: 'bg-green-100 text-green-700 border-green-300'
       });
     } else if (context.energyLevel === 'low') {
       badges.push({
         icon: Coffee,
-        label: 'Energía baja',
+        label: 'Energía baja personal',
         color: 'bg-gray-100 text-gray-700 border-gray-300'
+      });
+    }
+
+    // Badge de horario de trabajo
+    if (isCurrentlyWorkingTime()) {
+      badges.push({
+        icon: Target,
+        label: 'Horario laboral',
+        color: 'bg-blue-100 text-blue-700 border-blue-300'
       });
     }
 

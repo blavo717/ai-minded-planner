@@ -1018,6 +1018,39 @@ export type Database = {
           },
         ]
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          created_at: string
+          id: string
+          max_progress: number | null
+          metadata: Json | null
+          progress: number | null
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          created_at?: string
+          id?: string
+          max_progress?: number | null
+          metadata?: Json | null
+          progress?: number | null
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          created_at?: string
+          id?: string
+          max_progress?: number | null
+          metadata?: Json | null
+          progress?: number | null
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_patterns: {
         Row: {
           confidence_score: number | null
@@ -1069,6 +1102,54 @@ export type Database = {
           theme?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_productivity_preferences: {
+        Row: {
+          break_duration: number | null
+          created_at: string
+          energy_schedule: Json | null
+          focus_session_duration: number | null
+          id: string
+          notification_frequency: number | null
+          preferred_work_days: number[] | null
+          productivity_goals: Json | null
+          timezone: string | null
+          updated_at: string
+          user_id: string
+          work_hours_end: number | null
+          work_hours_start: number | null
+        }
+        Insert: {
+          break_duration?: number | null
+          created_at?: string
+          energy_schedule?: Json | null
+          focus_session_duration?: number | null
+          id?: string
+          notification_frequency?: number | null
+          preferred_work_days?: number[] | null
+          productivity_goals?: Json | null
+          timezone?: string | null
+          updated_at?: string
+          user_id: string
+          work_hours_end?: number | null
+          work_hours_start?: number | null
+        }
+        Update: {
+          break_duration?: number | null
+          created_at?: string
+          energy_schedule?: Json | null
+          focus_session_duration?: number | null
+          id?: string
+          notification_frequency?: number | null
+          preferred_work_days?: number[] | null
+          productivity_goals?: Json | null
+          timezone?: string | null
+          updated_at?: string
+          user_id?: string
+          work_hours_end?: number | null
+          work_hours_start?: number | null
         }
         Relationships: []
       }
