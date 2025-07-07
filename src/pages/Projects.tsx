@@ -60,7 +60,7 @@ const Projects = () => {
   if (viewMode === 'analytics') {
     return (
       <div className="container mx-auto px-6 py-8 space-y-8">
-        <ProjectAnalyticsDashboard />
+        <ProjectAnalyticsDashboard onBackToProjects={() => setViewMode('grid')} />
       </div>
     );
   }
