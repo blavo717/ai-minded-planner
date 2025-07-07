@@ -62,7 +62,14 @@ export class IntelligentAssistantService {
           urgentToday: currentContext.tasks?.urgentToday || [],
           overdue: currentContext.tasks?.overdue || [],
           inProgress: currentContext.tasks?.inProgress || [],
-          quickWins: currentContext.tasks?.quickWins || []
+          quickWins: currentContext.tasks?.quickWins || [],
+          specificTasks: currentContext.tasks?.specificTasks || {
+            urgent: [],
+            overdue: [],
+            inProgress: [],
+            quickWins: []
+          },
+          timeBasedRecommendations: currentContext.tasks?.timeBasedRecommendations || []
         },
         conversation: conversationSummary,
         currentRecommendation: currentContext.currentRecommendation,

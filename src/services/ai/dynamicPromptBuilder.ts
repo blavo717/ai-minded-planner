@@ -17,6 +17,14 @@ export interface TaskContext {
   overdue: any[];
   inProgress: any[];
   quickWins: any[];
+  // ✅ CHECKPOINT 1.2.2: Datos específicos de tareas
+  specificTasks: {
+    urgent: Array<{id: string; title: string; dueDate?: string; estimatedDuration?: number}>;
+    overdue: Array<{id: string; title: string; daysOverdue: number; estimatedDuration?: number}>;
+    inProgress: Array<{id: string; title: string; estimatedDuration?: number}>;
+    quickWins: Array<{id: string; title: string; estimatedDuration?: number}>;
+  };
+  timeBasedRecommendations?: any[];
 }
 
 export interface PromptContext {
@@ -139,7 +147,14 @@ ${instructions}`;
     switch (queryType.type) {
       case 'task_request':
         instructions += `• Usuario pide recomendación de tarea - sé específico y práctico\n`;
-        if (context.currentRecommendation) {
+        // ✅ CHECKPOINT 1.2.2: Instrucciones específicas con datos reales
+        if (context.tasks.timeBasedRecommendations && context.tasks.timeBasedRecommendations.length > 0) {
+          instructions += `• TAREAS ESPECÍFICAS RECOMENDADAS:\n`;
+          context.tasks.timeBasedRecommendations.slice(0, 3).forEach((rec, index) => {
+            instructions += `  ${index + 1}. "${rec.task.title}" (${rec.estimatedDuration} min) - ${rec.specificReason}\n`;
+          });
+          instructions += `• Menciona nombres de tareas específicas, no metodologías genéricas\n`;
+        } else if (context.currentRecommendation) {
           instructions += `• Tienes una recomendación inteligente disponible\n`;
         }
         break;
@@ -157,13 +172,19 @@ ${instructions}`;
         break;
     }
 
-    // Información urgente
-    if (context.tasks.overdue.length > 0) {
-      instructions += `• IMPORTANTE: ${context.tasks.overdue.length} tareas vencidas que podrían necesitar atención\n`;
+    // ✅ CHECKPOINT 1.2.2: Información específica con nombres de tareas
+    if (context.tasks.specificTasks.overdue.length > 0) {
+      instructions += `• TAREAS VENCIDAS ESPECÍFICAS:\n`;
+      context.tasks.specificTasks.overdue.slice(0, 3).forEach(task => {
+        instructions += `  - "${task.title}" (${task.daysOverdue} días de retraso)\n`;
+      });
     }
 
-    if (context.tasks.urgentToday.length > 0) {
-      instructions += `• HOJE: ${context.tasks.urgentToday.length} tareas urgentes para hoy\n`;
+    if (context.tasks.specificTasks.urgent.length > 0) {
+      instructions += `• TAREAS URGENTES PARA HOY:\n`;
+      context.tasks.specificTasks.urgent.slice(0, 3).forEach(task => {
+        instructions += `  - "${task.title}" ${task.estimatedDuration ? `(~${task.estimatedDuration} min)` : ''}\n`;
+      });
     }
 
     return `CONTEXTO ESPECÍFICO PARA ESTA CONSULTA:

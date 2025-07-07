@@ -12,6 +12,7 @@ import { performanceMonitor } from '@/utils/performanceMonitor';
 import { BasicProactiveAlerts, DeadlineAlert } from '@/services/basicProactiveAlerts';
 import { PersonalizedProactiveAlerts } from '@/services/personalizedProactiveAlerts';
 import { IntelligentAssistantService } from '@/services/ai/intelligentAssistantService';
+import { TimeBasedRecommendationEngine } from '@/services/ai/timeBasedRecommendationEngine';
 
 interface IntelligentMessage {
   id: string;
@@ -49,6 +50,9 @@ export const useIntelligentAIAssistant = () => {
   // ✅ CHECKPOINT 1.2.1: Sistema de Asistente Inteligente Dinámico
   const intelligentAssistantRef = useRef<IntelligentAssistantService | null>(null);
   
+  // ✅ CHECKPOINT 1.2.2: Motor de Recomendaciones Temporal
+  const timeBasedEngineRef = useRef<TimeBasedRecommendationEngine | null>(null);
+  
   // ✅ SPRINT 3: Sistema de alertas proactivas personalizadas
   const proactiveAlertsRef = useRef<PersonalizedProactiveAlerts | null>(null);
 
@@ -61,6 +65,9 @@ export const useIntelligentAIAssistant = () => {
       
       // ✅ CHECKPOINT 1.2.1: Inicializar sistema inteligente dinámico
       intelligentAssistantRef.current = new IntelligentAssistantService(user.id);
+      
+      // ✅ CHECKPOINT 1.2.2: Inicializar motor de recomendaciones temporal
+      timeBasedEngineRef.current = new TimeBasedRecommendationEngine();
       
       // ✅ SPRINT 3: Inicializar sistema personalizado de alertas
       proactiveAlertsRef.current = new PersonalizedProactiveAlerts(user.id);
@@ -88,6 +95,27 @@ export const useIntelligentAIAssistant = () => {
       // Get performance metrics
       const performanceMetrics = performanceMonitor.getMetrics();
       
+      // ✅ CHECKPOINT 1.2.2: Generar datos específicos de tareas
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      const urgentTasks = tasks.filter(t => {
+        if (!t.due_date || t.status === 'completed') return false;
+        const dueDate = new Date(t.due_date);
+        return dueDate <= today;
+      });
+
+      const overdueTasks = tasks.filter(t => {
+        if (!t.due_date || t.status === 'completed') return false;
+        const dueDate = new Date(t.due_date);
+        return dueDate < today;
+      });
+
+      const inProgressTasks = tasks.filter(t => t.status === 'in_progress' && !t.is_archived);
+      const quickWinTasks = tasks.filter(t => 
+        t.status === 'pending' && !t.is_archived && (t.estimated_duration || 30) <= 15
+      );
+
       // ✅ CHECKPOINT 1.1: Contexto personal expandido con datos del perfil
       const context = {
         user: {
@@ -102,6 +130,38 @@ export const useIntelligentAIAssistant = () => {
             t.status === 'completed' && 
             new Date(t.completed_at || '').toDateString() === new Date().toDateString()
           ).length,
+        },
+        // ✅ CHECKPOINT 1.2.2: Expandir contexto de tareas con datos específicos
+        tasks: {
+          hierarchy: [],
+          urgentToday: urgentTasks,
+          overdue: overdueTasks,
+          inProgress: inProgressTasks,
+          quickWins: quickWinTasks,
+          specificTasks: {
+            urgent: urgentTasks.map(t => ({
+              id: t.id,
+              title: t.title,
+              dueDate: t.due_date,
+              estimatedDuration: t.estimated_duration
+            })),
+            overdue: overdueTasks.map(t => ({
+              id: t.id,
+              title: t.title,
+              daysOverdue: Math.ceil((now.getTime() - new Date(t.due_date!).getTime()) / (1000 * 60 * 60 * 24)),
+              estimatedDuration: t.estimated_duration
+            })),
+            inProgress: inProgressTasks.map(t => ({
+              id: t.id,
+              title: t.title,
+              estimatedDuration: t.estimated_duration
+            })),
+            quickWins: quickWinTasks.map(t => ({
+              id: t.id,
+              title: t.title,
+              estimatedDuration: t.estimated_duration || 15
+            }))
+          }
         },
         currentRecommendation: recommendation,
         behaviorInsights: behaviorAnalysis.insights,
@@ -240,8 +300,21 @@ export const useIntelligentAIAssistant = () => {
     setMessages(prev => [...prev, userMessage]);
 
     try {
+      // ✅ CHECKPOINT 1.2.2: Detectar intención temporal y generar recomendaciones específicas
+      const timeIntention = timeBasedEngineRef.current?.detectTimeIntention(content.trim()) || { hasTimeIntention: false };
+      
       // ✅ CHECKPOINT 1.2.1: Usar sistema dinámico en lugar de prompt estático
       const intelligentContext = await generateIntelligentContext();
+      
+      // ✅ CHECKPOINT 1.2.2: Agregar recomendaciones basadas en tiempo si es relevante
+      if (timeIntention.hasTimeIntention && timeBasedEngineRef.current && intelligentContext) {
+        const timeBasedRecommendations = timeBasedEngineRef.current.generateTimeBasedRecommendations(
+          tasks, 
+          timeIntention.minutes || 30
+        );
+        
+        (intelligentContext.tasks as any).timeBasedRecommendations = timeBasedRecommendations;
+      }
       
       // Procesar mensaje con el sistema inteligente
       const response = await intelligentAssistantRef.current.processUserMessage(

@@ -43,6 +43,18 @@ Transformar el asistente IA de un robot técnico en un **compañero de trabajo m
 - **Archivos críticos**: `useIntelligentAIAssistant.ts`, nueva tabla Supabase, nuevos servicios
 - **🎯 Estado**: ✅ **IMPLEMENTADO** - Sistema dinámico completamente funcional
 
+### ⚡ **Checkpoint 1.2.2: Contextualización Específica y Recomendaciones Inteligentes** ⚡ **URGENTE**
+- **Problema crítico identificado**: Asistente responde de forma genérica sin usar datos específicos de tareas reales
+- **Objetivos urgentes**:
+  - [ ] **Expandir Contexto de Tareas**: Incluir tareas específicas con nombres, estimaciones y categorización
+  - [ ] **Motor de Recomendaciones Temporal**: Función `generateTimeBasedRecommendations(availableMinutes)`
+  - [ ] **Prompts Específicos con Datos Reales**: Modificar `DynamicPromptBuilder` para usar tareas específicas
+  - [ ] **Detección de Intención Temporal**: Reconocer cuando usuario menciona tiempo específico
+  - [ ] **Integración de Datos de Productividad**: Usar análisis de comportamiento para personalizar
+- **Resultado esperado**: Respuestas específicas tipo "Recomiendo 'Enviar moldes CS1' (15 min)" en lugar de metodologías genéricas
+- **Archivos críticos**: `dynamicPromptBuilder.ts`, `useIntelligentAIAssistant.ts`, nuevo servicio temporal
+- **🎯 Estado**: ✅ **COMPLETADO** - Sistema de contextualización específica implementado
+
 ### ✅ **Checkpoint 1.3: Contexto Personal Completo**
 - **Objetivos**:
   - [ ] Integrar `useProfile` para nombre, rol, departamento
