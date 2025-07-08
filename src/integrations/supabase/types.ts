@@ -1225,6 +1225,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_knowledge_base: {
+        Row: {
+          category: string
+          confidence_score: number | null
+          created_at: string
+          id: string
+          is_active: boolean
+          key_name: string
+          knowledge_type: string
+          last_confirmed_at: string | null
+          learned_from: string | null
+          source: string
+          updated_at: string
+          user_id: string
+          value_json: Json | null
+          value_text: string | null
+        }
+        Insert: {
+          category: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key_name: string
+          knowledge_type: string
+          last_confirmed_at?: string | null
+          learned_from?: string | null
+          source: string
+          updated_at?: string
+          user_id: string
+          value_json?: Json | null
+          value_text?: string | null
+        }
+        Update: {
+          category?: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key_name?: string
+          knowledge_type?: string
+          last_confirmed_at?: string | null
+          learned_from?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string
+          value_json?: Json | null
+          value_text?: string | null
+        }
+        Relationships: []
+      }
       user_patterns: {
         Row: {
           confidence_score: number | null

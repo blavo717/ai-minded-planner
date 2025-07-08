@@ -13,6 +13,12 @@ export interface UserContext {
   lastActivity?: any;
   workPatterns?: string[];
   personalizedReferences?: string[];
+  // ✅ FASE 1: Información personal del usuario
+  personalInfo?: any;
+  preferences?: {
+    likes: string[];
+    dislikes: string[];
+  };
 }
 
 export interface TaskContext {

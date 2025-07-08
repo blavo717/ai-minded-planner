@@ -21,6 +21,7 @@ import { TimeBasedRecommendationEngine } from '@/services/ai/timeBasedRecommenda
 import { AdvancedContextAnalyzer } from '@/services/advancedContextAnalyzer';
 import { useConversationPersistence } from '@/hooks/useConversationPersistence';
 import { SmartReminders, PendingReminder } from '@/services/smartReminders';
+import { useKnowledgeExtractor } from '@/hooks/useKnowledgeExtractor';
 import { ExecutableActionsService, ExecutableAction } from '@/services/executableActionsService';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useTaskLogMutations } from '@/hooks/useTaskLogMutations';
@@ -63,6 +64,9 @@ export const useIntelligentAIAssistant = () => {
   const { projects } = useProjects();
   const { profile } = useProfile();
   const { toast } = useToast();
+  
+  // ✅ FASE 1: Hook de extracción de conocimiento
+  const { processMessage: extractKnowledge } = useKnowledgeExtractor();
   
   // ✅ CHECKPOINT 2.2: Hooks adicionales para contexto rico
   const { sessions: taskSessions = [] } = useTaskSessions();
@@ -676,6 +680,9 @@ export const useIntelligentAIAssistant = () => {
 
     setConnectionStatus('connecting');
     setIsLoading(true);
+
+    // ✅ FASE 1: Extraer conocimiento del mensaje del usuario automáticamente
+    await extractKnowledge(content.trim());
 
     // Add user message to local state
     const userMessage: IntelligentMessage = {
