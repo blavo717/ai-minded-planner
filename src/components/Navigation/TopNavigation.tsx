@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import ThemeToggle from '@/components/ui/theme-toggle';
 import IntelligentAIAssistantPanel from '@/components/ai/IntelligentAIAssistantPanel';
+import AIAssistantBadge from '@/components/Navigation/AIAssistantBadge';
+import { useReminderBadge } from '@/hooks/useReminderBadge';
 
 const TopNavigation = () => {
   const { user, signOut } = useAuth();
@@ -26,6 +28,14 @@ const TopNavigation = () => {
   const location = useLocation();
   const [showAIPopup, setShowAIPopup] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Hook para manejo del badge de recordatorios
+  const { 
+    reminderCount, 
+    urgentCount, 
+    hasReminders, 
+    markRemindersAsRead 
+  } = useReminderBadge();
 
   const isActive = (href: string) => {
     if (href === '/') {
@@ -67,6 +77,26 @@ const TopNavigation = () => {
     },
   ];
 
+  // Escuchar evento custom para abrir asistente desde notificaciones
+  useEffect(() => {
+    const handleOpenAIAssistant = (event: CustomEvent) => {
+      setShowAIPopup(true);
+      if (hasReminders) {
+        markRemindersAsRead();
+      }
+    };
+
+    window.addEventListener('openAIAssistant', handleOpenAIAssistant as EventListener);
+    return () => window.removeEventListener('openAIAssistant', handleOpenAIAssistant as EventListener);
+  }, [hasReminders, markRemindersAsRead]);
+
+  const handleAIButtonClick = () => {
+    setShowAIPopup(true);
+    if (hasReminders) {
+      markRemindersAsRead();
+    }
+  };
+
   return (
     <>
       <nav className="bg-card border-b border-border sticky top-0 z-40">
@@ -107,16 +137,8 @@ const TopNavigation = () => {
               
               <ThemeToggle />
               
-              {/* AI Assistant */}
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowAIPopup(true)}
-                className="bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-700"
-              >
-                <Brain className="h-4 w-4 text-purple-600" />
-                <span className="hidden sm:ml-2 sm:inline text-purple-700 dark:text-purple-300">IA</span>
-              </Button>
+              {/* AI Assistant con Badge de Notificaciones */}
+              <AIAssistantBadge onClick={handleAIButtonClick} />
               
               {/* Logout - hidden on mobile */}
               <Button 

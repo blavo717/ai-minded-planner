@@ -25,10 +25,13 @@ import {
   TrendingUp,
   RefreshCw,
   Sparkles,
-  Keyboard
+  Keyboard,
+  Bell,
+  CalendarClock
 } from 'lucide-react';
 import { useIntelligentAIAssistant } from '@/hooks/ai/useIntelligentAIAssistant';
 import ProactiveAlert from '@/components/ai/assistant/ProactiveAlert';
+import { useReminderBadge } from '@/hooks/useReminderBadge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -98,6 +101,14 @@ const IntelligentAIAssistantPanel = memo(() => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Hook para manejar recordatorios pendientes
+  const { 
+    reminderCount, 
+    hasReminders, 
+    lastReminder,
+    markRemindersAsRead 
+  } = useReminderBadge();
 
   // ✅ CHECKPOINT 3.3: Sugerencias de preguntas comunes
   const suggestions = [
@@ -307,6 +318,36 @@ const IntelligentAIAssistantPanel = memo(() => {
       <CardContent className="flex-1 flex flex-col p-0 min-h-0">
         <ScrollArea className="flex-1 px-2">
           <div className="space-y-3 py-2">
+            {/* Mostrar recordatorios pendientes si los hay */}
+            {hasReminders && (
+              <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-900/20 animate-fade-in">
+                <Bell className="h-4 w-4 text-orange-600" />
+                <AlertDescription>
+                  <div className="space-y-2">
+                    <p className="text-orange-800 dark:text-orange-200 font-medium">
+                      ⏰ Tienes {reminderCount} recordatorio{reminderCount > 1 ? 's' : ''} pendiente{reminderCount > 1 ? 's' : ''}
+                    </p>
+                    {lastReminder && (
+                      <div className="bg-white dark:bg-gray-800 rounded p-2 border">
+                        <p className="text-sm font-medium">{lastReminder.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Programado para las {format(new Date(lastReminder.scheduled_for), 'HH:mm', { locale: es })}
+                        </p>
+                      </div>
+                    )}
+                    <Button 
+                      size="sm" 
+                      onClick={markRemindersAsRead}
+                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                    >
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Marcar como visto
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {messages.length === 0 ? (
               <div className="text-center py-6 space-y-2 animate-fade-in">
                 <div className="w-10 h-10 mx-auto bg-ai-primary-light rounded-full flex items-center justify-center transition-ai hover:scale-105 shadow-ai-sm">

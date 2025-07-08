@@ -58,12 +58,16 @@ export const useConversationPersistence = (conversationId: string) => {
   const loadConversation = useCallback((): PersistedMessage[] => {
     try {
       const stored = localStorage.getItem(storageKey);
-      if (!stored) return [];
+      if (!stored) {
+        console.log('📥 No hay conversación almacenada para cargar');
+        return [];
+      }
 
       const data: ConversationData = JSON.parse(stored);
       
       // Validar estructura de datos
       if (!data.messages || !Array.isArray(data.messages)) {
+        console.warn('📥 Estructura de datos inválida en localStorage');
         return [];
       }
 
@@ -73,10 +77,12 @@ export const useConversationPersistence = (conversationId: string) => {
         timestamp: new Date(msg.timestamp)
       }));
 
-      console.log(`📥 Conversación cargada: ${messages.length} mensajes`);
+      console.log(`📥 Conversación cargada exitosamente: ${messages.length} mensajes desde ${storageKey}`);
       return messages;
     } catch (error) {
-      console.warn('Error cargando conversación:', error);
+      console.warn('❌ Error cargando conversación:', error);
+      // Limpiar datos corruptos
+      localStorage.removeItem(storageKey);
       return [];
     }
   }, [storageKey]);
@@ -100,7 +106,10 @@ export const useConversationPersistence = (conversationId: string) => {
     // Throttle: solo guardar si han pasado al menos 500ms desde el último guardado
     const now = Date.now();
     if (now - lastSaveRef.current >= 500) {
+      console.log(`💾 Auto-guardando ${messages.length} mensajes...`);
       saveConversation(messages);
+    } else {
+      console.log(`⏱️ Throttling auto-save (esperando ${500 - (now - lastSaveRef.current)}ms)`);
     }
   }, [saveConversation]);
 
