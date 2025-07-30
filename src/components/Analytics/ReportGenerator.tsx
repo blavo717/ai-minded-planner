@@ -11,7 +11,10 @@ const ReportGenerator = () => {
   const { 
     getReportHistory,
     generateReport,
-    isGenerating 
+    isGenerating,
+    generatePDF,
+    downloadPDF,
+    isPDFGenerating
   } = useGeneratedReports();
 
   const { data: reportHistory, isLoading } = getReportHistory();
@@ -76,6 +79,9 @@ const ReportGenerator = () => {
           <ReportHistoryList 
             reportHistory={reportHistory}
             isLoading={isLoading}
+            onGeneratePDF={generatePDF}
+            onDownloadPDF={downloadPDF}
+            isPDFGenerating={isPDFGenerating}
           />
         </CardContent>
       </Card>

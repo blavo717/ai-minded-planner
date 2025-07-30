@@ -3,18 +3,19 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Download, FileText, BarChart3, Clock } from 'lucide-react';
+import { Calendar, Download, FileText, BarChart3, Clock, File, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { GeneratedReport } from '@/hooks/useGeneratedReports';
-import { exportReportAsJSON } from '@/utils/reportExport';
-
 interface ReportHistoryListProps {
   reportHistory: GeneratedReport[] | undefined;
   isLoading: boolean;
+  onGeneratePDF: (reportId: string) => Promise<string | null>;
+  onDownloadPDF: (reportId: string) => void;
+  isPDFGenerating: boolean;
 }
 
-const ReportHistoryList = ({ reportHistory, isLoading }: ReportHistoryListProps) => {
+const ReportHistoryList = ({ reportHistory, isLoading, onGeneratePDF, onDownloadPDF, isPDFGenerating }: ReportHistoryListProps) => {
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -83,14 +84,33 @@ const ReportHistoryList = ({ reportHistory, isLoading }: ReportHistoryListProps)
               </p>
             </div>
             
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => exportReportAsJSON(report)}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
+            <div className="flex gap-2">
+              {report.file_url ? (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => onDownloadPDF(report.id)}
+                  disabled={isPDFGenerating}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Descargar PDF
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => onGeneratePDF(report.id)}
+                  disabled={isPDFGenerating}
+                >
+                  {isPDFGenerating ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <File className="h-4 w-4 mr-2" />
+                  )}
+                  {isPDFGenerating ? 'Generando...' : 'Generar PDF'}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       ))}
