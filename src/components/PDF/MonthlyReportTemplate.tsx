@@ -149,6 +149,13 @@ const monthlyStyles = StyleSheet.create({
   trendStable: {
     color: pdfColors.textSecondary,
   },
+  noDataText: {
+    fontSize: 12,
+    color: pdfColors.textSecondary,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    padding: '20px 0',
+  },
   comparisonBox: {
     backgroundColor: pdfColors.gray50,
     borderRadius: 6,
@@ -367,6 +374,25 @@ export const MonthlyReportTemplate: React.FC<MonthlyReportTemplateProps> = ({
             />
           ) : (
             <Text style={pdfTheme.bodySecondary}>No hay proyectos registrados en este período.</Text>
+          )}
+        </PDFSection>
+
+        {/* Tareas del período */}
+        <PDFSection title="Tareas del Período">
+          {(!data.tasks || !Array.isArray(data.tasks) || data.tasks.length === 0) ? (
+            <Text style={monthlyStyles.noDataText}>
+              No hay tareas disponibles para mostrar en este período
+            </Text>
+          ) : (
+            <PDFTable 
+              headers={['Tarea', 'Estado', 'Prioridad', 'Proyecto']}
+              rows={data.tasks.slice(0, 20).map(task => [
+                task.title || 'Sin título',
+                task.status || 'Sin estado',
+                task.priority || 'Sin prioridad',
+                task.project_name || 'Sin proyecto'
+              ])}
+            />
           )}
         </PDFSection>
 

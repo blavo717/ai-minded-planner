@@ -115,6 +115,21 @@ export interface ComprehensiveReportData {
     };
   };
   
+  // Tareas consolidadas para el template
+  tasks?: Array<{
+    id: string;
+    title: string;
+    status: string;
+    priority: string;
+    project_name?: string;
+    project_id?: string;
+    completed_at?: string;
+    actual_duration?: number;
+    estimated_duration?: number;
+    created_at?: string;
+    updated_at?: string;
+  }>;
+  
   // Period comparison (for monthly reports)
   comparison?: {
     previousPeriod: {
@@ -186,6 +201,15 @@ export class ComprehensiveReportDataService {
       ? await this.generateComparison(period, periodData)
       : undefined;
 
+    // Consolidar todas las tareas con información completa
+    const allConsolidatedTasks = this.consolidateAllTasks(allTasks, allProjects);
+    
+    console.log('📊 Tareas consolidadas en reporte:', {
+      totalTasks: allConsolidatedTasks.length,
+      periodTasks: periodTasks.length,
+      projects: projects.length
+    });
+
     return {
       period: {
         start: period.start.toISOString(),
@@ -195,6 +219,7 @@ export class ComprehensiveReportDataService {
       currentState,
       periodData,
       projects,
+      tasks: allConsolidatedTasks, // ✅ AGREGAR TASKS AL NIVEL RAÍZ
       taskHierarchy,
       sessions: this.enrichSessions(periodSessions, allTasks),
       insights,
@@ -435,6 +460,27 @@ export class ComprehensiveReportDataService {
     return tasksWithEstimates.reduce((sum, t) => 
       sum + (t.estimated_duration! / Math.max(t.actual_duration!, 1)), 0
     ) / tasksWithEstimates.length * 100;
+  }
+
+  /**
+   * Consolida todas las tareas con información completa del proyecto
+   */
+  private consolidateAllTasks(allTasks: any[], allProjects: any[]) {
+    const projectMap = new Map(allProjects.map(p => [p.id, p]));
+    
+    return allTasks.map(task => ({
+      id: task.id,
+      title: task.title || 'Sin título',
+      status: task.status || 'pending',
+      priority: task.priority || 'medium',
+      project_name: projectMap.get(task.project_id)?.name || 'Sin proyecto',
+      project_id: task.project_id,
+      completed_at: task.completed_at,
+      actual_duration: task.actual_duration,
+      estimated_duration: task.estimated_duration,
+      created_at: task.created_at,
+      updated_at: task.updated_at
+    }));
   }
 
   private enrichSessions(sessions: any[], tasks: any[]): WorkSession[] {

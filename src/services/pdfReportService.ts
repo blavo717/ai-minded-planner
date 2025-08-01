@@ -169,25 +169,16 @@ class PDFReportService {
     } else {
       console.log('📅 Generando template mensual...');
       
-      // Consolidar todas las tareas de todos los proyectos
-      const allTasks: any[] = [];
-      if (Array.isArray(reportData.report_data?.projects)) {
-        reportData.report_data.projects.forEach((project: any) => {
-          if (Array.isArray(project.allTasks)) {
-            project.allTasks.forEach((task: any) => {
-              allTasks.push({
-                ...task,
-                project_name: project.name,
-                project_id: project.id
-              });
-            });
-          }
-        });
-      }
+      // Usar las tareas ya consolidadas del servicio o generar fallback
+      const allTasks = Array.isArray(reportData.report_data?.tasks) 
+        ? reportData.report_data.tasks 
+        : this.extractTasksFromProjects(reportData.report_data?.projects || []);
 
-      console.log('📊 Tareas consolidadas:', {
+      console.log('📊 Tareas para PDF mensual:', {
         totalTasks: allTasks.length,
-        projectsCount: reportData.report_data?.projects?.length || 0
+        projectsCount: reportData.report_data?.projects?.length || 0,
+        hasDirectTasks: Array.isArray(reportData.report_data?.tasks),
+        tasksSource: Array.isArray(reportData.report_data?.tasks) ? 'direct' : 'extracted'
       });
       
       // Validar y preparar arrays de forma segura
@@ -453,6 +444,27 @@ class PDFReportService {
       console.error('Error downloading PDF:', error);
       throw new Error('Failed to download PDF');
     }
+  }
+
+  /**
+   * Extrae tareas de los proyectos como fallback
+   */
+  private extractTasksFromProjects(projects: any[]): any[] {
+    const tasks: any[] = [];
+    if (Array.isArray(projects)) {
+      projects.forEach((project: any) => {
+        if (Array.isArray(project.allTasks)) {
+          project.allTasks.forEach((task: any) => {
+            tasks.push({
+              ...task,
+              project_name: project.name,
+              project_id: project.id
+            });
+          });
+        }
+      });
+    }
+    return tasks;
   }
 }
 
