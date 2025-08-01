@@ -134,12 +134,11 @@ class PDFReportService {
 
       // FASE 6: Generar PDF con datos validados
       console.log('🎯 FASE 6: Iniciando generación de PDF...');
-      const blob = await pdf(
-        React.createElement(MonthlyReportTemplate, {
-          data: monthlyData,
-          brandConfig: { companyName: this.config.title }
-        })
-      ).toBlob();
+      const pdfElement = React.createElement(MonthlyReportTemplate, {
+        data: monthlyData,
+        brandConfig: { companyName: this.config.title }
+      });
+      const blob = await pdf(pdfElement as any).toBlob();
       
       const filename = `reporte-mensual-${startDate.toISOString().split('T')[0]}-${endDate.toISOString().split('T')[0]}.pdf`;
       
@@ -166,12 +165,32 @@ class PDFReportService {
       const comprehensiveService = new ComprehensiveReportDataService(userId);
       const comprehensiveData = await comprehensiveService.generateComprehensiveReport('weekly');
 
-      const blob = await pdf(
-        React.createElement(WeeklyReportTemplate, {
-          data: comprehensiveData,
-          brandConfig: { companyName: this.config.title }
-        })
-      ).toBlob();
+      // Map comprehensive data to weekly format
+      const weeklyData = {
+        period_start: startDate.toISOString(),
+        period_end: endDate.toISOString(),
+        metrics: {
+          tasksCompleted: comprehensiveData?.periodData?.tasksCompleted || 0,
+          tasksCreated: comprehensiveData?.periodData?.tasksCreated || 0,
+          timeWorked: comprehensiveData?.periodData?.timeWorked || 0,
+          productivity: comprehensiveData?.periodData?.avgProductivity || 0,
+          completionRate: comprehensiveData?.insights?.completionRate || 0,
+          averageTaskDuration: comprehensiveData?.insights?.avgTaskDuration || 0,
+        },
+        tasks: comprehensiveData?.tasks || [],
+        insights: {
+          mostProductiveDay: comprehensiveData?.insights?.mostProductiveProject || 'Lunes',
+          mostProductiveHour: '10:00 AM',
+          commonTags: [],
+          recommendations: [],
+        },
+      };
+
+      const pdfElement = React.createElement(WeeklyReportTemplate, {
+        data: weeklyData,
+        brandConfig: { companyName: this.config.title }
+      });
+      const blob = await pdf(pdfElement as any).toBlob();
       const filename = `reporte-semanal-${startDate.toISOString().split('T')[0]}-${endDate.toISOString().split('T')[0]}.pdf`;
       
       return {
