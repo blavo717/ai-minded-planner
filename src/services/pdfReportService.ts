@@ -2,6 +2,7 @@ import React from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { pdf } from '@react-pdf/renderer';
 import { MonthlyReportTemplate } from '@/components/PDF/MonthlyReportTemplate';
+import { EnhancedMonthlyReportTemplate } from '@/components/PDF/EnhancedMonthlyReportTemplate';
 import { WeeklyReportTemplate } from '@/components/PDF/WeeklyReportTemplate';
 import { ComprehensiveReportDataService } from './comprehensiveReportDataService';
 import { MonthlyReportData, PDFGenerationResult, TaskData } from '@/types/reportTypes';
@@ -13,6 +14,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export interface PDFReportConfig {
   title: string;
   period: { start: Date; end: Date };
+  primaryColor?: string;
   branding: { 
     logo?: string; 
     colors: { 
@@ -132,11 +134,15 @@ class PDFReportService {
         }
       });
 
-      // FASE 6: Generar PDF con datos validados
-      console.log('🎯 FASE 6: Iniciando generación de PDF...');
-      const pdfElement = React.createElement(MonthlyReportTemplate, {
+      // FASE 6: Generar PDF con plantilla profesional mejorada
+      console.log('🎯 FASE 6: Iniciando generación de PDF profesional...');
+      const pdfElement = React.createElement(EnhancedMonthlyReportTemplate, {
         data: monthlyData,
-        brandConfig: { companyName: this.config.title }
+        brandConfig: { 
+          companyName: this.config.title,
+          primaryColor: this.config.primaryColor,
+          colors: this.config.branding.colors
+        }
       });
       const blob = await pdf(pdfElement as any).toBlob();
       
@@ -332,4 +338,5 @@ class PDFReportService {
   }
 }
 
+export { PDFReportService };
 export default PDFReportService;
