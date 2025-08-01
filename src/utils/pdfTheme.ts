@@ -1,54 +1,111 @@
 import { StyleSheet } from '@react-pdf/renderer';
 
-// Paleta de colores del sistema
+// Paleta de colores profesional
 export const pdfColors = {
-  primary: '#3B82F6',
-  primaryLight: '#60A5FA',
-  primaryDark: '#1D4ED8',
-  secondary: '#10B981',
-  secondaryLight: '#34D399',
-  warning: '#F59E0B',
-  danger: '#EF4444',
+  // Colores principales profesionales
+  primary: '#1E40AF',
+  primaryLight: '#3B82F6',
+  primaryDark: '#1E3A8A',
+  primaryGradient: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
   
-  // Grises
-  gray50: '#F9FAFB',
-  gray100: '#F3F4F6',
-  gray200: '#E5E7EB',
-  gray300: '#D1D5DB',
-  gray400: '#9CA3AF',
-  gray500: '#6B7280',
-  gray600: '#4B5563',
-  gray700: '#374151',
-  gray800: '#1F2937',
-  gray900: '#111827',
+  secondary: '#059669',
+  secondaryLight: '#10B981',
+  secondaryDark: '#047857',
   
-  // Fondo y texto
+  accent: '#7C3AED',
+  accentLight: '#8B5CF6',
+  
+  warning: '#D97706',
+  warningLight: '#F59E0B',
+  danger: '#DC2626',
+  dangerLight: '#EF4444',
+  
+  success: '#059669',
+  successLight: '#10B981',
+  
+  // Grises profesionales con mejor contraste
+  gray25: '#FCFCFD',
+  gray50: '#F8FAFC',
+  gray100: '#F1F5F9',
+  gray200: '#E2E8F0',
+  gray300: '#CBD5E1',
+  gray400: '#94A3B8',
+  gray500: '#64748B',
+  gray600: '#475569',
+  gray700: '#334155',
+  gray800: '#1E293B',
+  gray900: '#0F172A',
+  
+  // Fondos y superficies
   background: '#FFFFFF',
-  text: '#1F2937',
-  textSecondary: '#6B7280',
-  textMuted: '#9CA3AF',
+  backgroundSecondary: '#F8FAFC',
+  surface: '#FFFFFF',
+  surfaceSecondary: '#F1F5F9',
+  
+  // Texto con mejor jerarquía
+  text: '#0F172A',
+  textSecondary: '#475569',
+  textMuted: '#64748B',
+  textDisabled: '#94A3B8',
+  
+  // Bordes profesionales
+  border: '#E2E8F0',
+  borderLight: '#F1F5F9',
+  borderStrong: '#CBD5E1',
+  
+  // Sombras y efectos
+  shadow: 'rgba(15, 23, 42, 0.1)',
+  shadowMedium: 'rgba(15, 23, 42, 0.15)',
+  shadowStrong: 'rgba(15, 23, 42, 0.25)',
 };
 
-// Tipografías
+// Tipografías profesionales mejoradas
 export const pdfFonts = {
-  h1: { fontSize: 24, fontWeight: 'bold' },
-  h2: { fontSize: 20, fontWeight: 'bold' },
-  h3: { fontSize: 16, fontWeight: 'bold' },
-  h4: { fontSize: 14, fontWeight: 'bold' },
-  body: { fontSize: 11 },
-  bodySmall: { fontSize: 9 },
-  caption: { fontSize: 8 },
+  // Títulos principales
+  display: { fontSize: 32, fontWeight: 'bold', letterSpacing: -0.5 },
+  h1: { fontSize: 28, fontWeight: 'bold', letterSpacing: -0.25 },
+  h2: { fontSize: 24, fontWeight: 'bold', letterSpacing: -0.1 },
+  h3: { fontSize: 20, fontWeight: 'bold' },
+  h4: { fontSize: 16, fontWeight: 'bold' },
+  h5: { fontSize: 14, fontWeight: 'bold' },
+  
+  // Cuerpo de texto
+  bodyLarge: { fontSize: 14, lineHeight: 1.6 },
+  body: { fontSize: 12, lineHeight: 1.5 },
+  bodySmall: { fontSize: 10, lineHeight: 1.4 },
+  caption: { fontSize: 9, lineHeight: 1.3 },
+  overline: { fontSize: 8, fontWeight: 'bold', letterSpacing: 1 },
+  
+  // Texto especializado
+  metric: { fontSize: 24, fontWeight: 'bold' },
+  metricLarge: { fontSize: 32, fontWeight: 'bold' },
+  metricSmall: { fontSize: 18, fontWeight: 'bold' },
+  label: { fontSize: 10, fontWeight: 'bold', letterSpacing: 0.5 },
 };
 
-// Espaciados
+// Sistema de espaciado profesional
 export const pdfSpacing = {
+  xxs: 2,
   xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
-  xxxl: 32,
+  sm: 6,
+  md: 8,
+  lg: 12,
+  xl: 16,
+  xxl: 20,
+  xxxl: 24,
+  xxxxl: 32,
+  xxxxxl: 40,
+  
+  // Espaciados específicos
+  sectionGap: 24,
+  componentGap: 16,
+  elementGap: 8,
+  inlineGap: 4,
+  
+  // Padding específicos
+  pagePadding: 40,
+  cardPadding: 16,
+  cellPadding: 8,
 };
 
 // Estilos base del tema
