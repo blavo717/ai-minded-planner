@@ -1,10 +1,9 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { GeneratedReport } from '@/hooks/useGeneratedReports';
+import { ComprehensiveReportDataService } from '@/services/comprehensiveReportDataService';
 
 export const useReportGeneration = () => {
   const { user } = useAuth();
@@ -15,120 +14,158 @@ export const useReportGeneration = () => {
     mutationFn: async (type: 'weekly' | 'monthly') => {
       if (!user) throw new Error('User not authenticated');
 
-      console.log(`🔄 Generando reporte ${type} para usuario:`, user.id);
+      console.log(`🔄 Generando reporte comprehensivo ${type} para usuario:`, user.id);
 
-      const now = new Date();
-      let startDate: Date;
-      let endDate: Date;
+      // Use comprehensive service to get real data
+      const reportService = new ComprehensiveReportDataService(user.id);
+      const comprehensiveData = await reportService.generateComprehensiveReport(type);
 
-      if (type === 'weekly') {
-        startDate = startOfWeek(subWeeks(now, 1));
-        endDate = endOfWeek(subWeeks(now, 1));
-      } else {
-        startDate = startOfMonth(subMonths(now, 1));
-        endDate = endOfMonth(subMonths(now, 1));
-      }
+      console.log('📊 Datos comprehensivos obtenidos:', {
+        proyectosActivos: comprehensiveData.currentState.activeProjects,
+        tareasTotales: comprehensiveData.currentState.totalTasks,
+        tareasCompletadasPeriodo: comprehensiveData.periodData.tasksCompleted,
+        tiempoTrabajado: comprehensiveData.periodData.timeWorked,
+        proyectosAnalizados: comprehensiveData.projects.length
+      });
 
-      console.log(`📅 Período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
-
-      // Obtener datos para el reporte
-      const { data: tasks, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (tasksError) {
-        console.error('❌ Error obteniendo tareas:', tasksError);
-        throw tasksError;
-      }
-
-      console.log(`📋 Total tareas encontradas: ${tasks?.length || 0}`);
-
-      const { data: sessions, error: sessionsError } = await supabase
-        .from('task_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('started_at', startDate.toISOString())
-        .lte('started_at', endDate.toISOString());
-
-      if (sessionsError) {
-        console.error('❌ Error obteniendo sesiones:', sessionsError);
-        throw sessionsError;
-      }
-
-      console.log(`⏱️ Total sesiones encontradas: ${sessions?.length || 0}`);
-
-      const completedTasks = (tasks || []).filter(task => 
-        task.status === 'completed' && 
-        task.completed_at &&
-        new Date(task.completed_at) >= startDate &&
-        new Date(task.completed_at) <= endDate
-      );
-
-      console.log(`✅ Tareas completadas en período: ${completedTasks.length}`);
-
-      const totalWorkTime = (sessions || []).reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
-      const avgProductivity = sessions && sessions.length > 0 
-        ? sessions.reduce((sum, s) => sum + (s.productivity_score || 0), 0) / sessions.length
-        : 0;
-
-      const tasksWithEstimate = completedTasks.filter(t => t.estimated_duration && t.actual_duration);
-      const efficiency = tasksWithEstimate.length > 0 
-        ? tasksWithEstimate.reduce((sum, t) => sum + (t.estimated_duration! / Math.max(t.actual_duration!, 1)), 0) / tasksWithEstimate.length * 100
-        : 100;
-
-      const projectsInPeriod = [...new Set(completedTasks.map(t => t.project_id).filter(Boolean))];
-
+      // Transform comprehensive data to JSON-compatible report format
       const reportData = {
         report_type: type,
-        tasks: completedTasks,
-        sessions: sessions || [],
-        projects: projectsInPeriod,
-        period: { 
-          start: startDate.toISOString(), 
-          end: endDate.toISOString() 
+        
+        // Current state for context
+        currentState: comprehensiveData.currentState,
+        
+        // Real projects with serializable data
+        projects: comprehensiveData.projects.map(project => ({
+          id: project.id,
+          name: project.name,
+          status: project.status,
+          progress: project.progress,
+          totalTasks: project.totalTasks,
+          completedTasks: project.completedTasks,
+          completionRate: project.completionRate,
+          timeSpent: project.timeSpent,
+          efficiency: project.efficiency,
+          mainTasksCount: project.mainTasks.length,
+          allTasksCount: project.allTasks.length
+        })),
+        
+        // Tasks data simplified for JSON
+        tasksData: {
+          totalInPeriod: comprehensiveData.taskHierarchy.length,
+          mainTasks: comprehensiveData.taskHierarchy.filter(t => t.level === 1).length,
+          subtasks: comprehensiveData.taskHierarchy.filter(t => t.level === 2).length,
+          microtasks: comprehensiveData.taskHierarchy.filter(t => t.level === 3).length
         },
+        
+        // Sessions summary
+        sessionsData: {
+          total: comprehensiveData.sessions.length,
+          withTasks: comprehensiveData.sessions.filter(s => s.task_id).length,
+          totalDuration: comprehensiveData.sessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0)
+        },
+        
+        // Period info
+        period: comprehensiveData.period,
+        
+        // Summary metrics
         summary: {
-          tasksCompleted: completedTasks.length,
-          totalWorkTime,
-          avgProductivity,
-          efficiency,
-          projectsWorked: projectsInPeriod.length
+          tasksCompleted: comprehensiveData.periodData.tasksCompleted,
+          tasksCreated: comprehensiveData.periodData.tasksCreated,
+          totalWorkTime: comprehensiveData.periodData.timeWorked,
+          avgProductivity: comprehensiveData.periodData.avgProductivity,
+          efficiency: comprehensiveData.insights.efficiency,
+          projectsWorked: comprehensiveData.periodData.projectsWorkedOn,
+          completionRate: comprehensiveData.insights.completionRate
         },
+        
+        // Enhanced insights
         insights: [
-          `Completaste ${completedTasks.length} tareas en este período`,
-          `Tu productividad promedio fue de ${avgProductivity.toFixed(1)}/5`,
-          `Trabajaste un total de ${Math.round(totalWorkTime / 60)} horas`,
-          `Trabajaste en ${projectsInPeriod.length} proyectos diferentes`
+          `Completaste ${comprehensiveData.periodData.tasksCompleted} tareas en este período`,
+          `Estado actual: ${comprehensiveData.currentState.activeProjects} proyectos activos con ${comprehensiveData.currentState.totalTasks} tareas`,
+          `Tiempo trabajado: ${Math.round(comprehensiveData.periodData.timeWorked / 60)} horas en ${comprehensiveData.periodData.sessionsCount} sesiones`,
+          `Productividad promedio: ${comprehensiveData.periodData.avgProductivity.toFixed(1)}/5`,
+          comprehensiveData.insights.mostProductiveProject 
+            ? `Proyecto más productivo: ${comprehensiveData.insights.mostProductiveProject}`
+            : 'Enfoque distribuido entre proyectos',
+          `Tasa de completación: ${comprehensiveData.insights.completionRate.toFixed(1)}%`,
+          `Eficiencia temporal: ${comprehensiveData.insights.efficiency.toFixed(1)}%`
         ],
+        
+        // Smart recommendations based on real data
         recommendations: [
-          completedTasks.length > 10 ? 'Excelente ritmo de trabajo' : 'Considera incrementar el número de tareas completadas',
-          avgProductivity > 3 ? 'Mantén este nivel de productividad' : 'Busca optimizar tu productividad',
-          efficiency > 90 ? 'Tu estimación de tiempos es muy precisa' : 'Mejora la estimación de duración de tareas'
-        ]
+          comprehensiveData.currentState.pendingTasks > 20 
+            ? 'Considera priorizar y organizar las tareas pendientes'
+            : 'Buen control de tareas pendientes',
+          comprehensiveData.currentState.overdueTasksTotal > 0
+            ? `Atención: ${comprehensiveData.currentState.overdueTasksTotal} tareas vencidas requieren seguimiento`
+            : 'Excelente gestión de plazos',
+          comprehensiveData.periodData.avgProductivity > 3
+            ? 'Mantén este nivel de productividad'
+            : 'Busca optimizar tu productividad en las sesiones de trabajo',
+          comprehensiveData.insights.efficiency > 90
+            ? 'Tu estimación de tiempos es muy precisa'
+            : 'Mejora la estimación de duración de tareas',
+          comprehensiveData.insights.trends.hoursPerDay > 6
+            ? 'Buen volumen de trabajo diario'
+            : 'Considera incrementar las horas de trabajo enfocado'
+        ],
+
+        // Monthly-specific data
+        ...(type === 'monthly' && {
+          weeklyBreakdown: comprehensiveData.projects.map((project, index) => ({
+            week: index + 1,
+            tasksCompleted: Math.floor(project.completedTasks / 4),
+            timeSpent: Math.floor(project.timeSpent / 4),
+            productivity: comprehensiveData.periodData.avgProductivity
+          })),
+          trends: {
+            productivityTrend: comprehensiveData.insights.trends.productivityTrend,
+            timeEfficiency: comprehensiveData.insights.efficiency / 100,
+            bestWeek: 1,
+            improvements: [
+              comprehensiveData.insights.efficiency > 90 
+                ? 'Excelente precisión en estimaciones'
+                : 'Mejorar estimación de tiempos',
+              comprehensiveData.insights.completionRate > 80
+                ? 'Alta tasa de completación'
+                : 'Enfocar en completar tareas iniciadas',
+              'Mantener el momentum actual'
+            ]
+          },
+          comparison: comprehensiveData.comparison
+        })
       };
 
+      // Enhanced metrics for database
       const metrics = {
-        tasksCompleted: completedTasks.length,
-        productivity: avgProductivity,
-        timeWorked: totalWorkTime,
-        efficiency
+        tasksCompleted: comprehensiveData.periodData.tasksCompleted,
+        tasksCreated: comprehensiveData.periodData.tasksCreated,
+        productivity: comprehensiveData.periodData.avgProductivity,
+        timeWorked: comprehensiveData.periodData.timeWorked,
+        efficiency: comprehensiveData.insights.efficiency,
+        completionRate: comprehensiveData.insights.completionRate,
+        projectsActive: comprehensiveData.currentState.activeProjects,
+        projectsWorked: comprehensiveData.periodData.projectsWorkedOn
       };
 
       console.log('📊 Métricas calculadas:', metrics);
       console.log('📄 Datos del reporte preparados:', {
-        tasksCount: reportData.tasks.length,
-        sessionsCount: reportData.sessions.length,
-        projectsCount: reportData.projects.length
+        proyectos: reportData.projects.length,
+        tareasPeriodo: reportData.tasksData.totalInPeriod,
+        sesiones: reportData.sessionsData.total,
+        insights: reportData.insights.length,
+        recomendaciones: reportData.recommendations.length
       });
 
+      // Save to database
       const { data, error } = await supabase
         .from('generated_reports')
         .insert({
           user_id: user.id,
           report_type: type,
-          period_start: startDate.toISOString().split('T')[0],
-          period_end: endDate.toISOString().split('T')[0],
+          period_start: comprehensiveData.period.start.split('T')[0],
+          period_end: comprehensiveData.period.end.split('T')[0],
           report_data: reportData,
           metrics
         })
@@ -140,7 +177,7 @@ export const useReportGeneration = () => {
         throw error;
       }
 
-      console.log('✅ Reporte guardado exitosamente:', data.id);
+      console.log('✅ Reporte comprehensivo guardado exitosamente:', data.id);
       
       return {
         ...data,
@@ -151,11 +188,11 @@ export const useReportGeneration = () => {
       queryClient.invalidateQueries({ queryKey: ['generated-reports'] });
       toast({
         title: "Reporte generado exitosamente",
-        description: `Reporte ${report.report_type} guardado en el historial`,
+        description: `Reporte ${report.report_type} con datos completos guardado`,
       });
     },
     onError: (error) => {
-      console.error('Error generating report:', error);
+      console.error('Error generating comprehensive report:', error);
       toast({
         title: "Error al generar reporte",
         description: "No se pudo generar el reporte. Inténtalo de nuevo.",
