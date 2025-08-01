@@ -169,6 +169,27 @@ class PDFReportService {
     } else {
       console.log('📅 Generando template mensual...');
       
+      // Consolidar todas las tareas de todos los proyectos
+      const allTasks: any[] = [];
+      if (Array.isArray(reportData.report_data?.projects)) {
+        reportData.report_data.projects.forEach((project: any) => {
+          if (Array.isArray(project.allTasks)) {
+            project.allTasks.forEach((task: any) => {
+              allTasks.push({
+                ...task,
+                project_name: project.name,
+                project_id: project.id
+              });
+            });
+          }
+        });
+      }
+
+      console.log('📊 Tareas consolidadas:', {
+        totalTasks: allTasks.length,
+        projectsCount: reportData.report_data?.projects?.length || 0
+      });
+      
       // Validar y preparar arrays de forma segura
       const safeProjects = Array.isArray(reportData.report_data?.projects) ? reportData.report_data.projects : [];
       const safeWeeklyBreakdown = Array.isArray(reportData.report_data?.weeklyBreakdown) ? reportData.report_data.weeklyBreakdown : [];
@@ -177,7 +198,8 @@ class PDFReportService {
       console.log('📊 Arrays validados:', {
         projectsLength: safeProjects.length,
         weeklyBreakdownLength: safeWeeklyBreakdown.length,
-        improvementsLength: safeTrendsImprovements.length
+        improvementsLength: safeTrendsImprovements.length,
+        tasksCount: allTasks.length
       });
 
       // Para reportes mensuales, agregar datos adicionales con validación
@@ -189,7 +211,7 @@ class PDFReportService {
           projectsCompleted: reportData.report_data?.projects?.filter((p: any) => p?.status === 'completed').length || 0,
         },
         projects: safeProjects,
-        tasks: baseData.tasks, // Asegurar que tasks esté disponible
+        tasks: allTasks, // Tareas consolidadas de todos los proyectos
         weeklyBreakdown: safeWeeklyBreakdown,
         trends: {
           productivityTrend: reportData.report_data?.trends?.productivityTrend || 'stable' as const,

@@ -19,6 +19,15 @@ interface MonthlyReportData {
     projectsActive: number;
     projectsCompleted: number;
   };
+  tasks?: Array<{
+    id: string;
+    title: string;
+    status: string;
+    priority: string;
+    project_name?: string;
+    completed_at?: string;
+    actual_duration?: number;
+  }>;
   weeklyBreakdown?: Array<{
     week: number;
     tasksCompleted: number;
@@ -190,11 +199,12 @@ export const MonthlyReportTemplate: React.FC<MonthlyReportTemplateProps> = ({
   console.log('📊 MonthlyReportTemplate - Datos recibidos:', {
     hasProjects: !!data.projects,
     projectsLength: data.projects?.length || 0,
+    hasTasks: !!data.tasks,
+    tasksLength: data.tasks?.length || 0,
     hasWeeklyBreakdown: !!data.weeklyBreakdown,
-    weeklyLength: data.weeklyBreakdown?.length || 0,
+    weeklyBreakdownLength: data.weeklyBreakdown?.length || 0,
     hasTrends: !!data.trends,
-    hasImprovements: !!data.trends?.improvements,
-    improvementsLength: data.trends?.improvements?.length || 0,
+    hasComparison: !!data.comparison
   });
 
   // Preparar datos para tabla de proyectos con validación robusta
