@@ -314,27 +314,61 @@ class PDFReportService {
     userId: string
   ): Promise<PDFGenerationResult> {
     try {
+      console.log('📄 Iniciando generación de PDF:', {
+        reportType: reportData.report_type,
+        hasReportData: !!reportData.report_data,
+        hasMetrics: !!reportData.metrics,
+        period: `${reportData.period_start} - ${reportData.period_end}`,
+        userId
+      });
+
+      // Validar datos requeridos
+      if (!reportData.report_data || !reportData.metrics) {
+        console.error('❌ Datos de reporte incompletos:', {
+          hasReportData: !!reportData.report_data,
+          hasMetrics: !!reportData.metrics
+        });
+        throw new Error('Datos de reporte incompletos');
+      }
+
+      console.log('📊 Métricas del reporte:', reportData.metrics);
+      console.log('📋 Datos del reporte:', {
+        tasksCount: reportData.report_data?.tasks?.length || 0,
+        sessionsCount: reportData.report_data?.sessions?.length || 0,
+        hasInsights: !!reportData.report_data?.insights
+      });
+
       let pdfResult: PDFGenerationResult;
 
       if (reportData.report_type === 'weekly') {
+        console.log('📅 Generando PDF semanal...');
         pdfResult = await this.generateWeeklyPDF(reportData);
       } else {
+        console.log('📅 Generando PDF mensual...');
         pdfResult = await this.generateMonthlyPDF(reportData);
       }
 
+      console.log('✅ PDF generado:', {
+        filename: pdfResult.filename,
+        size: `${(pdfResult.size / 1024).toFixed(2)} KB`
+      });
+
       // Subir a Storage
+      console.log('☁️ Subiendo PDF a Supabase Storage...');
       const uploadUrl = await this.uploadPDFToStorage(
         pdfResult.blob, 
         pdfResult.filename, 
         userId
       );
 
+      console.log('✅ PDF subido exitosamente:', uploadUrl);
+
       return {
         ...pdfResult,
         uploadUrl,
       };
     } catch (error) {
-      console.error('Error in generateAndUploadPDF:', error);
+      console.error('❌ Error in generateAndUploadPDF:', error);
       throw error;
     }
   }
