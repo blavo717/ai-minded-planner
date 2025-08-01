@@ -4,70 +4,54 @@ import { format, startOfWeek, endOfWeek, eachWeekOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { PDFHeader, PDFSection, PDFMetricCard, PDFTable, PDFChart, PDFFooter } from './PDFComponents';
 import { pdfTheme, pdfColors } from '@/utils/pdfTheme';
+import { MonthlyReportData, BrandConfig, TaskData, ProjectData, DataValidationResult } from '@/types/reportTypes';
 
-// Interfaces
-interface MonthlyReportData {
-  period_start: string;
-  period_end: string;
-  metrics: {
-    tasksCompleted: number;
-    tasksCreated: number;
-    timeWorked: number; // en minutos
-    productivity: number; // 1-5
-    completionRate: number; // 0-100
-    averageTaskDuration: number; // en minutos
-    projectsActive: number;
-    projectsCompleted: number;
+// Función de validación de datos
+const validateReportData = (data: MonthlyReportData): DataValidationResult => {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Validaciones críticas
+  if (!data) {
+    errors.push('Datos del reporte no proporcionados');
+    return { isValid: false, errors, warnings };
+  }
+
+  if (!data.period_start || !data.period_end) {
+    errors.push('Período del reporte no definido');
+  }
+
+  if (!data.metrics) {
+    errors.push('Métricas del reporte no disponibles');
+  }
+
+  // Validaciones de advertencia
+  if (!data.tasks || !Array.isArray(data.tasks) || data.tasks.length === 0) {
+    warnings.push('No hay tareas disponibles para mostrar');
+  }
+
+  if (!data.projects || !Array.isArray(data.projects) || data.projects.length === 0) {
+    warnings.push('No hay proyectos disponibles para mostrar');
+  }
+
+  console.log('🔍 Validación de datos del reporte:', {
+    errores: errors.length,
+    advertencias: warnings.length,
+    tareas: data.tasks?.length || 0,
+    proyectos: data.projects?.length || 0,
+    métricas: !!data.metrics
+  });
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
   };
-  tasks?: Array<{
-    id: string;
-    title: string;
-    status: string;
-    priority: string;
-    project_name?: string;
-    completed_at?: string;
-    actual_duration?: number;
-  }>;
-  weeklyBreakdown?: Array<{
-    week: number;
-    tasksCompleted: number;
-    timeWorked: number;
-    productivity: number;
-  }>;
-  projects?: Array<{
-    id: string;
-    name: string;
-    status: string;
-    progress: number;
-    tasksTotal: number;
-    tasksCompleted: number;
-  }>;
-  trends?: {
-    productivityTrend: 'up' | 'down' | 'stable';
-    timeEfficiency: number;
-    bestWeek: number;
-    improvements: string[];
-  };
-  comparison?: {
-    previousMonth: {
-      tasksCompleted: number;
-      timeWorked: number;
-      productivity: number;
-    };
-    changePercentage: {
-      tasks: number;
-      time: number;
-      productivity: number;
-    };
-  };
-}
+};
 
 interface MonthlyReportTemplateProps {
   data: MonthlyReportData;
-  brandConfig?: {
-    companyName?: string;
-    logo?: string;
-  };
+  brandConfig?: BrandConfig;
 }
 
 // Estilos específicos del template mensual
@@ -190,6 +174,27 @@ export const MonthlyReportTemplate: React.FC<MonthlyReportTemplateProps> = ({
   data, 
   brandConfig = {} 
 }) => {
+  // FASE 5: Logging y validación robusto
+  const validation = validateReportData(data);
+  
+  console.log('📊 MonthlyReportTemplate - Iniciando generación:', {
+    datosRecibidos: !!data,
+    validación: validation,
+    período: data ? `${data.period_start} - ${data.period_end}` : 'No definido',
+    timestamp: new Date().toISOString()
+  });
+
+  // Si hay errores críticos, no podemos generar el PDF
+  if (!validation.isValid) {
+    console.error('❌ Errores críticos en datos del reporte:', validation.errors);
+    throw new Error(`No se puede generar el PDF: ${validation.errors.join(', ')}`);
+  }
+
+  // Log de advertencias pero continuar
+  if (validation.warnings.length > 0) {
+    console.warn('⚠️ Advertencias en datos del reporte:', validation.warnings);
+  }
+
   const periodStart = new Date(data.period_start);
   const periodEnd = new Date(data.period_end);
   const generatedDate = format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es });

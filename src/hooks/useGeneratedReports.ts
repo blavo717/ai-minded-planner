@@ -92,7 +92,12 @@ export const useGeneratedReports = () => {
       };
 
       // Generar y subir PDF
-      const pdfResult = await pdfService.generateAndUploadPDF(mappedReportData, user.id);
+      const pdfResult = await pdfService.generateAndUploadPDF(
+        report.report_type as 'weekly' | 'monthly',
+        user.id,
+        new Date(report.period_start),
+        new Date(report.period_end)
+      );
 
       // Actualizar registro con URL del PDF
       const { error: updateError } = await supabase

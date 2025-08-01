@@ -1,8 +1,14 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
-import { supabase } from '@/integrations/supabase/client';
-import { WeeklyReportTemplate } from '@/components/PDF/WeeklyReportTemplate';
+import { createClient } from '@supabase/supabase-js';
+import { pdf } from '@react-pdf/renderer';
 import { MonthlyReportTemplate } from '@/components/PDF/MonthlyReportTemplate';
+import { WeeklyReportTemplate } from '@/components/PDF/WeeklyReportTemplate';
+import { ComprehensiveReportDataService } from './comprehensiveReportDataService';
+import { MonthlyReportData, PDFGenerationResult, TaskData } from '@/types/reportTypes';
+
+const supabaseUrl = 'https://vkylcjrwhasymfjtqgqf.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZreWxjanJ3aGFzeW1manRxZ3FmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NDQwODIsImV4cCI6MjA2NjQyMDA4Mn0.JA4rbfSqVuHjUz1z-92jyJjAWLiBlm7S-PFZ7FjM3u0';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export interface PDFReportConfig {
   title: string;
@@ -16,13 +22,6 @@ export interface PDFReportConfig {
       background: string;
     } 
   };
-}
-
-export interface PDFGenerationResult {
-  blob: Blob;
-  filename: string;
-  size: number;
-  uploadUrl?: string;
 }
 
 export interface ReportData {
@@ -42,66 +41,9 @@ export interface ReportData {
   report_data: any;
 }
 
-// Estilos base para PDFs
-const styles = StyleSheet.create({
-  page: {
-    flexDirection: 'column',
-    backgroundColor: '#ffffff',
-    padding: 30,
-    fontFamily: 'Helvetica',
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#1a365d',
-  },
-  subheader: {
-    fontSize: 16,
-    marginBottom: 15,
-    color: '#2d3748',
-    fontWeight: 'bold',
-  },
-  text: {
-    fontSize: 12,
-    marginBottom: 10,
-    color: '#4a5568',
-    lineHeight: 1.5,
-  },
-  section: {
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: '#f7fafc',
-    borderRadius: 5,
-  },
-  metricRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  metricLabel: {
-    fontSize: 12,
-    color: '#718096',
-  },
-  metricValue: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#2d3748',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 30,
-    right: 30,
-    textAlign: 'center',
-    fontSize: 10,
-    color: '#a0aec0',
-  },
-});
-
 class PDFReportService {
   private config: PDFReportConfig;
+  private comprehensiveService: ComprehensiveReportDataService;
 
   constructor(config?: Partial<PDFReportConfig>) {
     this.config = {
@@ -117,193 +59,120 @@ class PDFReportService {
       },
       ...config,
     };
+    // El servicio comprehensivo se inicializa en cada método con el userId correcto
+    this.comprehensiveService = new ComprehensiveReportDataService('');
   }
 
-  // Crear documento usando templates profesionales con datos comprehensivos
-  private createDocumentFromTemplate(reportData: ReportData): React.ReactElement {
-    console.log('🔧 PDF Service - Creando documento desde template:', {
-      reportType: reportData.report_type,
-      hasMetrics: !!reportData.metrics,
-      hasReportData: !!reportData.report_data,
-      reportDataKeys: reportData.report_data ? Object.keys(reportData.report_data) : []
-    });
-
-    // Mapear datos comprehensivos a formato de template
-    const mappedMetrics = {
-      tasksCompleted: reportData.metrics.tasksCompleted || 0,
-      tasksCreated: reportData.metrics.tasksCreated || reportData.metrics.tasksCompleted,
-      timeWorked: reportData.metrics.timeWorked || 0,
-      productivity: reportData.metrics.productivity || 3,
-      completionRate: reportData.metrics.completionRate || 85,
-      averageTaskDuration: reportData.report_data?.summary?.totalWorkTime 
-        ? (reportData.report_data.summary.totalWorkTime / Math.max(reportData.metrics.tasksCompleted, 1))
-        : 60,
-    };
-
-    // Base data structure for both templates
-    const baseData = {
-      period_start: reportData.period_start,
-      period_end: reportData.period_end,
-      metrics: mappedMetrics,
-      
-      // Enhanced insights from comprehensive data
-      insights: {
-        mostProductiveDay: 'Lunes', // TODO: Calculate from real data
-        mostProductiveHour: '10:00 AM', // TODO: Calculate from real data
-        commonTags: [], // TODO: Extract from tasks
-        recommendations: reportData.report_data?.recommendations || []
-      },
-      
-      // Real tasks data simplified for templates
-      tasks: reportData.report_data?.projects?.flatMap((p: any) => p.allTasks || []).slice(0, 20) || [],
-    };
-
-    if (reportData.report_type === 'weekly') {
-      console.log('📅 Generando template semanal...');
-      return React.createElement(WeeklyReportTemplate, {
-        data: baseData,
-        brandConfig: {
-          companyName: this.config.title,
-        }
-      });
-    } else {
-      console.log('📅 Generando template mensual...');
-      
-      // Usar las tareas ya consolidadas del servicio o generar fallback
-      const allTasks = Array.isArray(reportData.report_data?.tasks) 
-        ? reportData.report_data.tasks 
-        : this.extractTasksFromProjects(reportData.report_data?.projects || []);
-
-      console.log('📊 Tareas para PDF mensual:', {
-        totalTasks: allTasks.length,
-        projectsCount: reportData.report_data?.projects?.length || 0,
-        hasDirectTasks: Array.isArray(reportData.report_data?.tasks),
-        tasksSource: Array.isArray(reportData.report_data?.tasks) ? 'direct' : 'extracted'
-      });
-      
-      // Validar y preparar arrays de forma segura
-      const safeProjects = Array.isArray(reportData.report_data?.projects) ? reportData.report_data.projects : [];
-      const safeWeeklyBreakdown = Array.isArray(reportData.report_data?.weeklyBreakdown) ? reportData.report_data.weeklyBreakdown : [];
-      const safeTrendsImprovements = Array.isArray(reportData.report_data?.trends?.improvements) ? reportData.report_data.trends.improvements : ['Mantener el ritmo actual'];
-
-      console.log('📊 Arrays validados:', {
-        projectsLength: safeProjects.length,
-        weeklyBreakdownLength: safeWeeklyBreakdown.length,
-        improvementsLength: safeTrendsImprovements.length,
-        tasksCount: allTasks.length
+  async generateMonthlyReport(userId: string, startDate: Date, endDate: Date): Promise<PDFGenerationResult> {
+    try {
+      console.log('🚀 FASE 5: Iniciando generación de reporte mensual');
+      console.log('👤 Usuario:', userId);
+      console.log('📅 Período:', { 
+        inicio: startDate.toISOString(), 
+        fin: endDate.toISOString(),
+        días: Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
       });
 
-      // Para reportes mensuales, agregar datos adicionales con validación
-      const monthlyData = {
-        ...baseData,
+      // FASE 5: Crear servicio con userId correcto y obtener datos comprehensivos
+      const comprehensiveService = new ComprehensiveReportDataService(userId);
+      const comprehensiveData = await comprehensiveService.generateComprehensiveReport('monthly');
+
+      console.log('📊 FASE 5: Validación de datos comprehensivos:', {
+        datosExisten: !!comprehensiveData,
+        proyectos: comprehensiveData?.projects?.length || 0,
+        sesiones: comprehensiveData?.sessions?.length || 0,
+        tareasConsolidadas: comprehensiveData?.tasks?.length || 0,
+        datosDelPeríodo: !!comprehensiveData?.periodData,
+        estadoActual: !!comprehensiveData?.currentState,
+        insights: !!comprehensiveData?.insights
+      });
+
+      // FASE 4: Mapeo de datos usando tipos unificados
+      const monthlyData: MonthlyReportData = {
+        period_start: startDate.toISOString(),
+        period_end: endDate.toISOString(),
         metrics: {
-          ...mappedMetrics,
-          projectsActive: reportData.report_data?.currentState?.activeProjects || 0,
-          projectsCompleted: reportData.report_data?.projects?.filter((p: any) => p?.status === 'completed').length || 0,
+          tasksCompleted: comprehensiveData?.periodData?.tasksCompleted || 0,
+          tasksCreated: comprehensiveData?.periodData?.tasksCreated || 0,
+          timeWorked: comprehensiveData?.periodData?.timeWorked || 0,
+          productivity: comprehensiveData?.periodData?.avgProductivity || 0,
+          completionRate: comprehensiveData?.insights?.completionRate || 0,
+          averageTaskDuration: comprehensiveData?.insights?.avgTaskDuration || 0,
+          projectsActive: comprehensiveData?.currentState?.activeProjects || 0,
+          projectsCompleted: comprehensiveData?.projects?.filter(p => p.status === 'completed').length || 0,
         },
-        projects: safeProjects,
-        tasks: allTasks, // Tareas consolidadas de todos los proyectos
-        weeklyBreakdown: safeWeeklyBreakdown,
+        // CRÍTICO: Usar tareas consolidadas directamente del service
+        tasks: comprehensiveData?.tasks || this.extractTasksFromProjects(comprehensiveData?.projects || []),
+        projects: comprehensiveData?.projects?.map(project => ({
+          id: project.id,
+          name: project.name,
+          status: project.status,
+          progress: project.progress,
+          tasksTotal: project.totalTasks,
+          tasksCompleted: project.completedTasks,
+        })) || [],
+        weeklyBreakdown: [], // TODO: Implementar si necesario
         trends: {
-          productivityTrend: reportData.report_data?.trends?.productivityTrend || 'stable' as const,
-          timeEfficiency: reportData.report_data?.trends?.timeEfficiency || 0.8,
-          bestWeek: reportData.report_data?.trends?.bestWeek || 1,
-          improvements: safeTrendsImprovements,
+          productivityTrend: comprehensiveData?.insights?.trends?.productivityTrend === 'increasing' ? 'up' :
+                           comprehensiveData?.insights?.trends?.productivityTrend === 'decreasing' ? 'down' : 'stable',
+          timeEfficiency: comprehensiveData?.insights?.efficiency || 0,
+          improvements: [], // TODO: Implementar si necesario
         },
-        comparison: reportData.report_data?.comparison || null,
       };
 
-      console.log('📊 Datos mensuales preparados:', {
-        hasProjects: monthlyData.projects.length > 0,
-        hasWeeklyBreakdown: monthlyData.weeklyBreakdown.length > 0,
-        hasImprovements: monthlyData.trends.improvements.length > 0,
-        hasComparison: !!monthlyData.comparison
-      });
-
-      return React.createElement(MonthlyReportTemplate, {
-        data: monthlyData,
-        brandConfig: {
-          companyName: this.config.title,
+      console.log('🔄 FASE 5: Datos finales mapeados:', {
+        tareas: monthlyData.tasks?.length || 0,
+        proyectos: monthlyData.projects?.length || 0,
+        métricas: monthlyData.metrics,
+        período: `${monthlyData.period_start} - ${monthlyData.period_end}`,
+        validación: {
+          tasksSonArray: Array.isArray(monthlyData.tasks),
+          projectsSonArray: Array.isArray(monthlyData.projects),
+          méticasCompletas: Object.keys(monthlyData.metrics).length
         }
       });
+
+      // FASE 6: Generar PDF con datos validados
+      console.log('🎯 FASE 6: Iniciando generación de PDF...');
+      const blob = await pdf(
+        React.createElement(MonthlyReportTemplate, {
+          data: monthlyData,
+          brandConfig: { companyName: this.config.title }
+        })
+      ).toBlob();
+      
+      const filename = `reporte-mensual-${startDate.toISOString().split('T')[0]}-${endDate.toISOString().split('T')[0]}.pdf`;
+      
+      console.log('✅ FASE 6: PDF generado exitosamente:', {
+        archivo: filename,
+        tamaño: `${(blob.size / 1024).toFixed(2)} KB`
+      });
+
+      return {
+        blob,
+        filename,
+        size: blob.size,
+      };
+    } catch (error) {
+      console.error('❌ FASE 6: Error generando reporte mensual:', error);
+      throw error;
     }
   }
 
-  // Crear documento PDF básico (método de respaldo)
-  private createBasicDocument(reportData: ReportData) {
-    const formatDate = (date: string) => new Date(date).toLocaleDateString('es-ES');
-    
-    return React.createElement(Document, null,
-      React.createElement(Page, { size: "A4", style: styles.page },
-        // Header
-        React.createElement(View, null,
-          React.createElement(Text, { style: styles.header },
-            `${this.config.title} - ${reportData.report_type === 'weekly' ? 'Semanal' : 'Mensual'}`
-          ),
-          React.createElement(Text, { style: styles.text },
-            `Período: ${formatDate(reportData.period_start)} - ${formatDate(reportData.period_end)}`
-          ),
-          React.createElement(Text, { style: styles.text },
-            `Generado el: ${new Date().toLocaleDateString('es-ES')}`
-          )
-        ),
-
-        // Métricas principales
-        React.createElement(View, { style: styles.section },
-          React.createElement(Text, { style: styles.subheader }, "Métricas Principales"),
-          
-          React.createElement(View, { style: styles.metricRow },
-            React.createElement(Text, { style: styles.metricLabel }, "Tareas Completadas:"),
-            React.createElement(Text, { style: styles.metricValue }, reportData.metrics.tasksCompleted.toString())
-          ),
-          
-          React.createElement(View, { style: styles.metricRow },
-            React.createElement(Text, { style: styles.metricLabel }, "Productividad Promedio:"),
-            React.createElement(Text, { style: styles.metricValue }, `${reportData.metrics.productivity.toFixed(1)}/5`)
-          ),
-          
-          React.createElement(View, { style: styles.metricRow },
-            React.createElement(Text, { style: styles.metricLabel }, "Tiempo Trabajado:"),
-            React.createElement(Text, { style: styles.metricValue }, `${Math.round(reportData.metrics.timeWorked / 60)}h`)
-          ),
-          
-          React.createElement(View, { style: styles.metricRow },
-            React.createElement(Text, { style: styles.metricLabel }, "Eficiencia:"),
-            React.createElement(Text, { style: styles.metricValue }, `${reportData.metrics.efficiency.toFixed(1)}%`)
-          )
-        ),
-
-        // Insights
-        reportData.report_data?.insights && React.createElement(View, { style: styles.section },
-          React.createElement(Text, { style: styles.subheader }, "Insights"),
-          ...(reportData.report_data.insights as string[]).map((insight: string, index: number) =>
-            React.createElement(Text, { key: index, style: styles.text }, `• ${insight}`)
-          )
-        ),
-
-        // Recomendaciones
-        reportData.report_data?.recommendations && React.createElement(View, { style: styles.section },
-          React.createElement(Text, { style: styles.subheader }, "Recomendaciones"),
-          ...(reportData.report_data.recommendations as string[]).map((rec: string, index: number) =>
-            React.createElement(Text, { key: index, style: styles.text }, `• ${rec}`)
-          )
-        ),
-
-        // Footer
-        React.createElement(Text, { style: styles.footer },
-          "Reporte generado automáticamente por el Sistema de Gestión de Tareas"
-        )
-      )
-    );
-  }
-
-  // Generar PDF semanal
-  async generateWeeklyPDF(reportData: ReportData): Promise<PDFGenerationResult> {
+  async generateWeeklyReport(userId: string, startDate: Date, endDate: Date): Promise<PDFGenerationResult> {
     try {
-      const document = this.createDocumentFromTemplate(reportData);
-      const blob = await pdf(document).toBlob();
-      
-      const filename = `reporte-semanal-${reportData.period_start}-${reportData.period_end}.pdf`;
+      console.log('🚀 Iniciando generación de reporte semanal para usuario:', userId);
+
+      const comprehensiveService = new ComprehensiveReportDataService(userId);
+      const comprehensiveData = await comprehensiveService.generateComprehensiveReport('weekly');
+
+      const blob = await pdf(
+        React.createElement(WeeklyReportTemplate, {
+          data: comprehensiveData,
+          brandConfig: { companyName: this.config.title }
+        })
+      ).toBlob();
+      const filename = `reporte-semanal-${startDate.toISOString().split('T')[0]}-${endDate.toISOString().split('T')[0]}.pdf`;
       
       return {
         blob,
@@ -311,31 +180,11 @@ class PDFReportService {
         size: blob.size,
       };
     } catch (error) {
-      console.error('Error generating weekly PDF:', error);
-      throw new Error('Failed to generate weekly PDF report');
+      console.error('Error generando reporte semanal:', error);
+      throw error;
     }
   }
 
-  // Generar PDF mensual
-  async generateMonthlyPDF(reportData: ReportData): Promise<PDFGenerationResult> {
-    try {
-      const document = this.createDocumentFromTemplate(reportData);
-      const blob = await pdf(document).toBlob();
-      
-      const filename = `reporte-mensual-${reportData.period_start}-${reportData.period_end}.pdf`;
-      
-      return {
-        blob,
-        filename,
-        size: blob.size,
-      };
-    } catch (error) {
-      console.error('Error generating monthly PDF:', error);
-      throw new Error('Failed to generate monthly PDF report');
-    }
-  }
-
-  // Subir PDF a Supabase Storage
   async uploadPDFToStorage(blob: Blob, filename: string, userId: string): Promise<string> {
     try {
       const filePath = `${userId}/${filename}`;
@@ -352,7 +201,6 @@ class PDFReportService {
         throw new Error(`Failed to upload PDF: ${error.message}`);
       }
 
-      // Obtener URL pública del archivo
       const { data: urlData } = supabase.storage
         .from('reports-pdf')
         .getPublicUrl(filePath);
@@ -364,72 +212,6 @@ class PDFReportService {
     }
   }
 
-  // Método principal para generar y subir PDF
-  async generateAndUploadPDF(
-    reportData: ReportData, 
-    userId: string
-  ): Promise<PDFGenerationResult> {
-    try {
-      console.log('📄 Iniciando generación de PDF:', {
-        reportType: reportData.report_type,
-        hasReportData: !!reportData.report_data,
-        hasMetrics: !!reportData.metrics,
-        period: `${reportData.period_start} - ${reportData.period_end}`,
-        userId
-      });
-
-      // Validar datos requeridos
-      if (!reportData.report_data || !reportData.metrics) {
-        console.error('❌ Datos de reporte incompletos:', {
-          hasReportData: !!reportData.report_data,
-          hasMetrics: !!reportData.metrics
-        });
-        throw new Error('Datos de reporte incompletos');
-      }
-
-      console.log('📊 Métricas del reporte:', reportData.metrics);
-      console.log('📋 Datos del reporte:', {
-        tasksCount: reportData.report_data?.tasks?.length || 0,
-        sessionsCount: reportData.report_data?.sessions?.length || 0,
-        hasInsights: !!reportData.report_data?.insights
-      });
-
-      let pdfResult: PDFGenerationResult;
-
-      if (reportData.report_type === 'weekly') {
-        console.log('📅 Generando PDF semanal...');
-        pdfResult = await this.generateWeeklyPDF(reportData);
-      } else {
-        console.log('📅 Generando PDF mensual...');
-        pdfResult = await this.generateMonthlyPDF(reportData);
-      }
-
-      console.log('✅ PDF generado:', {
-        filename: pdfResult.filename,
-        size: `${(pdfResult.size / 1024).toFixed(2)} KB`
-      });
-
-      // Subir a Storage
-      console.log('☁️ Subiendo PDF a Supabase Storage...');
-      const uploadUrl = await this.uploadPDFToStorage(
-        pdfResult.blob, 
-        pdfResult.filename, 
-        userId
-      );
-
-      console.log('✅ PDF subido exitosamente:', uploadUrl);
-
-      return {
-        ...pdfResult,
-        uploadUrl,
-      };
-    } catch (error) {
-      console.error('❌ Error in generateAndUploadPDF:', error);
-      throw error;
-    }
-  }
-
-  // Descargar PDF directamente
   async downloadPDF(blob: Blob, filename: string): Promise<void> {
     try {
       const url = URL.createObjectURL(blob);
@@ -446,25 +228,88 @@ class PDFReportService {
     }
   }
 
-  /**
-   * Extrae tareas de los proyectos como fallback
-   */
-  private extractTasksFromProjects(projects: any[]): any[] {
-    const tasks: any[] = [];
-    if (Array.isArray(projects)) {
-      projects.forEach((project: any) => {
-        if (Array.isArray(project.allTasks)) {
-          project.allTasks.forEach((task: any) => {
-            tasks.push({
-              ...task,
-              project_name: project.name,
-              project_id: project.id
-            });
-          });
-        }
-      });
+  // FASE 5: Método auxiliar mejorado con logging detallado
+  private extractTasksFromProjects(projects: any[]): TaskData[] {
+    console.log('🔧 FASE 5: extractTasksFromProjects iniciado');
+    
+    if (!Array.isArray(projects)) {
+      console.warn('⚠️ extractTasksFromProjects: projects no es un array válido, recibido:', typeof projects);
+      return [];
     }
-    return tasks;
+
+    const extractedTasks: TaskData[] = [];
+    
+    projects.forEach((project, index) => {
+      console.log(`🔍 Procesando proyecto ${index + 1}/${projects.length}:`, {
+        id: project?.id,
+        nombre: project?.name,
+        tieneTareas: !!project?.tasks,
+        cantidadTareas: Array.isArray(project?.tasks) ? project.tasks.length : 'No es array'
+      });
+
+      if (project?.tasks && Array.isArray(project.tasks)) {
+        project.tasks.forEach((task: any, taskIndex: number) => {
+          const taskData: TaskData = {
+            id: task.id || `generated-${Date.now()}-${taskIndex}`,
+            title: task.title || 'Sin título',
+            status: task.status || 'pending',
+            priority: task.priority || 'medium',
+            project_name: project.name || 'Sin proyecto',
+            completed_at: task.completed_at || undefined,
+            actual_duration: task.actual_duration || undefined,
+            description: task.description || undefined,
+            due_date: task.due_date || undefined,
+            created_at: task.created_at || undefined,
+          };
+          
+          extractedTasks.push(taskData);
+        });
+      }
+    });
+
+    console.log(`✅ FASE 5: extractTasksFromProjects completado:`, {
+      proyectosProcesados: projects.length,
+      tareasExtraídas: extractedTasks.length,
+      muestraTareas: extractedTasks.slice(0, 3).map(t => ({ id: t.id, title: t.title }))
+    });
+    
+    return extractedTasks;
+  }
+
+  // FASE 6: Método para generar y subir PDF (requerido por useGeneratedReports)
+  async generateAndUploadPDF(
+    reportType: 'weekly' | 'monthly',
+    userId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<PDFGenerationResult & { uploadUrl: string }> {
+    try {
+      console.log('🚀 FASE 6: generateAndUploadPDF iniciado:', { reportType, userId });
+
+      let result: PDFGenerationResult;
+      
+      if (reportType === 'monthly') {
+        result = await this.generateMonthlyReport(userId, startDate, endDate);
+      } else {
+        result = await this.generateWeeklyReport(userId, startDate, endDate);
+      }
+
+      console.log('📤 FASE 6: Subiendo PDF a storage...');
+      const uploadUrl = await this.uploadPDFToStorage(result.blob, result.filename, userId);
+      
+      console.log('✅ FASE 6: PDF generado y subido exitosamente:', {
+        archivo: result.filename,
+        url: uploadUrl
+      });
+
+      return {
+        ...result,
+        uploadUrl
+      };
+    } catch (error) {
+      console.error('❌ FASE 6: Error en generateAndUploadPDF:', error);
+      throw error;
+    }
   }
 }
 
