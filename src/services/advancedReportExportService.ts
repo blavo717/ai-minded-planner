@@ -165,7 +165,14 @@ export class AdvancedReportExportService {
           projectsCompleted: 0,
         },
         tasks: data.tasks || [],
-        projects: data.projects || [],
+        projects: (data.projects || []).map(project => ({
+          id: project.id || '',
+          name: project.name || '',
+          status: project.status || 'activo',
+          progress: project.progress || 0,
+          tasksTotal: project.totalTasks || 0,
+          tasksCompleted: project.completedTasks || 0,
+        })),
         weeklyBreakdown: [],
         trends: {
           productivityTrend: 'stable',
@@ -174,7 +181,8 @@ export class AdvancedReportExportService {
         },
       };
       
-      enrichedData = {
+      // Crear objeto extendido con análisis inteligente
+      const extendedData = {
         ...data,
         intelligentAnalysis: {
           insights: IntelligentAnalyticsService.generateIntelligentInsights(monthlyData),
@@ -184,6 +192,8 @@ export class AdvancedReportExportService {
           workPatterns: IntelligentAnalyticsService.analyzeWorkPatterns(monthlyData)
         }
       };
+      
+      enrichedData = extendedData;
     }
     
     const jsonString = JSON.stringify(enrichedData, null, 2);
