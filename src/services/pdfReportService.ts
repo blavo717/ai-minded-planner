@@ -119,12 +119,19 @@ class PDFReportService {
 
   // Crear documento usando templates profesionales
   private createDocumentFromTemplate(reportData: ReportData): React.ReactElement {
+    console.log('🔧 PDF Service - Creando documento desde template:', {
+      reportType: reportData.report_type,
+      hasMetrics: !!reportData.metrics,
+      hasReportData: !!reportData.report_data,
+      reportDataKeys: reportData.report_data ? Object.keys(reportData.report_data) : []
+    });
+
     // Mapear datos del reporte a los formatos esperados por los templates
     const mappedMetrics = {
-      tasksCompleted: reportData.metrics.tasksCompleted,
+      tasksCompleted: reportData.metrics.tasksCompleted || 0,
       tasksCreated: reportData.report_data?.tasksCreated || reportData.metrics.tasksCompleted + 5, // Estimación
-      timeWorked: reportData.metrics.timeWorked,
-      productivity: reportData.metrics.productivity,
+      timeWorked: reportData.metrics.timeWorked || 0,
+      productivity: reportData.metrics.productivity || 3,
       completionRate: reportData.report_data?.completionRate || (reportData.metrics.efficiency || 85),
       averageTaskDuration: reportData.report_data?.averageTaskDuration || 60, // 1 hora por defecto
     };
@@ -133,11 +140,12 @@ class PDFReportService {
       period_start: reportData.period_start,
       period_end: reportData.period_end,
       metrics: mappedMetrics,
-      tasks: reportData.report_data?.tasks || [],
-      insights: reportData.report_data?.insights,
+      tasks: Array.isArray(reportData.report_data?.tasks) ? reportData.report_data.tasks : [],
+      insights: reportData.report_data?.insights || null,
     };
 
     if (reportData.report_type === 'weekly') {
+      console.log('📅 Generando template semanal...');
       return React.createElement(WeeklyReportTemplate, {
         data: baseData,
         brandConfig: {
@@ -145,24 +153,44 @@ class PDFReportService {
         }
       });
     } else {
+      console.log('📅 Generando template mensual...');
+      
+      // Validar y preparar arrays de forma segura
+      const safeProjects = Array.isArray(reportData.report_data?.projects) ? reportData.report_data.projects : [];
+      const safeWeeklyBreakdown = Array.isArray(reportData.report_data?.weeklyBreakdown) ? reportData.report_data.weeklyBreakdown : [];
+      const safeTrendsImprovements = Array.isArray(reportData.report_data?.trends?.improvements) ? reportData.report_data.trends.improvements : ['Mantener el ritmo actual'];
+
+      console.log('📊 Arrays validados:', {
+        projectsLength: safeProjects.length,
+        weeklyBreakdownLength: safeWeeklyBreakdown.length,
+        improvementsLength: safeTrendsImprovements.length
+      });
+
       // Para reportes mensuales, agregar datos adicionales
       const monthlyData = {
         ...baseData,
         metrics: {
           ...mappedMetrics,
-          projectsActive: reportData.report_data?.projects?.filter((p: any) => p.status === 'in_progress').length || 0,
-          projectsCompleted: reportData.report_data?.projects?.filter((p: any) => p.status === 'completed').length || 0,
+          projectsActive: safeProjects.filter((p: any) => p?.status === 'in_progress').length,
+          projectsCompleted: safeProjects.filter((p: any) => p?.status === 'completed').length,
         },
-        projects: reportData.report_data?.projects || [],
-        weeklyBreakdown: reportData.report_data?.weeklyBreakdown || [],
-        trends: reportData.report_data?.trends || {
-          productivityTrend: 'stable' as const,
-          timeEfficiency: 0.8,
-          bestWeek: 1,
-          improvements: ['Mantener el ritmo actual'],
+        projects: safeProjects,
+        weeklyBreakdown: safeWeeklyBreakdown,
+        trends: {
+          productivityTrend: reportData.report_data?.trends?.productivityTrend || 'stable' as const,
+          timeEfficiency: reportData.report_data?.trends?.timeEfficiency || 0.8,
+          bestWeek: reportData.report_data?.trends?.bestWeek || 1,
+          improvements: safeTrendsImprovements,
         },
-        comparison: reportData.report_data?.comparison,
+        comparison: reportData.report_data?.comparison || null,
       };
+
+      console.log('📊 Datos mensuales preparados:', {
+        hasProjects: monthlyData.projects.length > 0,
+        hasWeeklyBreakdown: monthlyData.weeklyBreakdown.length > 0,
+        hasImprovements: monthlyData.trends.improvements.length > 0,
+        hasComparison: !!monthlyData.comparison
+      });
 
       return React.createElement(MonthlyReportTemplate, {
         data: monthlyData,

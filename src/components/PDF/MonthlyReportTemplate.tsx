@@ -186,12 +186,24 @@ export const MonthlyReportTemplate: React.FC<MonthlyReportTemplateProps> = ({
   // Generar semanas del período
   const weeks = eachWeekOfInterval({ start: periodStart, end: periodEnd });
   
-  // Preparar datos para tabla de proyectos
-  const projectTableData = (data.projects || []).slice(0, 8).map(project => [
-    project.name.length > 25 ? project.name.substring(0, 25) + '...' : project.name,
-    project.status === 'completed' ? 'Completado' : project.status === 'in_progress' ? 'En Progreso' : 'Pendiente',
-    `${project.progress}%`,
-    `${project.tasksCompleted}/${project.tasksTotal}`,
+  // Logging para debugging
+  console.log('📊 MonthlyReportTemplate - Datos recibidos:', {
+    hasProjects: !!data.projects,
+    projectsLength: data.projects?.length || 0,
+    hasWeeklyBreakdown: !!data.weeklyBreakdown,
+    weeklyLength: data.weeklyBreakdown?.length || 0,
+    hasTrends: !!data.trends,
+    hasImprovements: !!data.trends?.improvements,
+    improvementsLength: data.trends?.improvements?.length || 0,
+  });
+
+  // Preparar datos para tabla de proyectos con validación robusta
+  const safeProjects = Array.isArray(data.projects) ? data.projects : [];
+  const projectTableData = safeProjects.slice(0, 8).map(project => [
+    project?.name ? (project.name.length > 25 ? project.name.substring(0, 25) + '...' : project.name) : 'Sin nombre',
+    project?.status === 'completed' ? 'Completado' : project?.status === 'in_progress' ? 'En Progreso' : 'Pendiente',
+    `${project?.progress || 0}%`,
+    `${project?.tasksCompleted || 0}/${project?.tasksTotal || 0}`,
   ]);
 
   return (
@@ -284,15 +296,15 @@ export const MonthlyReportTemplate: React.FC<MonthlyReportTemplateProps> = ({
         <PDFHeader title="Análisis Semanal" />
 
         {/* Desglose semanal */}
-        {data.weeklyBreakdown && data.weeklyBreakdown.length > 0 && (
+        {Array.isArray(data.weeklyBreakdown) && data.weeklyBreakdown.length > 0 && (
           <PDFSection title="Rendimiento por Semana">
             <PDFTable
               headers={['Semana', 'Tareas', 'Horas', 'Productividad']}
               rows={data.weeklyBreakdown.map((week, index) => [
-                `Semana ${week.week}`,
-                week.tasksCompleted.toString(),
-                `${Math.round(week.timeWorked / 60)}h`,
-                `${week.productivity.toFixed(1)}/5`
+                `Semana ${week?.week || index + 1}`,
+                (week?.tasksCompleted || 0).toString(),
+                `${Math.round((week?.timeWorked || 0) / 60)}h`,
+                `${(week?.productivity || 0).toFixed(1)}/5`
               ])}
             />
           </PDFSection>
@@ -368,12 +380,12 @@ export const MonthlyReportTemplate: React.FC<MonthlyReportTemplateProps> = ({
         <PDFHeader title="Plan de Mejora" />
 
         {/* Mejoras identificadas */}
-        {data.trends?.improvements && data.trends.improvements.length > 0 && (
+        {Array.isArray(data.trends?.improvements) && data.trends.improvements.length > 0 && (
           <PDFSection title="Áreas de Mejora Identificadas">
             {data.trends.improvements.map((improvement, index) => (
               <View key={index} style={monthlyStyles.improvementItem}>
                 <View style={monthlyStyles.checkmark} />
-                <Text style={pdfTheme.body}>{improvement}</Text>
+                <Text style={pdfTheme.body}>{improvement || 'Sin descripción'}</Text>
               </View>
             ))}
           </PDFSection>
