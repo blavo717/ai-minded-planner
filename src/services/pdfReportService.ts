@@ -180,15 +180,16 @@ class PDFReportService {
         improvementsLength: safeTrendsImprovements.length
       });
 
-      // Para reportes mensuales, agregar datos adicionales
+      // Para reportes mensuales, agregar datos adicionales con validación
       const monthlyData = {
         ...baseData,
         metrics: {
           ...mappedMetrics,
-          projectsActive: safeProjects.filter((p: any) => p?.status === 'in_progress').length,
-          projectsCompleted: safeProjects.filter((p: any) => p?.status === 'completed').length,
+          projectsActive: reportData.report_data?.currentState?.activeProjects || 0,
+          projectsCompleted: reportData.report_data?.projects?.filter((p: any) => p?.status === 'completed').length || 0,
         },
         projects: safeProjects,
+        tasks: baseData.tasks, // Asegurar que tasks esté disponible
         weeklyBreakdown: safeWeeklyBreakdown,
         trends: {
           productivityTrend: reportData.report_data?.trends?.productivityTrend || 'stable' as const,
