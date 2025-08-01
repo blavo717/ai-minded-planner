@@ -342,7 +342,7 @@ export const EnhancedMonthlyReportTemplate: React.FC<EnhancedMonthlyReportTempla
                 <View style={{ flex: 1 }}>
                   <Text style={monthlyStyles.projectName}>{project.name}</Text>
                   <Text style={monthlyStyles.projectStat}>
-                    {project.completedTasks || 0} tareas • {Math.round(project.progress || 0)}% completado
+                    {project.tasksCompleted || 0} tareas • {Math.round(project.progress || 0)}% completado
                   </Text>
                 </View>
                 
