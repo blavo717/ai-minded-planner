@@ -22,7 +22,7 @@ const ReportGenerator = () => {
   const handleGenerateReport = async (type: 'weekly' | 'monthly') => {
     setGeneratingReport(type);
     try {
-      generateReport({ type });
+      generateReport(type);
     } finally {
       setGeneratingReport(null);
     }

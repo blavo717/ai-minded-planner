@@ -12,8 +12,10 @@ export const useReportGeneration = () => {
   const queryClient = useQueryClient();
 
   const generateReportMutation = useMutation({
-    mutationFn: async ({ type }: { type: 'weekly' | 'monthly' }) => {
+    mutationFn: async (type: 'weekly' | 'monthly') => {
       if (!user) throw new Error('User not authenticated');
+
+      console.log(`🔄 Generando reporte ${type} para usuario:`, user.id);
 
       const now = new Date();
       let startDate: Date;
@@ -27,18 +29,34 @@ export const useReportGeneration = () => {
         endDate = endOfMonth(subMonths(now, 1));
       }
 
+      console.log(`📅 Período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
+
       // Obtener datos para el reporte
-      const { data: tasks } = await supabase
+      const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
         .select('*')
         .eq('user_id', user.id);
 
-      const { data: sessions } = await supabase
+      if (tasksError) {
+        console.error('❌ Error obteniendo tareas:', tasksError);
+        throw tasksError;
+      }
+
+      console.log(`📋 Total tareas encontradas: ${tasks?.length || 0}`);
+
+      const { data: sessions, error: sessionsError } = await supabase
         .from('task_sessions')
         .select('*')
         .eq('user_id', user.id)
         .gte('started_at', startDate.toISOString())
         .lte('started_at', endDate.toISOString());
+
+      if (sessionsError) {
+        console.error('❌ Error obteniendo sesiones:', sessionsError);
+        throw sessionsError;
+      }
+
+      console.log(`⏱️ Total sesiones encontradas: ${sessions?.length || 0}`);
 
       const completedTasks = (tasks || []).filter(task => 
         task.status === 'completed' && 
@@ -46,6 +64,8 @@ export const useReportGeneration = () => {
         new Date(task.completed_at) >= startDate &&
         new Date(task.completed_at) <= endDate
       );
+
+      console.log(`✅ Tareas completadas en período: ${completedTasks.length}`);
 
       const totalWorkTime = (sessions || []).reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
       const avgProductivity = sessions && sessions.length > 0 
@@ -57,17 +77,34 @@ export const useReportGeneration = () => {
         ? tasksWithEstimate.reduce((sum, t) => sum + (t.estimated_duration! / Math.max(t.actual_duration!, 1)), 0) / tasksWithEstimate.length * 100
         : 100;
 
+      const projectsInPeriod = [...new Set(completedTasks.map(t => t.project_id).filter(Boolean))];
+
       const reportData = {
+        report_type: type,
         tasks: completedTasks,
         sessions: sessions || [],
+        projects: projectsInPeriod,
         period: { 
           start: startDate.toISOString(), 
           end: endDate.toISOString() 
         },
+        summary: {
+          tasksCompleted: completedTasks.length,
+          totalWorkTime,
+          avgProductivity,
+          efficiency,
+          projectsWorked: projectsInPeriod.length
+        },
         insights: [
           `Completaste ${completedTasks.length} tareas en este período`,
           `Tu productividad promedio fue de ${avgProductivity.toFixed(1)}/5`,
-          `Trabajaste un total de ${Math.round(totalWorkTime / 60)} horas`
+          `Trabajaste un total de ${Math.round(totalWorkTime / 60)} horas`,
+          `Trabajaste en ${projectsInPeriod.length} proyectos diferentes`
+        ],
+        recommendations: [
+          completedTasks.length > 10 ? 'Excelente ritmo de trabajo' : 'Considera incrementar el número de tareas completadas',
+          avgProductivity > 3 ? 'Mantén este nivel de productividad' : 'Busca optimizar tu productividad',
+          efficiency > 90 ? 'Tu estimación de tiempos es muy precisa' : 'Mejora la estimación de duración de tareas'
         ]
       };
 
@@ -77,6 +114,13 @@ export const useReportGeneration = () => {
         timeWorked: totalWorkTime,
         efficiency
       };
+
+      console.log('📊 Métricas calculadas:', metrics);
+      console.log('📄 Datos del reporte preparados:', {
+        tasksCount: reportData.tasks.length,
+        sessionsCount: reportData.sessions.length,
+        projectsCount: reportData.projects.length
+      });
 
       const { data, error } = await supabase
         .from('generated_reports')
@@ -91,7 +135,12 @@ export const useReportGeneration = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error guardando reporte:', error);
+        throw error;
+      }
+
+      console.log('✅ Reporte guardado exitosamente:', data.id);
       
       return {
         ...data,

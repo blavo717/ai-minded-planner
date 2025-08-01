@@ -66,8 +66,33 @@ export const useGeneratedReports = () => {
         },
       });
 
+      console.log('📄 Generando PDF con datos:', {
+        reportId: report.id,
+        reportType: report.report_type,
+        hasData: !!report.report_data,
+        metrics: report.metrics
+      });
+
+      // Mapear datos para el servicio PDF
+      const mappedReportData = {
+        id: report.id,
+        user_id: report.user_id,
+        report_type: report.report_type as 'weekly' | 'monthly',
+        period_start: report.period_start,
+        period_end: report.period_end,
+        report_data: report.report_data,
+        metrics: report.metrics as {
+          tasksCompleted: number;
+          productivity: number;
+          timeWorked: number;
+          efficiency: number;
+        },
+        created_at: report.created_at,
+        updated_at: report.updated_at
+      };
+
       // Generar y subir PDF
-      const pdfResult = await pdfService.generateAndUploadPDF(report as any, user.id);
+      const pdfResult = await pdfService.generateAndUploadPDF(mappedReportData, user.id);
 
       // Actualizar registro con URL del PDF
       const { error: updateError } = await supabase
