@@ -11,7 +11,6 @@ import ReportHistoryList from './ReportGenerator/ReportHistoryList';
 import AIReportGenerator from '@/components/Reports/AIReportGenerator';
 
 const ReportGenerator = () => {
-  const [generatingReport, setGeneratingReport] = useState<string | null>(null);
   const { 
     getReportHistory,
     generateReport,
@@ -25,13 +24,9 @@ const ReportGenerator = () => {
 
   const { data: reportHistory, isLoading } = getReportHistory();
 
-  const handleGenerateReport = async (type: 'weekly' | 'monthly') => {
-    setGeneratingReport(type);
-    try {
-      generateReport(type);
-    } finally {
-      setGeneratingReport(null);
-    }
+  const handleGenerateReport = (type: 'weekly' | 'monthly') => {
+    console.log(`🚀 Iniciando generación de reporte ${type}`);
+    generateReport(type);
   };
 
   const reportTypes = [
@@ -102,7 +97,7 @@ const ReportGenerator = () => {
                 bgColor={reportType.bgColor}
                 onGenerate={handleGenerateReport}
                 isGenerating={isGenerating}
-                generatingReport={generatingReport}
+                generatingReport={null}
               />
             ))}
           </div>

@@ -59,11 +59,14 @@ const ReportTypeCard = ({
           </div>
           
           <Button 
-            onClick={() => onGenerate(type)}
-            disabled={isGenerating || generatingReport === type}
+            onClick={() => {
+              console.log(`🎯 Click en botón ${type}, isGenerating: ${isGenerating}`);
+              onGenerate(type);
+            }}
+            disabled={isGenerating}
             className="w-full"
           >
-            {generatingReport === type ? (
+            {isGenerating ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                 Generando...
