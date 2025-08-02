@@ -336,6 +336,7 @@ export type Database = {
         Row: {
           created_at: string
           file_url: string | null
+          generation_type: string | null
           id: string
           metrics: Json
           period_end: string
@@ -348,6 +349,7 @@ export type Database = {
         Insert: {
           created_at?: string
           file_url?: string | null
+          generation_type?: string | null
           id?: string
           metrics?: Json
           period_end: string
@@ -360,6 +362,7 @@ export type Database = {
         Update: {
           created_at?: string
           file_url?: string | null
+          generation_type?: string | null
           id?: string
           metrics?: Json
           period_end?: string

@@ -20,7 +20,8 @@ export interface AIReportGenerationState {
 
 export const useAIReportGeneration = () => {
   const { user } = useAuth();
-  const { hasActiveConfiguration, activeModel } = useLLMService();
+  const llmService = useLLMService();
+  const { hasActiveConfiguration, activeModel } = llmService;
   const { toast } = useToast();
 
   // Estado del hook
@@ -32,7 +33,7 @@ export const useAIReportGeneration = () => {
   });
 
   // Instancias de servicios
-  const [aiReportService] = useState(() => new AIHTMLReportService());
+  const [aiReportService] = useState(() => new AIHTMLReportService(llmService));
 
   /**
    * Genera un reporte HTML usando IA
@@ -167,6 +168,7 @@ export const useAIReportGeneration = () => {
         report_type: type,
         period_start: periodStart.toISOString().split('T')[0],
         period_end: periodEnd.toISOString().split('T')[0],
+        generation_type: 'ai',
         report_data: {
           htmlContent: report.htmlContent,
           generationType: 'ai',

@@ -30,8 +30,8 @@ export interface AIHTMLReportResponse {
 export class AIHTMLReportService {
   private llmService: ReturnType<typeof useLLMService>;
 
-  constructor() {
-    this.llmService = useLLMService();
+  constructor(llmService: ReturnType<typeof useLLMService>) {
+    this.llmService = llmService;
   }
 
   /**

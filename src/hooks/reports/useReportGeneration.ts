@@ -181,7 +181,8 @@ export const useReportGeneration = () => {
       
       return {
         ...data,
-        report_type: data.report_type as 'weekly' | 'monthly'
+        report_type: data.report_type as 'weekly' | 'monthly',
+        metrics: data.metrics as GeneratedReport['metrics']
       } as GeneratedReport;
     },
     onSuccess: (report) => {

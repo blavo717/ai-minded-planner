@@ -21,6 +21,7 @@ export interface GeneratedReport {
     efficiency: number;
   };
   file_url?: string;
+  generation_type?: string;
   created_at: string;
   updated_at: string;
 }

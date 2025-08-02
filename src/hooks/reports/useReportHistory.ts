@@ -22,7 +22,8 @@ export const useReportHistory = () => {
       
       return (data || []).map(report => ({
         ...report,
-        report_type: report.report_type as 'weekly' | 'monthly'
+        report_type: report.report_type as 'weekly' | 'monthly',
+        metrics: report.metrics as GeneratedReport['metrics']
       })) as GeneratedReport[];
     },
     enabled: !!user,
