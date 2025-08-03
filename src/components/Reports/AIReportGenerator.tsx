@@ -42,6 +42,12 @@ const AIReportGenerator: React.FC<AIReportGeneratorProps> = ({ className }) => {
   });
 
   const handleGenerateReport = async () => {
+    console.log('🎯 Click en botón Reportes IA:', {
+      hasActiveConfiguration,
+      isGenerating,
+      selectedType
+    });
+
     if (!hasActiveConfiguration) {
       toast({
         title: "Configuración requerida",

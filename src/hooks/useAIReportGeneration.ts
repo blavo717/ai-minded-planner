@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface AIReportGenerationState {
   isGenerating: boolean;
-  hasActiveConfiguration: boolean;
   lastGeneratedReport: AIHTMLReportResponse | null;
   error: string | null;
 }
@@ -27,7 +26,6 @@ export const useAIReportGeneration = () => {
   // Estado del hook
   const [state, setState] = useState<AIReportGenerationState>({
     isGenerating: false,
-    hasActiveConfiguration: false,
     lastGeneratedReport: null,
     error: null
   });
@@ -46,8 +44,7 @@ export const useAIReportGeneration = () => {
     setState(prev => ({ 
       ...prev, 
       isGenerating: true, 
-      error: null,
-      hasActiveConfiguration 
+      error: null
     }));
 
     try {
@@ -76,8 +73,7 @@ export const useAIReportGeneration = () => {
         setState(prev => ({
           ...prev,
           isGenerating: false,
-          lastGeneratedReport: result,
-          hasActiveConfiguration
+          lastGeneratedReport: result
         }));
 
         console.log('✅ Reporte IA generado exitosamente:', {
@@ -103,8 +99,7 @@ export const useAIReportGeneration = () => {
         setState(prev => ({
           ...prev,
           isGenerating: false,
-          lastGeneratedReport: fallbackResult,
-          hasActiveConfiguration
+          lastGeneratedReport: fallbackResult
         }));
 
         toast({
@@ -124,8 +119,7 @@ export const useAIReportGeneration = () => {
       setState(prev => ({
         ...prev,
         isGenerating: false,
-        error: error.message,
-        hasActiveConfiguration
+        error: error.message
       }));
 
       throw error;
@@ -228,11 +222,10 @@ export const useAIReportGeneration = () => {
   const clearState = useCallback(() => {
     setState({
       isGenerating: false,
-      hasActiveConfiguration,
       lastGeneratedReport: null,
       error: null
     });
-  }, [hasActiveConfiguration]);
+  }, []);
 
   /**
    * Exporta el reporte a PDF (funcionalidad futura)
@@ -247,7 +240,7 @@ export const useAIReportGeneration = () => {
   return {
     // Estado
     isGenerating: state.isGenerating,
-    hasActiveConfiguration: state.hasActiveConfiguration,
+    hasActiveConfiguration, // Usar directamente del useLLMService
     lastGeneratedReport: state.lastGeneratedReport,
     error: state.error,
     activeModel,
