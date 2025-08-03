@@ -67,30 +67,30 @@ export const useAIReportGeneration = () => {
       });
 
       // 2. Generar reporte HTML con IA
-      const result = await aiReportService.generateHTMLReport(reportData, config);
-
-      if (result.success) {
-        setState(prev => ({
-          ...prev,
-          isGenerating: false,
-          lastGeneratedReport: result
-        }));
-
-        console.log('✅ Reporte IA generado exitosamente:', {
-          tamaño: result.htmlContent.length,
-          tiempo: result.metadata?.generationTime,
-          modelo: result.metadata?.modelUsed
+      let result;
+      
+      try {
+        result = await aiReportService.generateHTMLReport(reportData, config);
+        console.log('🤖 Respuesta del servicio IA:', {
+          success: result.success,
+          hasContent: !!result.htmlContent,
+          error: result.error
         });
-      } else {
-        // Si falla la IA, generar reporte de fallback
-        console.warn('⚠️ IA falló, generando reporte de fallback...');
+      } catch (aiError) {
+        console.warn('⚠️ Error en servicio IA, usando fallback:', aiError);
+        result = { success: false, error: aiError.message };
+      }
+
+      // Siempre generar fallback si la IA falla o no hay contenido
+      if (!result.success || !result.htmlContent) {
+        console.warn('⚠️ Generando reporte de fallback...');
         
         const fallbackHTML = aiReportService.generateFallbackHTML(reportData);
         const fallbackResult: AIHTMLReportResponse = {
           htmlContent: fallbackHTML,
           success: true,
           metadata: {
-            generationTime: Date.now() - Date.now(),
+            generationTime: 0,
             modelUsed: 'fallback',
             tokensUsed: 0
           }
@@ -102,14 +102,25 @@ export const useAIReportGeneration = () => {
           lastGeneratedReport: fallbackResult
         }));
 
-        toast({
-          title: "Reporte generado con template básico",
-          description: "La IA no está disponible, se generó un reporte con plantilla estándar.",
-          variant: "default",
+        console.log('✅ Reporte de fallback generado:', {
+          tamaño: fallbackResult.htmlContent.length
         });
 
         return fallbackResult;
       }
+
+      // Si la IA funcionó correctamente
+      setState(prev => ({
+        ...prev,
+        isGenerating: false,
+        lastGeneratedReport: result
+      }));
+
+      console.log('✅ Reporte IA generado exitosamente:', {
+        tamaño: result.htmlContent.length,
+        tiempo: result.metadata?.generationTime,
+        modelo: result.metadata?.modelUsed
+      });
 
       return result;
 

@@ -63,14 +63,31 @@ const AIReportGenerator: React.FC<AIReportGeneratorProps> = ({ className }) => {
 
       const result = await generateAIReport(config);
 
-      if (result.success) {
-        toast({
-          title: "Reporte generado exitosamente",
-          description: `Reporte ${selectedType} generado con IA en ${Math.round(result.metadata?.generationTime || 0)}ms`,
-        });
+      console.log('📊 Resultado de generación:', {
+        success: result.success,
+        hasContent: !!result.htmlContent,
+        metadataModel: result.metadata?.modelUsed
+      });
+
+      // Activar preview automáticamente cuando hay contenido
+      if (result.htmlContent) {
+        console.log('✅ Activando preview automáticamente');
         setShowPreview(true);
+        
+        const toastTitle = result.metadata?.modelUsed === 'fallback' 
+          ? "Reporte generado con template básico"
+          : "Reporte generado exitosamente";
+          
+        const toastDescription = result.metadata?.modelUsed === 'fallback'
+          ? "La IA no está disponible, se generó un reporte con plantilla estándar."
+          : `Reporte ${selectedType} generado con IA en ${Math.round(result.metadata?.generationTime || 0)}ms`;
+
+        toast({
+          title: toastTitle,
+          description: toastDescription,
+        });
       } else {
-        throw new Error(result.error || 'Error desconocido');
+        throw new Error(result.error || 'No se generó contenido HTML');
       }
 
     } catch (error: any) {
